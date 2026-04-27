@@ -768,11 +768,54 @@ final class MapViewModel {
 
     // MARK: - Phase 4: Dominant land
 
+    /// Returns the dominant themed land among the visible annotations, or nil when
+    /// the viewport spans too many lands to make a confident determination.
+    ///
+    /// ── Spatial pre-filter ────────────────────────────────────────────────────
+    ///
+    ///   When the user is zoomed in (`isZoomed == true`) and a camera region is
+    ///   known (`lastKnownRegion`), the annotation set is first clipped to ±60 %
+    ///   of the current viewport span around the camera center. This prevents the
+    ///   land that simply has the most rides park-wide (Fantasyland at MK, World
+    ///   Showcase at EPCOT) from dominating the label when the user has panned to
+    ///   a different area.
+    ///
+    ///   Without this filter the `visible` array is the full park-wide pipeline
+    ///   output — it is NOT limited to what the camera currently shows.
+    ///
+    /// ── Tie-breaking ─────────────────────────────────────────────────────────
+    ///
+    ///   The top land must have strictly more rides than every other land in the
+    ///   viewport. Ties return nil so the label disappears rather than flicker.
     func dominantLand(among annotations: [RideAnnotation]) -> String? {
-        guard annotations.count >= 2 else { return nil }
-        let counts = Dictionary(grouping: annotations, by: \.land).mapValues(\.count)
+        // ── Spatial pre-filter (viewport-based when zoomed) ─────────────────
+        let candidates: [RideAnnotation]
+        if isZoomed, let region = lastKnownRegion {
+            // Use 60 % of the region span to bias toward the map center and
+            // exclude rides that are just barely peeking into the frame edges.
+            let halfLat = region.span.latitudeDelta  * 0.60
+            let halfLon = region.span.longitudeDelta * 0.60
+            let center  = region.center
+            candidates = annotations.filter {
+                abs($0.coordinate.latitude  - center.latitude)  <= halfLat &&
+                abs($0.coordinate.longitude - center.longitude) <= halfLon
+            }
+        } else {
+            candidates = annotations
+        }
+
+        guard candidates.count >= 2 else { return nil }
+
+        let counts = Dictionary(grouping: candidates, by: \.land).mapValues(\.count)
         guard let (topLand, topCount) = counts.max(by: { $0.value < $1.value }) else { return nil }
         let otherMax = counts.filter { $0.key != topLand }.values.max() ?? 0
+
+#if DEBUG
+        let sorted = counts.sorted { $0.value > $1.value }
+            .map { "\($0.key):\($0.value)" }.joined(separator: " · ")
+        print("🗺 dominantLand: viewport=\(candidates.count)/\(annotations.count)  [\(sorted)]  → \(topCount > otherMax ? topLand : "nil (tie)")")
+#endif
+
         guard topCount > otherMax else { return nil }
         return topLand
     }
@@ -910,8 +953,66 @@ final class MapViewModel {
     // MARK: - Private helpers
 
     private func loadAnnotations() {
-        annotations = coordinateService.annotations(for: parkId)
+        let loaded = coordinateService.annotations(for: parkId)
+        annotations = loaded
         stableOutputCache = StableOutputCache()
+
+#if DEBUG
+        // ── Load-time diagnostic: pinpoints exactly where the annotation pipeline
+        //    breaks down so the cause of "zero pins" is visible without attaching
+        //    Instruments. Runs every time the park changes or the view first appears.
+        let masterRides       = RideMasterData.all.filter { $0.parkId == parkId }
+        let mapEligible       = masterRides.filter { $0.shouldAppearOnMap }
+        let loadedIDs         = Set(loaded.map(\.id))
+        let missingFromJSON   = mapEligible.filter { !loadedIDs.contains($0.stableID) }
+        let extraInJSON       = loaded.filter { ann in
+            !masterRides.contains { $0.stableID == ann.id }
+        }
+
+        print("""
+        ┌─ 🗺  loadAnnotations() [\(parkId)] ──────────────────────────────
+        │  Master rides (all types):      \(masterRides.count)
+        │  Marked shouldAppearOnMap:      \(mapEligible.count)
+        │  Coordinates loaded from JSON:  \(loaded.count)
+        │  shouldAppearOnMap but MISSING: \(missingFromJSON.count)
+        │  In JSON but NOT in master:     \(extraInJSON.count)
+        └──────────────────────────────────────────────────────────────────
+        """)
+
+        // First 5 master stableIDs (map-eligible only)
+        let masterSample = mapEligible.prefix(5).map(\.stableID)
+        if !masterSample.isEmpty {
+            print("  ↳ First 5 master stableIDs:")
+            masterSample.forEach { print("      \($0)") }
+        }
+
+        // First 5 coordinate IDs from JSON
+        let coordSample = loaded.prefix(5).map(\.id)
+        if !coordSample.isEmpty {
+            print("  ↳ First 5 coordinate IDs:")
+            coordSample.forEach { print("      \($0)") }
+        }
+
+        // Rides marked shouldAppearOnMap but without a JSON entry
+        if !missingFromJSON.isEmpty {
+            print("  ↳ ⚠︎ shouldAppearOnMap but no coordinate (\(missingFromJSON.count)):")
+            missingFromJSON.forEach { print("      \($0.stableID)") }
+        }
+
+        // JSON entries whose id doesn't match any master stableID (stale data / typo)
+        if !extraInJSON.isEmpty {
+            print("  ↳ ⚠︎ In JSON but missing from RideMasterData (\(extraInJSON.count)):")
+            extraInJSON.forEach { print("      \($0.id)  [\($0.rideName)]") }
+        }
+
+        if loaded.isEmpty {
+            print("  ↳ 🚨 ZERO annotations loaded — verify MapCoordinates.json decodes correctly")
+            print("      Common causes:")
+            print("        1. Top-level '_comment' or other non-park keys break a singleValueContainer decode")
+            print("        2. A new field added to MapRideAnnotation is non-optional and missing from JSON")
+            print("        3. The JSON file was not added to the target's bundle resources")
+        }
+#endif
     }
 
     private func enrich(annotation: MapRideAnnotation) -> EnrichedMarkerWithSelection {
@@ -965,6 +1066,13 @@ final class MapViewModel {
         // the canonical ride as "Soarin' Around the World".
         if normalized.hasPrefix("soarin ") || normalized == "soarin" {
             keys.insert("soarin")
+        }
+
+        // Alias lookup — covers renamed/rebranded rides (e.g. Rock 'n' Roller Coaster
+        // Aerosmith → Muppets) and alternate API names for the same attraction.
+        // Aliases are sourced from RideMasterData and normalized once here.
+        for alias in RideMasterData.matchingAliases(forName: name) {
+            keys.insert(WaitTimeViewModel.normalizedForMatching(alias))
         }
 
         return keys

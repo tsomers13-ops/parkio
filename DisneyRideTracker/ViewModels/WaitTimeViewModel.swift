@@ -26,6 +26,12 @@
 //                              reconnect. Guarded identically to pollingTask so only
 //                              one copy ever runs. Stopped on background, restarted
 //                              on foreground, and cancelled on deinit.
+//
+// Fast lookup index (normalizedLiveIndex):
+//   Maintained in sync with liveRides. Rebuilt once per liveRides assignment
+//   via rebuildLiveIndex(). Keys are pre-normalized names (normalizedForMatching).
+//   Provides O(1) exact lookups for fastLiveState(for:), eliminating the O(N×2M)
+//   per-render cost that previously came from calling liveState(matching:) in loops.
 
 import SwiftUI
 import SwiftData
@@ -114,7 +120,32 @@ final class WaitTimeViewModel {
 
     // ── Live ride states (read from SwiftData cache) ──────────────────────────
     /// All cached rides for the active park — refreshed after every write.
-    private(set) var liveRides: [LiveRideState] = []
+    private(set) var liveRides: [LiveRideState] = [] {
+        didSet { rebuildLiveIndex() }
+    }
+
+    // ── Fast lookup index ─────────────────────────────────────────────────────
+    //
+    // Rebuilt in rebuildLiveIndex() every time liveRides is set (didSet).
+    // normalizedLiveIndex is a tracked @Observable property so views that
+    // call fastLiveState(for:) automatically re-render when new data arrives.
+    // liveNormPairs is @ObservationIgnored because it updates in lockstep with
+    // normalizedLiveIndex — we only need one tracked signal per rebuild.
+    //
+    // Cost model:
+    //   rebuildLiveIndex() — O(M) normalizations, runs once per liveRides change.
+    //   fastLiveState(for:) — O(1) exact + rare O(M) substring (pre-normalized).
+    //   Previously liveState(matching:) paid O(2M) normalizations per ride call.
+
+    /// normalized-name → LiveRideState.  Tracked; reading it in body registers
+    /// a dependency so views refresh when the index is rebuilt after a fetch.
+    private(set) var normalizedLiveIndex: [String: LiveRideState] = [:]
+
+    /// Pre-normalized (key, state) pairs for the substring-containment fallback.
+    /// @ObservationIgnored — always rebuilt together with normalizedLiveIndex;
+    /// no separate tracking signal needed.
+    @ObservationIgnored
+    private var liveNormPairs: [(key: String, state: LiveRideState)] = []
 
     // ── Active park ───────────────────────────────────────────────────────────
     /// The park currently displayed. Setting this triggers a cache read and
@@ -361,6 +392,7 @@ final class WaitTimeViewModel {
             fetchPhase[parkId] = .success(fetchedAt: Date())
 
             // Assign the background-built snapshot directly — no second read needed.
+            // didSet on liveRides will call rebuildLiveIndex() automatically.
             if parkId == activeParkId {
                 liveRides = states
             }
@@ -390,10 +422,12 @@ final class WaitTimeViewModel {
         )
 
         guard let cached = try? context.fetch(descriptor) else {
+            // Assignment triggers didSet → rebuildLiveIndex()
             liveRides = []
             return
         }
 
+        // Assignment triggers didSet → rebuildLiveIndex()
         liveRides = cached.map { entry in
             LiveRideState(
                 id:                     entry.rideId,
@@ -412,17 +446,78 @@ final class WaitTimeViewModel {
         }
     }
 
+    // MARK: - Fast live-index rebuild
+
+    /// Rebuilds normalizedLiveIndex and liveNormPairs from the current liveRides array.
+    ///
+    /// Called via liveRides.didSet — i.e., exactly once per liveRides assignment,
+    /// never during view body evaluation.  Cost: O(M) normalizations where M is
+    /// the number of live states, amortized across all renders until the next fetch.
+    private func rebuildLiveIndex() {
+        var exact = [String: LiveRideState](minimumCapacity: liveRides.count)
+        var pairs = [(key: String, state: LiveRideState)]()
+        pairs.reserveCapacity(liveRides.count)
+
+        for state in liveRides {
+            let key = Self.normalizedForMatching(state.name)
+            exact[key] = state
+            pairs.append((key, state))
+        }
+
+        normalizedLiveIndex = exact   // tracked — notifies observers
+        liveNormPairs       = pairs   // @ObservationIgnored — in sync with index
+    }
+
+    // MARK: - Lookup API
+
+    /// O(1) exact name lookup + rare O(M) substring fallback.
+    ///
+    /// Normalizes ride.name once, then checks normalizedLiveIndex.
+    /// Falls back to liveNormPairs for the substring-containment case
+    /// (e.g. "Indiana Jones Adventure" ⊂ "Indiana Jones™ Adventure: Temple of…").
+    ///
+    /// Callers in body that use this function register normalizedLiveIndex as a
+    /// dependency, so the view automatically re-renders after each fetch.
+    /// Use this in preference to liveState(matching:) inside any render-time loop.
+    func fastLiveState(for ride: Ride) -> LiveRideState? {
+        let target = Self.normalizedForMatching(ride.name)
+        if let hit = normalizedLiveIndex[target] { return hit }
+        // Alias lookup — O(1) exact check per alias before substring fallback.
+        // Covers renamed/rebranded rides (e.g. Rock 'n' Roller Coaster Aerosmith → Muppets)
+        // and alternate API names. Aliases are sourced from RideMasterData.
+        for alias in RideMasterData.matchingAliases(forName: ride.name) {
+            let aliasKey = Self.normalizedForMatching(alias)
+            if let hit = normalizedLiveIndex[aliasKey] { return hit }
+        }
+        // Substring fallback — keys in liveNormPairs are already normalized,
+        // so no additional normalizedForMatching() calls needed here.
+        return liveNormPairs.first(where: {
+            $0.key.contains(target) || target.contains($0.key)
+        })?.state
+    }
+
     /// Lookup live state for a local Ride by matching the backend's display name.
     ///
     /// Uses a two-pass approach:
     ///   1. Normalized exact match (strips ™ ® curly quotes punctuation — handles
     ///      ThemeParks.wiki quirks like "Indiana Jones™ Adventure: Temple of the Forbidden Eye")
     ///   2. Substring containment fallback (handles long API names that contain the seeder name)
+    ///
+    /// NOTE: This method runs O(2M) normalizations per call — it is correct but
+    /// expensive inside loops.  Prefer fastLiveState(for:) in render-time loops.
     func liveState(matching ride: Ride) -> LiveRideState? {
         let target = Self.normalizedForMatching(ride.name)
         // Pass 1: exact normalized match
         if let hit = liveRides.first(where: { Self.normalizedForMatching($0.name) == target }) {
             return hit
+        }
+        // Pass 1b: alias exact match — handles renamed/rebranded rides without
+        // widening to substring (e.g. Rock 'n' Roller Coaster Aerosmith → Muppets).
+        for alias in RideMasterData.matchingAliases(forName: ride.name) {
+            let aliasKey = Self.normalizedForMatching(alias)
+            if let hit = liveRides.first(where: { Self.normalizedForMatching($0.name) == aliasKey }) {
+                return hit
+            }
         }
         // Pass 2: substring (e.g. "Indiana Jones Adventure" ⊂ "Indiana Jones™ Adventure: ...")
         return liveRides.first(where: {
@@ -437,9 +532,11 @@ final class WaitTimeViewModel {
     /// • collapses curly/smart quotes → straight apostrophe
     /// • removes terminal punctuation (!, ~)
     /// • strips separator characters that vary between sources:
-    ///     - ":" removed  (e.g. "Guardians of the Galaxy: Cosmic Rewind" → "Guardians of the Galaxy Cosmic Rewind")
-    ///     - "-" → space  (e.g. API "Under the Sea - Journey…" matches JSON "Under the Sea ~ Journey…")
-    ///     - "/" → space  (e.g. "TRON Lightcycle / Run" → "TRON Lightcycle  Run" → collapsed)
+    ///     - ":" removed      (e.g. "Guardians of the Galaxy: Cosmic Rewind" → "Guardians of the Galaxy Cosmic Rewind")
+    ///     - "–" → space      U+2013 EN DASH  (e.g. static "Under the Sea – Journey…" matches API "Under the Sea - Journey…")
+    ///     - "—" → space      U+2014 EM DASH
+    ///     - "-" → space      U+002D HYPHEN-MINUS
+    ///     - "/" → space      (e.g. "TRON Lightcycle / Run" → collapsed)
     /// • collapses whitespace
     static func normalizedForMatching(_ s: String) -> String {
         s
@@ -452,6 +549,8 @@ final class WaitTimeViewModel {
             .replacingOccurrences(of: "!", with: "")
             .replacingOccurrences(of: "~", with: "")
             .replacingOccurrences(of: ":", with: "")
+            .replacingOccurrences(of: "\u{2013}", with: " ") // EN DASH — must precede hyphen-minus line
+            .replacingOccurrences(of: "\u{2014}", with: " ") // EM DASH
             .replacingOccurrences(of: "-", with: " ")
             .replacingOccurrences(of: "/", with: " ")
             .components(separatedBy: .whitespaces)
@@ -471,6 +570,7 @@ final class WaitTimeViewModel {
     }
 
     private func markCacheStale(parkId: String) {
+        // Assignment triggers didSet → rebuildLiveIndex()
         liveRides = liveRides.map { state in
             guard state.parkId == parkId else { return state }
             return LiveRideState(

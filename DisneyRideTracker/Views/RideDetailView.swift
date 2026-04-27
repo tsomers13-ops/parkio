@@ -1,4 +1,4 @@
-// RideDetailView.swift — Ride detail sheet (Phase 2 design system)
+// RideDetailView.swift — Attraction detail sheet (Phase 2 design system)
 
 import SwiftUI
 import SwiftData
@@ -14,6 +14,40 @@ struct RideDetailView: View {
     /// Accent colour derived from the ride's park — no external injection needed.
     private var accentColor: Color {
         Park(rawValue: ride.park)?.accentColor ?? AppColor.brandPrimary
+    }
+
+    // MARK: - Type helpers
+
+    /// The semantic type of this attraction, resolved from master data.
+    private var attractionType: AttractionType {
+        RideMasterData.typeByStableID[ride.id] ?? .ride
+    }
+
+    /// Navigation bar title — reflects the kind of attraction.
+    private var detailTitle: String {
+        switch attractionType {
+        case .characterMeet:           return "Character Experience"
+        case .show, .walkthrough:      return "Show"
+        case .ride, .transport, .future: return "Ride"
+        }
+    }
+
+    /// Past-tense action word used in the hero badge and section headers.
+    /// Rides: "Ridden" · Shows & Characters: "Visited"
+    private var visitedVerb: String {
+        switch attractionType {
+        case .ride, .transport, .future: return "Ridden"
+        default:                         return "Visited"
+        }
+    }
+
+    /// Section header for the date-logging section.
+    private var logSectionTitle: String {
+        switch attractionType {
+        case .characterMeet:           return "Log a character visit"
+        case .show, .walkthrough:      return "Log a show visit"
+        case .ride, .transport, .future: return "Log a ride date"
+        }
     }
 
     var body: some View {
@@ -35,7 +69,9 @@ struct RideDetailView: View {
                             HStack(spacing: AppSpacing.sm) {
                                 Image(systemName: ride.isRidden ? "checkmark.circle.fill" : "circle")
                                     .foregroundStyle(ride.isRidden ? AppColor.success : AppColor.textTertiary)
-                                Text(ride.isRidden ? "Ridden \(ride.rideCount)×" : "Not yet ridden")
+                                Text(ride.isRidden
+                                     ? "\(visitedVerb) \(ride.rideCount)×"
+                                     : "Not yet \(visitedVerb.lowercased())")
                                     .font(.callout)
                                     .foregroundStyle(AppColor.textSecondary)
                             }
@@ -45,8 +81,8 @@ struct RideDetailView: View {
                     }
                     .listRowBackground(AppColor.card)
 
-                    // ── Log a ride date ───────────────────────────
-                    Section("Log a ride date") {
+                    // ── Log a visit ──────────────────────────────
+                    Section(logSectionTitle) {
                         DatePicker(
                             "Date",
                             selection: $selectedDate,
@@ -101,7 +137,7 @@ struct RideDetailView: View {
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Ride")
+            .navigationTitle(detailTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -113,7 +149,9 @@ struct RideDetailView: View {
                         Image(systemName: ride.isRidden ? "checkmark.circle.fill" : "circle")
                     }
                     .tint(accentColor)
-                    .accessibilityLabel(ride.isRidden ? "Mark unridden" : "Mark ridden (today)")
+                    .accessibilityLabel(ride.isRidden
+                                        ? "Mark as not \(visitedVerb.lowercased())"
+                                        : "Mark \(visitedVerb.lowercased()) today")
                 }
             }
         }

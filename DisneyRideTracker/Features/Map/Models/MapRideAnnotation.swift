@@ -26,13 +26,18 @@ struct MapRideAnnotation: Identifiable, Decodable {
     /// Category hint for icon selection.
     let category: RideCategory
 
+    /// ThemeParks.wiki attraction entity UUID, e.g. "fe75b6ef-07b3-4d4f-b3d0-3498e1b88a23".
+    /// `nil` until populated via GET /entity/{park.themeparksEntityId}/live.
+    /// Used for direct ID-first wait-time lookup and coordinate verification.
+    let entityId: String?
+
     /// Convenience CLLocationCoordinate2D for MapKit.
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, rideName, land, parkId, category
+        case id, rideName, land, parkId, category, entityId
         case latitude  = "lat"
         case longitude = "lon"
     }
@@ -47,19 +52,21 @@ enum RideCategory: String, Decodable, CaseIterable {
     case darkRide      = "dark_ride"
     case waterRide     = "water_ride"
     case show          = "show"
+    case characterMeet = "character_meet"
     case transport     = "transport"
     case unknown       = "unknown"
 
     var systemImage: String {
         switch self {
-        case .thrill:     return "bolt.fill"
-        case .family:     return "star.fill"
-        case .kiddie:     return "figure.and.child.holdinghands"
-        case .darkRide:   return "moon.fill"
-        case .waterRide:  return "drop.fill"
-        case .show:       return "theatermasks.fill"
-        case .transport:  return "tram.fill"
-        case .unknown:    return "mappin.fill"
+        case .thrill:         return "bolt.fill"
+        case .family:         return "star.fill"
+        case .kiddie:         return "figure.and.child.holdinghands"
+        case .darkRide:       return "moon.fill"
+        case .waterRide:      return "drop.fill"
+        case .show:           return "theatermasks.fill"
+        case .characterMeet:  return "person.fill.checkmark"
+        case .transport:      return "tram.fill"
+        case .unknown:        return "mappin.fill"
         }
     }
 }
@@ -142,8 +149,10 @@ extension MapRideAnnotation {
         lon: Double = -81.5812,
         parkId: String = "magic-kingdom",
         land: String = "Test Land",
-        category: RideCategory = .family
+        category: RideCategory = .family,
+        entityId: String? = nil
     ) -> MapRideAnnotation {
+        let entityIdJSON = entityId.map { "\"\($0)\"" } ?? "null"
         let json = """
         {
             "id": "\(id)",
@@ -152,7 +161,8 @@ extension MapRideAnnotation {
             "parkId": "\(parkId)",
             "lat": \(lat),
             "lon": \(lon),
-            "category": "\(category.rawValue)"
+            "category": "\(category.rawValue)",
+            "entityId": \(entityIdJSON)
         }
         """.data(using: .utf8)!
         return try! JSONDecoder().decode(MapRideAnnotation.self, from: json)

@@ -44,7 +44,7 @@ struct ContentView: View {
                 .tag(1)
 
             // ── 2: My Day ─────────────────────────────────────────────
-            MyDayView()
+            MyDayView(selectedPark: $selectedPark)
                 .tabItem {
                     Label("My Day", systemImage: "list.bullet.clipboard.fill")
                 }

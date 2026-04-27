@@ -52,6 +52,13 @@ struct RealMapScreen: View {
     @State private var legendVisible:    Bool = false
     @State private var filterBarVisible: Bool = false
 
+    // ── Map readiness gate ────────────────────────────────────────────────────
+    // Set to true when the GeometryReader / ZStack layer fires onAppear, meaning
+    // the MapKit Map view is in the hierarchy and ready to accept camera changes.
+    // Reset to false in onDisappear so the gate re-arms whenever the user
+    // leaves and returns to the Map tab.
+    @State private var isMapReady: Bool = false
+
 #if DEBUG
     @State private var showDebugPanel: Bool = false
 #endif
@@ -110,23 +117,34 @@ struct RealMapScreen: View {
                 mapLayer(vm: vm, visible: visible, safeIds: safeIds)
                     .ignoresSafeArea(edges: .all)
 
-                // ── 2. HUD (bottom-anchored: filter bar → legend) ────────────────
-                hudLayer(geo: geo)
-
-                // ── 3. Nearby ride tray (when no ride selected) ──────────────────
+                // ── 2. Nearby ride tray (when no ride selected) ─────────────────
                 nearbyTrayLayer(geo: geo)
 
-                // ── 4. Walk guidance card (when ride selected + within 400 m) ────
+                // ── 3. Walk guidance card (when ride selected + within 400 m) ────
                 walkGuidanceLayer(geo: geo)
 
-                // ── 5. Land label (top-center, when zoomed) ──────────────────────
+                // ── 4. Land label (top-center, when zoomed) ──────────────────────
                 landLabelLayer(geo: geo, visible: visible)
 
-                // ── 6. Top-right map controls (best-next ride + location) ─────────
+                // ── 5. Top-right map controls (best-next ride + location) ─────────
                 topRightMapControlsLayer(geo: geo)
 
-                // ── 7. Corner controls (compass + distance + location) ────────────
+                // ── 6. Corner controls (compass + distance + location) ────────────
                 controlsOverlay
+            }
+            // ── 7. HUD — floats above tab bar via overlay(alignment: .bottom) ────
+            //
+            // Placed as an overlay on the ZStack (not inside it) so it anchors to
+            // the ZStack's rendered bounds rather than competing with the
+            // map layer's .ignoresSafeArea expansion.
+            //
+            // padding(.bottom, geo.safeAreaInsets.bottom + 80):
+            //   geo.safeAreaInsets.bottom  — home-indicator clearance (~34 pt Face ID,
+            //                                0 pt Home-button devices)
+            //   + 80 pt                    — clears tab bar (49 pt) + visual gap
+            //                                without hardcoding the bar height directly.
+            .overlay(alignment: .bottom) {
+                hudLayer(geo: geo)
             }
             .onAppear {
                 currentViewportWidth = geo.size.width
@@ -136,6 +154,10 @@ struct RealMapScreen: View {
                 currentLatDelta  = MapViewModel.defaultSpan(for: mapVM.parkId)
                 legendVisible    = showLegend
                 filterBarVisible = showFilterBar
+                // Mark the map as ready. This is the earliest point at which the
+                // MapKit Map view is in the layout tree and can safely accept
+                // programmatic camera changes and ride selection.
+                isMapReady = true
             }
             .onChange(of: geo.size.width) { _, w in currentViewportWidth = w }
             .onChange(of: showLegend) { _, newValue in
@@ -164,12 +186,33 @@ struct RealMapScreen: View {
         }
         .onDisappear {
             locationService.stopUpdating()
+            // Re-arm the readiness gate so that if the user returns to the Map tab
+            // with a pending ride, the gate fires onChange again rather than
+            // silently staying true and never triggering a retry.
+            isMapReady = false
         }
         .onChange(of: myDayStore.items) { _, _ in
             syncPlannedRides()
         }
         .onChange(of: coordinator.pendingMapRideId) { _, rideId in
             guard rideId != nil else { return }
+            handlePendingRideIfNeeded()
+        }
+        // Retry when the map becomes ready (inner onAppear has fired and the MapKit
+        // Map view is in the hierarchy). This is the primary trigger for the
+        // Home → Show on Map path: pendingMapRideId is set before the tab switch,
+        // so onChange(pendingMapRideId) fires before the map is ready; this
+        // onChange fires once isMapReady flips true and retries the selection.
+        .onChange(of: isMapReady) { _, ready in
+            guard ready else { return }
+            handlePendingRideIfNeeded()
+        }
+        // Retry when the annotation list is (re)populated — covers the case where
+        // MapTabView lazily creates MapViewModel after isMapReady is already true,
+        // so annotations arrive after both the map-ready and pendingMapRideId
+        // triggers have already fired without finding the annotation.
+        .onChange(of: mapVM.annotations.count) { _, count in
+            guard count > 0 else { return }
             handlePendingRideIfNeeded()
         }
         .onChange(of: mapVM.parkId) { _, newParkId in
@@ -198,23 +241,80 @@ struct RealMapScreen: View {
         mapVM.updatePlannedRideIds(ids)
     }
 
-    // MARK: - Map navigation handoff (from My Day "Show on Map")
+    // MARK: - Map navigation handoff (from Home / My Day "Show on Map")
+    //
+    // Called from three sites:
+    //   • onAppear          — covers tab re-activation and first appearance
+    //   • onChange(pendingMapRideId) — covers the common case where the map is
+    //                          already visible and only the ride changes
+    //   • onChange(annotations.count) — covers the race where MapTabView lazily
+    //                          creates MapViewModel *after* pendingMapRideId is set,
+    //                          so annotations arrive one render cycle too late for
+    //                          the first two triggers to succeed
+    //
+    // ── Why pendingMapRideId is NOT cleared at the top ────────────────────────
+    //
+    //   The original code cleared pendingMapRideId unconditionally on entry, then
+    //   searched for the annotation.  If annotations were empty (lazy init race)
+    //   centerOn never ran, the ID was gone, and no retry was possible — causing
+    //   the "first tap does nothing, second tap works" bug.
+    //
+    //   Fix: the ID is only consumed *after* the annotation is confirmed present.
+    //   Every retry site that calls this function checks the guard at the top; if
+    //   the annotation still isn't ready it simply returns and waits for the next
+    //   trigger.  Once it succeeds the ID is cleared so no second selection fires.
 
     private func handlePendingRideIfNeeded() {
+        // ── Gate 1: nothing pending ───────────────────────────────────────────
         guard let rideId = coordinator.pendingMapRideId else { return }
-        coordinator.pendingMapRideId = nil
 
-        mapVM.selectRide(rideId)
+#if DEBUG
+        print("🗺 [pending] received rideId=\(rideId)  isMapReady=\(isMapReady)  annotations=\(mapVM.annotations.count)")
+#endif
 
-        if let ann = mapVM.annotations.first(where: { $0.id == rideId }) {
-            mapVM.centerOn(annotation: ann)
+        // ── Gate 2: map not ready yet ─────────────────────────────────────────
+        // The inner onAppear (ZStack/GeometryReader layer) has not fired yet —
+        // the MapKit Map view is not in the layout tree. Leave the pending ID in
+        // place; onChange(isMapReady) will retry once the map layer appears.
+        guard isMapReady else {
+#if DEBUG
+            print("🗺 [pending] map not ready — will retry when isMapReady fires")
+#endif
+            return
         }
 
+        // ── Gate 3: annotation not loaded yet ────────────────────────────────
+        // MapViewModel.loadAnnotations() hasn't completed or the park ID hasn't
+        // matched yet. Leave the pending ID in place; onChange(annotations.count)
+        // will retry when annotations arrive.
+        guard let ann = mapVM.annotations.first(where: { $0.id == rideId }) else {
+#if DEBUG
+            print("🗺 [pending] annotation not found — will retry when annotations load")
+#endif
+            return
+        }
+
+        // All three gates passed — consume the pending ID exactly once.
+        coordinator.pendingMapRideId = nil
+
+#if DEBUG
+        print("🗺 [pending] annotation found: \(ann.rideName) — selecting + centering")
+#endif
+
+        mapVM.selectRide(rideId)
+        mapVM.centerOn(annotation: ann)
+
+        // selectRide already sets sheetDetent = .peek when id != nil; this guard
+        // handles the unlikely case where it arrives collapsed for any other reason.
         if mapVM.sheetDetent == .collapsed {
             withAnimation(AppMotion.standard) {
                 mapVM.setSheetDetent(.peek)
             }
         }
+
+#if DEBUG
+        print("🗺 [pending] selection succeeded, pendingMapRideId cleared")
+#endif
     }
 
     // MARK: - Map layer
@@ -291,22 +391,33 @@ struct RealMapScreen: View {
         }
     }
 
-    // MARK: - HUD layer (bottom-anchored, landscape-suppressed)
+    // MARK: - HUD layer (filter bar + legend, bottom-floating)
+    //
+    // Returned as the content of .overlay(alignment: .bottom) on the map ZStack.
+    // .overlay handles bottom-anchoring, so no frame(maxHeight: .infinity) trick
+    // is needed here — the VStack naturally sizes to its content.
+    //
+    // Bottom padding formula:
+    //   geo.safeAreaInsets.bottom — home-indicator clearance (34 pt on Face ID,
+    //                               0 pt on Home-button iPhones)
+    //   + 80 pt                   — comfortably clears the 49-pt tab bar and
+    //                               provides ~30 pt of visual breathing room above it.
+    //
+    // Landscape (verticalSizeClass == .compact) is suppressed — the horizontal
+    // constraint on an iPhone in landscape leaves no room for these controls.
 
     @ViewBuilder
     private func hudLayer(geo: GeometryProxy) -> some View {
         if verticalSizeClass != .compact {
-            VStack(spacing: 0) {
-                Spacer()
-                VStack(spacing: 12) {
-                    if filterBarVisible {
-                        MapOverlayFilterBar(mapVM: mapVM)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-                    WaitTimeLegendView(isVisible: legendVisible)
+            VStack(spacing: 12) {
+                if filterBarVisible {
+                    MapOverlayFilterBar(mapVM: mapVM)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .padding(.bottom, geo.safeAreaInsets.bottom + 49 + 12)
+                WaitTimeLegendView(isVisible: legendVisible)
             }
+            .padding(.horizontal, AppSpacing.screenEdge)
+            .padding(.bottom, geo.safeAreaInsets.bottom + 100)
         }
     }
 

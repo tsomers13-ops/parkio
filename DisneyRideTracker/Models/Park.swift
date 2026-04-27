@@ -7,14 +7,14 @@ import SwiftUI
 
 enum Park: String, CaseIterable, Identifiable {
     // Walt Disney World Resort
-    case magicKingdom       = "Magic Kingdom"
-    case epcot              = "EPCOT"
-    case hollywoodStudios   = "Hollywood Studios"
-    case animalKingdom      = "Animal Kingdom"
+    case magicKingdom        = "Magic Kingdom"
+    case epcot               = "EPCOT"
+    case hollywoodStudios     = "Hollywood Studios"
+    case animalKingdom        = "Animal Kingdom"
 
     // Disneyland Resort
-    case disneyland         = "Disneyland"
-    case californiaAdventure = "Disney California Adventure"
+    case disneyland           = "Disneyland"
+    case californiaAdventure  = "Disney California Adventure"
 
     var id: String { rawValue }
 
@@ -43,6 +43,53 @@ enum Park: String, CaseIterable, Identifiable {
         }
     }
 
+    // MARK: - ThemeParks.wiki entity UUID
+
+    /// ThemeParks.wiki v1 entity UUID for this park.
+    ///
+    /// Used by `ParkHoursAPIService` (schedule endpoint) and available as a
+    /// single source of truth so the UUID isn't duplicated across services.
+    /// `WaitTimeService` maintains its own internal copy of these UUIDs for
+    /// backward compatibility with its existing resolution logic.
+    ///
+    /// Source: https://api.themeparks.wiki/v1/destinations (Walt Disney World
+    /// and Disneyland Resort destinations, verified 2024-2025).
+    var themeparksEntityId: String {
+        switch self {
+        case .magicKingdom:        return "75ea578a-adc8-4116-a54d-dccb60765ef0"
+        case .epcot:               return "47f90d2c-e191-4239-a466-5892ef59a88b"
+        case .hollywoodStudios:    return "288747d1-8b4f-4a64-867e-ea7c9b27bad8"
+        case .animalKingdom:       return "1c84a229-8862-4648-9c71-378ddd2a7a5c"
+        case .disneyland:          return "7340550b-c14d-4def-80bb-acdb51d49a66"
+        case .californiaAdventure: return "832fcd51-ea19-4e77-85c7-75d5843b127c"
+        }
+    }
+
+    // MARK: - Canonical timezone
+
+    /// Park's canonical IANA timezone.
+    ///
+    /// Used wherever park-local "today" must be computed — e.g. matching a
+    /// schedule API response date string to the current calendar day.
+    ///
+    /// Walt Disney World parks → America/New_York  (Eastern Time)
+    /// Disneyland Resort parks → America/Los_Angeles (Pacific Time)
+    ///
+    /// Force-unwrap is safe: these identifiers are IANA standards that have
+    /// been stable since iOS 1 and are guaranteed to resolve.
+    var timeZone: TimeZone {
+        switch self {
+        case .magicKingdom, .epcot, .hollywoodStudios, .animalKingdom:
+            // swiftlint:disable:next force_unwrapping
+            return TimeZone(identifier: "America/New_York")!
+        case .disneyland, .californiaAdventure:
+            // swiftlint:disable:next force_unwrapping
+            return TimeZone(identifier: "America/Los_Angeles")!
+        }
+    }
+
+    // MARK: - Design system
+
     /// Each park gets its own accent color — design system §3 (Phase 2).
     var accentColor: Color {
         switch self {
@@ -67,6 +114,8 @@ enum Park: String, CaseIterable, Identifiable {
         }
     }
 
+    // MARK: - Backend / API identifiers
+
     /// Backend park ID used in API calls (e.g. "magic-kingdom").
     /// Distinct from rawValue which is the human-readable display name.
     var backendId: String {
@@ -85,6 +134,8 @@ enum Park: String, CaseIterable, Identifiable {
         allCases.first { $0.backendId == id }
     }
 
+    // MARK: - UI metadata
+
     var systemImageName: String {
         switch self {
         case .magicKingdom:        return "castle.fill"
@@ -97,10 +148,12 @@ enum Park: String, CaseIterable, Identifiable {
     }
 
     /// Ordered lands for this park, used as section headers.
+    /// Land names MUST match the land strings in RideSeeder.allSeeds exactly.
     var lands: [String] {
         switch self {
         case .magicKingdom:
             return [
+                "Main Street, U.S.A.",
                 "Adventureland",
                 "Frontierland",
                 "Liberty Square",
@@ -124,20 +177,22 @@ enum Park: String, CaseIterable, Identifiable {
             ]
         case .animalKingdom:
             return [
-                "Pandora",
+                "Discovery Island",
                 "Africa",
                 "Asia",
-                "DinoLand U.S.A."
+                "Pandora"
             ]
         case .disneyland:
             return [
-                "Main Street",
+                "Main Street, U.S.A.",
                 "Adventureland",
+                "New Orleans Square",
+                "Critter Country",
                 "Frontierland",
                 "Fantasyland",
+                "Mickey's Toontown",
                 "Tomorrowland",
-                "Star Wars: Galaxy's Edge",
-                "Mickey's Toontown"
+                "Star Wars: Galaxy's Edge"
             ]
         case .californiaAdventure:
             return [
@@ -145,10 +200,9 @@ enum Park: String, CaseIterable, Identifiable {
                 "Hollywood Land",
                 "Avengers Campus",
                 "Cars Land",
-                "Pacific Wharf",
+                "Pixar Pier",
                 "Paradise Gardens Park",
-                "Grizzly Peak",
-                "Pixar Pier"
+                "Grizzly Peak"
             ]
         }
     }

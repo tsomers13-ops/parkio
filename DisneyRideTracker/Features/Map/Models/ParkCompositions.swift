@@ -427,12 +427,6 @@ enum AKComposition {
                     ]),
                     fillColor: MapTokens.landCool, fillOpacity: 0.82, drawOrder: 7),
 
-                // Dinoland USA — east, compact
-                MapBackgroundShape(
-                    id: "ak-dinoland", type: .landMass,
-                    geometry: .roundedRect(CGRect(x: 0.64, y: 0.50, width: 0.34, height: 0.26), 16),
-                    fillColor: MapTokens.landVibrant, fillOpacity: 0.78, drawOrder: 8),
-
                 // Rafiki's Planet Watch — far west spur
                 MapBackgroundShape(
                     id: "ak-rafiki", type: .landMass,

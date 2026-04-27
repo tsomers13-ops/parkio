@@ -201,8 +201,6 @@ private extension ParkMapViewModel {
         pin("ak|kali",              "animal-kingdom", "Kali River Rapids",      x: 0.68, y: 0.44, priority: 2),
         // Africa (northwest)
         pin("ak|safaris",           "animal-kingdom", "Kilimanjaro Safaris",    x: 0.27, y: 0.31, priority: 1),
-        // DinoLand U.S.A. (southeast)
-        pin("ak|dinosaur",          "animal-kingdom", "DINOSAUR",               x: 0.68, y: 0.60, priority: 2),
     ]
 
     // MARK: Disneyland

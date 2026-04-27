@@ -3,18 +3,33 @@
 // Feature overview:
 //   • Four collapsible sections: Morning / Afternoon / Evening / Anytime
 //   • Optional time slots per item — displayed as "9:30 AM" in rows
-//   • Drag-to-reorder within the Anytime section (active only when filter = All)
 //   • Swipe-to-delete on any row
 //   • Toggle checked / unchecked with checkmark animation
-//   • Filter bar: All / Remaining / Completed
+//   • Toolbar: Filter menu (funnel icon)  +  Sort menu (↑↓ icon)  +  Add (+)
+//   • Contextual filter-empty state when a filter hides all items (separate from true-empty)
 //   • Stats row: x remaining, y done
 //   • "Show on Map" action for ride items — switches to Map tab + selects ride
 //   • Long-press row to set / change / remove the scheduled time
+//
+// Sort modes (Anytime section only):
+//   Smart — rides first, open before closed/down, shorter waits before longer.
+//   Wait  — rides sorted by live wait time ascending (nil data → end); non-rides after.
+//   A–Z   — all items sorted alphabetically by title.
+//   Timed sections are unaffected — their time-based order is the user's explicit intent.
+//
+// Smart mode education layer:
+//   • First-time inline explanation card (SmartExplanationCard) — shown once,
+//     dismissed permanently via @AppStorage("hasSeenSmartExplanation").
+//   • Subtle reinforcement line — "Optimized for your next ride" — visible whenever
+//     Smart sort is active. Fades in/out with .transition(.opacity).
+//   • Empty state updated to surface Smart mode as a value prop.
 //
 // Data: @Environment(MyDayStore.self) — injected once at app root.
 // Navigation: @Environment(AppNavigationCoordinator.self) — for map handoff.
 
 import SwiftUI
+import SwiftData
+import CoreLocation
 
 // MARK: - Filter
 
@@ -22,20 +37,59 @@ private enum MyDayFilter: String, CaseIterable {
     case all       = "All"
     case remaining = "Remaining"
     case completed = "Completed"
+
+    /// Per-item icon shown in the filter menu (replaced by "checkmark" when selected).
+    var systemImage: String {
+        switch self {
+        case .all:       return "list.bullet"
+        case .remaining: return "circle"
+        case .completed: return "checkmark.circle.fill"
+        }
+    }
+}
+
+// MARK: - SortMode
+
+private enum SortMode: String, CaseIterable, Identifiable {
+    case smart = "Smart"
+    case wait  = "Wait Time"
+    case az    = "A–Z"
+
+    var id: String { rawValue }
+
+    /// Per-item icon shown in the sort menu (replaced by "checkmark" when selected).
+    var systemImage: String {
+        switch self {
+        case .smart: return "sparkles"
+        case .wait:  return "clock"
+        case .az:    return "textformat.abc"
+        }
+    }
 }
 
 // MARK: - MyDayView
 
 struct MyDayView: View {
 
+    @Binding var selectedPark: Park
+
     @Environment(MyDayStore.self)                private var store
     @Environment(WaitTimeViewModel.self)         private var waitTimeVM
     @Environment(AppNavigationCoordinator.self)  private var coordinator
 
     @State private var filter:            MyDayFilter    = .all
+    @State private var sortMode:          SortMode       = .smart
     @State private var isAddingItem:      Bool           = false
     @State private var editingTimeItem:   MyDayItem?     = nil
     @State private var collapsedSections: Set<MyDaySection> = []
+
+    /// Persisted flag: user has read and dismissed the Smart explanation card.
+    /// Stored in UserDefaults so it survives app restarts.
+    @AppStorage("hasSeenSmartExplanation") private var hasSeenSmartExplanation: Bool = false
+
+    /// All rides in the SwiftData store — used to resolve MyDayItem.rideId → Ride
+    /// so that liveState(matching: Ride) can be used instead of liveState(for: String).
+    @Query private var allRides: [Ride]
 
     // MARK: - Body
 
@@ -54,7 +108,7 @@ struct MyDayView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar { toolbarContent }
             .sheet(isPresented: $isAddingItem) {
-                AddMyDayItemSheet { item in
+                AddMyDayItemSheet(park: selectedPark) { item in
                     withAnimation(AppMotion.standard) { store.add(item) }
                     AppHaptic.light()
                 }
@@ -70,28 +124,67 @@ struct MyDayView: View {
 
     // MARK: - List content
 
+    /// True when the current filter hides every item even though the store is non-empty.
+    /// Drives the filter-empty state — distinct from the true-empty state shown when
+    /// store.items is itself empty.
+    private var isFilterEmpty: Bool {
+        guard !store.items.isEmpty else { return false }
+        return store.items.allSatisfy { !filterMatches($0) }
+    }
+
     private var listContent: some View {
         VStack(spacing: 0) {
-            // ── Filter picker ──────────────────────────────────────────────────
-            filterBar
+            // ── Stats + clear row ──────────────────────────────────────────────
+            statsRow
                 .padding(.horizontal, AppSpacing.screenEdge)
                 .padding(.top, AppSpacing.sm)
                 .padding(.bottom, AppSpacing.xs)
 
-            // ── Stats + clear row ──────────────────────────────────────────────
-            statsRow
-                .padding(.horizontal, AppSpacing.screenEdge)
-                .padding(.bottom, AppSpacing.sm)
-
-            // ── Grouped sections ───────────────────────────────────────────────
-            List {
-                ForEach(MyDaySection.allCases, id: \.self) { section in
-                    sectionContent(for: section)
-                }
+            // ── Smart reinforcement text ───────────────────────────────────────
+            // Visible whenever Smart sort is active. Fades in/out as the user
+            // switches sort modes. No background — intentionally minimal.
+            if sortMode == .smart {
+                Text("Optimized for your next ride")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 2)
+                    .padding(.bottom, AppSpacing.sm)
+                    .transition(.opacity)
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
+
+            // ── First-time Smart explanation card ──────────────────────────────
+            // Shown once when Smart sort is active and the user has not yet
+            // acknowledged it. Animated in from the top; dismissed permanently.
+            if sortMode == .smart && !hasSeenSmartExplanation {
+                SmartExplanationCard {
+                    withAnimation(AppMotion.standard) {
+                        hasSeenSmartExplanation = true
+                    }
+                    AppHaptic.light()
+                }
+                .padding(.horizontal, AppSpacing.screenEdge)
+                .padding(.bottom, AppSpacing.md)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            // ── Grouped sections  OR  filter-empty state ───────────────────────
+            if isFilterEmpty {
+                filterEmptyState
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(MyDaySection.allCases, id: \.self) { section in
+                        sectionContent(for: section)
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+            }
         }
+        .animation(AppMotion.standard, value: sortMode)
+        .animation(AppMotion.standard, value: hasSeenSmartExplanation)
     }
 
     // MARK: - Section builder
@@ -100,17 +193,67 @@ struct MyDayView: View {
     private func sectionContent(for section: MyDaySection) -> some View {
         let sectionItems = items(for: section)
         if !sectionItems.isEmpty {
+            // Identify the top smart-sort pick: first unchecked ride in the
+            // Anytime section while smart sort is active. UUID comparison is
+            // O(1) and avoids any string parsing at render time.
+            let topPickId: UUID? = (sortMode == .smart && section == .anytime)
+                ? sectionItems.first(where: { $0.type == .ride && !$0.isChecked })?.id
+                : nil
+
             Section {
                 if !collapsedSections.contains(section) {
                     ForEach(sectionItems) { item in
                         MyDayItemRow(
                             item:        item,
+                            matchedRide: matchedRide(for: item),
+                            isTopPick:   item.id == topPickId,
                             onSetTime:   { editingTimeItem = item },
                             onShowOnMap: item.type == .ride && item.rideId != nil
                                 ? { showOnMap(item: item) }
                                 : nil
                         )
                         .environment(waitTimeVM)
+                        // ── Leading swipe: Done / Undo ─────────────────────────
+                        // allowsFullSwipe: true so a full swipe completes or un-
+                        // completes the item without having to reveal the button.
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button {
+                                withAnimation(AppMotion.quick) { store.toggle(item) }
+                                AppHaptic.light()
+                            } label: {
+                                if item.isChecked {
+                                    Label("Undo", systemImage: "arrow.uturn.backward.circle.fill")
+                                } else {
+                                    Label("Done", systemImage: "checkmark.circle.fill")
+                                }
+                            }
+                            .tint(item.isChecked ? Color.accentColor : .green)
+                        }
+                        // ── Trailing swipe: Delete + Set Time ──────────────────
+                        // allowsFullSwipe: false on the trailing edge so Delete
+                        // cannot be triggered by accident with a careless full swipe.
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            // Delete — destructive role applies the system red tint
+                            // and positions it as the outermost trailing action.
+                            Button(role: .destructive) {
+                                withAnimation(AppMotion.standard) { store.remove(item) }
+                                AppHaptic.light()
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+
+                            // Set Time — opens the same sheet as the context menu.
+                            Button {
+                                editingTimeItem = item
+                                AppHaptic.selection()
+                            } label: {
+                                Label(
+                                    item.scheduledTime == nil ? "Set Time" : "Change Time",
+                                    systemImage: "clock"
+                                )
+                            }
+                            .tint(Color.accentColor)
+                        }
                         .listRowInsets(
                             EdgeInsets(top: 4, leading: AppSpacing.screenEdge,
                                        bottom: 4, trailing: AppSpacing.screenEdge)
@@ -118,11 +261,8 @@ struct MyDayView: View {
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                     }
-                    // Reorder only in the Anytime section with unfiltered view.
-                    .onMove(perform: section == .anytime && filter == .all
-                        ? { from, to in store.moveSectionItems(sectionItems, from: from, toOffset: to) }
-                        : nil
-                    )
+                    // .onDelete keeps edit-mode delete (red minus circles) working
+                    // even though trailing swipe is now handled by .swipeActions above.
                     .onDelete(perform: { offsets in
                         deleteFromSection(offsets: offsets, sectionItems: sectionItems)
                     })
@@ -146,16 +286,84 @@ struct MyDayView: View {
     private func items(for section: MyDaySection) -> [MyDayItem] {
         let filtered = store.items.filter { $0.section == section && filterMatches($0) }
 
-        // Anytime — preserve insertion order for drag-reorder.
-        if section == .anytime { return filtered }
-
-        // Timed sections — sort ascending by scheduled time.
-        return filtered.sorted {
-            guard let a = $0.scheduledTime, let b = $1.scheduledTime else {
-                return $0.scheduledTime != nil // timed items bubble up
+        if section != .anytime {
+            // Timed sections — primary sort is always the user's scheduled time.
+            // Sort modes are not applied here: an explicit time slot is the user's
+            // own intent and overriding it would break morning/afternoon/evening plans.
+            return filtered.sorted {
+                guard let a = $0.scheduledTime, let b = $1.scheduledTime else {
+                    return $0.scheduledTime != nil // timed items bubble up
+                }
+                return a < b
             }
-            return a < b
         }
+
+        // Anytime — apply selected sort mode.
+        switch sortMode {
+        case .smart: return applySmartSort(to: filtered)
+        case .wait:  return applyWaitSort(to: filtered)
+        case .az:    return applyAlphaSort(to: filtered)
+        }
+    }
+
+    // MARK: - Ride resolution
+
+    /// Resolves a MyDayItem to its SwiftData Ride by matching rideId.
+    /// Returns nil for non-ride items or when the ride is not yet seeded.
+    /// Used to pass a typed Ride to liveState(matching:) rather than the
+    /// unreliable string-based liveState(for: rideId) lookup.
+    private func matchedRide(for item: MyDayItem) -> Ride? {
+        guard let rideId = item.rideId else { return nil }
+        return allRides.first { $0.id == rideId }
+    }
+
+    /// Reorders the Anytime section: rides first (open → short wait → no data → closed/down),
+    /// non-rides appended after in original insertion order.
+    private func applySmartSort(to items: [MyDayItem]) -> [MyDayItem] {
+        let rideItems  = items.filter { $0.type == .ride }
+        let otherItems = items.filter { $0.type != .ride }
+
+        let sortedRides = rideItems.sorted { lhs, rhs in
+            // Resolve via Ride model so liveState(matching:) can use name-based
+            // alias matching rather than the unreliable rideId string lookup.
+            let lState = matchedRide(for: lhs).flatMap { waitTimeVM.liveState(matching: $0) }
+            let rState = matchedRide(for: rhs).flatMap { waitTimeVM.liveState(matching: $0) }
+
+            // Open (rideable) rides before closed / down rides.
+            let lOpen = lState?.status.isRideable == true
+            let rOpen = rState?.status.isRideable == true
+            if lOpen != rOpen { return lOpen }
+
+            // Among open rides: shorter wait first.
+            // Nil wait (no data yet) treated as 999 — sorts after any known wait.
+            let lWait = lState?.waitMinutes ?? 999
+            let rWait = rState?.waitMinutes ?? 999
+            return lWait < rWait
+        }
+
+        return sortedRides + otherItems
+    }
+
+    /// Reorders by live wait time ascending. Rides with no data sort after known
+    /// waits; non-ride items always appear after the ride block.
+    private func applyWaitSort(to items: [MyDayItem]) -> [MyDayItem] {
+        let rideItems  = items.filter { $0.type == .ride }
+        let otherItems = items.filter { $0.type != .ride }
+
+        let sortedRides = rideItems.sorted { lhs, rhs in
+            let lWait = matchedRide(for: lhs)
+                .flatMap { waitTimeVM.liveState(matching: $0)?.waitMinutes } ?? 999
+            let rWait = matchedRide(for: rhs)
+                .flatMap { waitTimeVM.liveState(matching: $0)?.waitMinutes } ?? 999
+            return lWait < rWait
+        }
+
+        return sortedRides + otherItems
+    }
+
+    /// Reorders all items in the Anytime section alphabetically by title.
+    private func applyAlphaSort(to items: [MyDayItem]) -> [MyDayItem] {
+        items.sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
     }
 
     private func filterMatches(_ item: MyDayItem) -> Bool {
@@ -185,35 +393,6 @@ struct MyDayView: View {
         guard let rideId = item.rideId else { return }
         coordinator.showOnMap(rideId: rideId)
         AppHaptic.light()
-    }
-
-    // MARK: - Filter bar
-
-    private var filterBar: some View {
-        HStack(spacing: 8) {
-            ForEach(MyDayFilter.allCases, id: \.rawValue) { tab in
-                let isActive = filter == tab
-                Button {
-                    withAnimation(AppMotion.standard) {
-                        filter = tab
-                    }
-                    AppHaptic.selection()
-                } label: {
-                    Text(tab.rawValue)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(isActive ? .white : AppColor.textSecondary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(
-                            isActive ? Color.accentColor : AppColor.skeleton,
-                            in: Capsule()
-                        )
-                }
-                .buttonStyle(.plain)
-                .animation(AppMotion.quick, value: filter)
-            }
-            Spacer()
-        }
     }
 
     // MARK: - Stats row
@@ -257,8 +436,52 @@ struct MyDayView: View {
         }
     }
 
+    // MARK: - Filter-empty state
+
+    /// Shown when the store has items but the active filter hides all of them.
+    /// Gives the user a clear explanation and a one-tap escape back to "All".
+    private var filterEmptyState: some View {
+        VStack(spacing: AppSpacing.lg) {
+            Image(systemName: filter == .remaining ? "checkmark.circle" : "circle.dashed")
+                .font(.system(size: 40, weight: .light))
+                .foregroundStyle(Color.accentColor.opacity(0.35))
+
+            VStack(spacing: AppSpacing.xs) {
+                Text(filter == .remaining ? "All done for now 🎉" : "Nothing checked off yet")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(AppColor.textPrimary)
+
+                Text(filter == .remaining
+                     ? "Every item on your list is completed."
+                     : "Tap the circle on any item to mark it done.")
+                    .font(.footnote)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, AppSpacing.xxl)
+            }
+
+            Button {
+                withAnimation(AppMotion.standard) { filter = .all }
+                AppHaptic.selection()
+            } label: {
+                Text("Show All")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .padding(.horizontal, AppSpacing.xl)
+                    .padding(.vertical, 9)
+                    .background(Color.accentColor.opacity(0.10), in: Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, AppSpacing.screenEdge)
+        .transition(.opacity)
+        .animation(AppMotion.standard, value: filter)
+    }
+
     // MARK: - Empty state
 
+    /// Shown when the store has no items at all.
+    /// Surfaces Smart mode as a value prop alongside the add CTA.
     private var emptyState: some View {
         VStack(spacing: AppSpacing.lg) {
             Image(systemName: "list.bullet.clipboard")
@@ -266,14 +489,25 @@ struct MyDayView: View {
                 .foregroundStyle(Color.accentColor.opacity(0.4))
 
             VStack(spacing: AppSpacing.sm) {
-                Text("Plan your park day")
+                Text("Build your day")
                     .font(.title3.bold())
                     .foregroundStyle(AppColor.textPrimary)
-                Text("Add rides, food stops, shows, and anything else you want to do today. Tap + to get started.")
-                    .font(.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, AppSpacing.xxl)
+
+                VStack(spacing: 4) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "sparkles")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.accentColor.opacity(0.7))
+                        Text("Add rides and turn on Smart mode")
+                            .font(.subheadline)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                    Text("to get real-time recommendations.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, AppSpacing.xxl)
             }
 
             Button {
@@ -295,11 +529,10 @@ struct MyDayView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarTrailing) {
-            if !store.items.isEmpty && filter == .all {
-                EditButton()
-            }
-        }
+        // Declaration order = left-to-right in the trailing area.
+        // Filter (leftmost) → Sort (middle) → Add (rightmost).
+        ToolbarItem(placement: .navigationBarTrailing) { filterMenu }
+        ToolbarItem(placement: .navigationBarTrailing) { sortMenu }
         ToolbarItem(placement: .navigationBarTrailing) {
             Button {
                 isAddingItem = true
@@ -310,12 +543,141 @@ struct MyDayView: View {
         }
     }
 
+    // MARK: - Filter menu
+
+    /// Icon-only filter menu matching the All Attractions sort-menu pattern.
+    /// The funnel icon fills when a non-All filter is active to signal state.
+    private var filterMenu: some View {
+        Menu {
+            ForEach(MyDayFilter.allCases, id: \.rawValue) { option in
+                Button {
+                    withAnimation(AppMotion.standard) { filter = option }
+                    AppHaptic.selection()
+                } label: {
+                    Label(
+                        option.rawValue,
+                        systemImage: filter == option ? "checkmark" : option.systemImage
+                    )
+                }
+            }
+        } label: {
+            Label("Filter", systemImage: filter == .all
+                  ? "line.3.horizontal.decrease.circle"
+                  : "line.3.horizontal.decrease.circle.fill")
+                .labelStyle(.iconOnly)
+                .font(.body.weight(.medium))
+                .foregroundStyle(Color.accentColor)
+        }
+    }
+
+    // MARK: - Sort menu
+
+    /// Icon-only sort menu — identical visual language to the All Attractions page.
+    private var sortMenu: some View {
+        Menu {
+            ForEach(SortMode.allCases) { mode in
+                Button {
+                    withAnimation(AppMotion.standard) { sortMode = mode }
+                    AppHaptic.selection()
+                } label: {
+                    Label(
+                        mode.rawValue,
+                        systemImage: sortMode == mode ? "checkmark" : mode.systemImage
+                    )
+                }
+            }
+        } label: {
+            Label("Sort", systemImage: "arrow.up.arrow.down")
+                .labelStyle(.iconOnly)
+                .font(.body.weight(.medium))
+                .foregroundStyle(Color.accentColor)
+        }
+    }
+
     // MARK: - Delete
 
     private func deleteFromSection(offsets: IndexSet, sectionItems: [MyDayItem]) {
         let toDelete = offsets.map { sectionItems[$0] }
         withAnimation(AppMotion.standard) {
             for item in toDelete { store.remove(item) }
+        }
+    }
+}
+
+// MARK: - SmartExplanationCard
+
+/// One-time inline education card explaining what Smart sort does.
+/// Shown above the list when Smart is active and the user has not yet
+/// dismissed it. Dismissed permanently via @AppStorage.
+///
+/// Design: no modal, no alert — inline only. Animates in from the top.
+private struct SmartExplanationCard: View {
+
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+
+            // ── Header ─────────────────────────────────────────────────────────
+            HStack(spacing: AppSpacing.sm) {
+                Image(systemName: "sparkles")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+                Text("Let us guide your day")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+                Spacer()
+            }
+
+            // ── Body ───────────────────────────────────────────────────────────
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Smart mode picks what to ride next based on:")
+                    .font(.footnote)
+                    .foregroundStyle(AppColor.textSecondary)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    SmartBulletRow(label: "Wait time")
+                    SmartBulletRow(label: "Distance")
+                    SmartBulletRow(label: "Park timing")
+                }
+            }
+
+            // ── Dismiss CTA ────────────────────────────────────────────────────
+            HStack {
+                Spacer()
+                Button(action: onDismiss) {
+                    Text("Got it")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, 7)
+                        .background(Color.accentColor.opacity(0.10), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(AppSpacing.md)
+        .background(Color.accentColor.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                .strokeBorder(Color.accentColor.opacity(0.15), lineWidth: 1)
+        )
+    }
+}
+
+/// A single bullet point row used inside SmartExplanationCard.
+private struct SmartBulletRow: View {
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Circle()
+                .fill(Color.accentColor.opacity(0.45))
+                .frame(width: 4, height: 4)
+            Text(label)
+                .font(.footnote)
+                .foregroundStyle(AppColor.textSecondary)
         }
     }
 }
@@ -377,20 +739,98 @@ private struct SectionHeaderView: View {
 private struct MyDayItemRow: View {
 
     let item:        MyDayItem
+    /// The SwiftData Ride resolved from item.rideId, or nil for non-ride items /
+    /// items whose ride has not yet been seeded. Passed in from MyDayView which
+    /// owns the @Query so the lookup is done once per row, not inside the row.
+    var matchedRide: Ride?         = nil
+    /// True when this row is the top smart-sort pick in the Anytime section.
+    /// Defaults to false so all existing call sites compile without change.
+    var isTopPick:   Bool          = false
     let onSetTime:   () -> Void
     let onShowOnMap: (() -> Void)?
 
     @Environment(MyDayStore.self)        private var store
     @Environment(WaitTimeViewModel.self) private var waitTimeVM
+    @Environment(LocationService.self)   private var locationService
 
-    // MARK: - Live wait for ride items
+    // MARK: - Live ride state
 
-    private var liveWait: String? {
-        guard item.type == .ride else { return nil }
-        guard let rideId = item.rideId else { return nil }
-        guard let state  = waitTimeVM.liveState(for: rideId),
-              state.status.isRideable else { return nil }
-        return state.waitMinutes.map { $0 == 0 ? "Walk-on" : "\($0) min" }
+    /// Full live state for this item, or nil when the item has no matched Ride or
+    /// live data has not yet arrived. Non-ride items always return nil.
+    ///
+    /// Uses liveState(matching: Ride) — name-based alias matching — instead of
+    /// the unreliable liveState(for: rideId) string lookup that was missing hits.
+    private var liveRideState: LiveRideState? {
+        guard item.type == .ride, let ride = matchedRide else { return nil }
+        return waitTimeVM.liveState(matching: ride)
+    }
+
+    /// Compact (label, color) pair derived from liveRideState.
+    /// Covers all rideable and non-rideable states so nothing is silently hidden.
+    private var liveStatusInfo: (label: String, color: Color)? {
+        guard let state = liveRideState else { return nil }
+        if state.status.isRideable {
+            if let mins = state.waitMinutes {
+                return (mins == 0 ? "Walk-on" : "\(mins) min", state.waitColor)
+            }
+            return ("Open", AppColor.success)
+        }
+        // Non-rideable: use the canonical display label from the model.
+        // "Down" gets the error color; every other non-rideable state (Closed,
+        // Temporarily Closed, etc.) gets the muted tertiary color.
+        let label = state.status.displayLabel
+        let color: Color = label.localizedCaseInsensitiveCompare("Down") == .orderedSame
+            ? AppColor.error
+            : AppColor.textTertiary
+        return (label, color)
+    }
+
+    // MARK: - Reasoning text (top pick only)
+
+    /// Compact dot-separated explanation of why this ride is the current top pick.
+    /// Only populated when isTopPick is true and live data is available.
+    ///
+    /// Token assembly (up to 2 tokens):
+    ///   1. Status/wait — derived from liveRideState:
+    ///        walk-on (0 min) → "Walk-on"
+    ///        1–N min         → "N min"
+    ///        open, no data   → "Open"
+    ///        not rideable    → displayLabel (e.g. "Closed", "Down")
+    ///   2. Nearby — added when the user's GPS fix puts them within 400 m:
+    ///        < 400 m         → "Nearby"
+    ///
+    /// The live status chip on the right edge of the row already shows the
+    /// raw label ("8 min"). The reasoning line provides the *narrative* context —
+    /// "8 min · Nearby" reads as "it's fast and close", which is the actual insight.
+    private var reasoningText: String? {
+        guard isTopPick else { return nil }
+
+        var tokens: [String] = []
+
+        // Token 1: live status / wait time
+        if let state = liveRideState {
+            if state.status.isRideable {
+                if let mins = state.waitMinutes {
+                    tokens.append(mins == 0 ? "Walk-on" : "\(mins) min")
+                } else {
+                    tokens.append("Open")
+                }
+            } else {
+                tokens.append(state.status.displayLabel)
+            }
+        }
+
+        // Token 2: nearby — requires a GPS fix and a known map coordinate.
+        // MapCoordinateService.shared is a singleton (no environment plumbing needed).
+        if let userLoc = locationService.userLocation,
+           let rideId  = item.rideId,
+           let parkId  = item.parkId,
+           let ann     = MapCoordinateService.shared.annotation(forRideId: rideId, parkId: parkId) {
+            let dist = userLoc.distance(from: CLLocation(latitude: ann.latitude, longitude: ann.longitude))
+            if dist < 400 { tokens.append("Nearby") }
+        }
+
+        return tokens.isEmpty ? nil : tokens.joined(separator: " · ")
     }
 
     // MARK: - Body
@@ -411,6 +851,17 @@ private struct MyDayItemRow: View {
 
             // ── Text column ────────────────────────────────────────────────────
             VStack(alignment: .leading, spacing: 3) {
+                // "Best now" badge — smart sort top pick only
+                if isTopPick {
+                    Label("Best now", systemImage: "sparkles")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Color.accentColor.opacity(0.10), in: Capsule())
+                        .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .leading)))
+                }
+
                 // Title
                 Text(item.title)
                     .font(.subheadline.weight(.semibold))
@@ -420,7 +871,16 @@ private struct MyDayItemRow: View {
                     .strikethrough(item.isChecked, color: AppColor.textTertiary)
                     .lineLimit(2)
 
-                // Subtitle row: type · land · time · live wait
+                // Reasoning line — top pick only, ride items only
+                if let text = reasoningText {
+                    Text(text)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Color.accentColor.opacity(0.85))
+                        .lineLimit(1)
+                        .transition(.opacity)
+                }
+
+                // Subtitle row: type · land · time
                 subtitleRow
 
                 // "Show on Map" button (ride items only)
@@ -436,6 +896,17 @@ private struct MyDayItemRow: View {
             }
 
             Spacer(minLength: 0)
+
+            // ── Live status chip (ride items only) ─────────────────────────────
+            if let (label, color) = liveStatusInfo {
+                Text(label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(color)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(color.opacity(0.10), in: Capsule())
+                    .animation(AppMotion.quick, value: label)
+            }
 
             // ── Check button ───────────────────────────────────────────────────
             Button {
@@ -457,8 +928,16 @@ private struct MyDayItemRow: View {
         .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
         .opacity(item.isChecked ? 0.65 : 1.0)
         .animation(AppMotion.quick, value: item.isChecked)
-        // Long-press → time picker
+        .animation(AppMotion.standard, value: isTopPick)
+        // Long-press context menu
         .contextMenu {
+            // Show on Map — ride items with a map coordinate only.
+            if let showOnMap = onShowOnMap, !item.isChecked {
+                Button(action: showOnMap) {
+                    Label("Show on Map", systemImage: "map")
+                }
+            }
+
             Button {
                 onSetTime()
             } label: {
@@ -497,16 +976,6 @@ private struct MyDayItemRow: View {
                 Label(time, systemImage: "clock")
                     .foregroundStyle(AppColor.textSecondary)
                     .labelStyle(.titleAndIcon)
-            }
-
-            // Live wait time (ride items only, when data available)
-            if let wait = liveWait {
-                Text("·").foregroundStyle(AppColor.textTertiary)
-                Text(wait)
-                    .foregroundStyle(AppColor.waitColor(
-                        minutes: Int(wait.components(separatedBy: " ").first ?? "0") ?? 0
-                    ))
-                    .fontWeight(.medium)
             }
         }
         .font(.caption)
@@ -615,20 +1084,23 @@ private struct TimePickerSheet: View {
 // MARK: - AddMyDayItemSheet
 
 /// Bottom sheet for manually adding any item type to the checklist.
+/// When the type is `.ride`, a searchable ride picker replaces the
+/// free-form name field so every ride item is linked to a real Ride record.
 struct AddMyDayItemSheet: View {
 
+    /// The active park — used to scope the ride list.
+    let park:  Park
     /// Called with the new item when the user taps Add.
     let onAdd: (MyDayItem) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedType:    MyDayItemType = .ride
-    @State private var title:           String        = ""
-    @State private var location:        String        = ""
-    @State private var detail:          String        = ""
-    @State private var hasScheduledTime: Bool         = false
-    @State private var scheduledTime:   Date          = {
-        // Default to next half-hour.
+    @State private var selectedType:      MyDayItemType = .ride
+    @State private var title:             String        = ""
+    @State private var location:          String        = ""
+    @State private var detail:            String        = ""
+    @State private var hasScheduledTime:  Bool          = false
+    @State private var scheduledTime:     Date          = {
         let cal    = Calendar.current
         let now    = Date()
         var comps  = cal.dateComponents([.year, .month, .day, .hour, .minute], from: now)
@@ -638,9 +1110,14 @@ struct AddMyDayItemSheet: View {
         comps.second  = 0
         return cal.date(from: comps) ?? now
     }()
+    @State private var selectedRide:      Ride?         = nil
+    @State private var showRidePicker:    Bool          = false
 
     private var canAdd: Bool {
-        !title.trimmingCharacters(in: .whitespaces).isEmpty
+        if selectedType == .ride {
+            return selectedRide != nil
+        }
+        return !title.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     var body: some View {
@@ -656,9 +1133,43 @@ struct AddMyDayItemSheet: View {
 
                 // ── Details ──────────────────────────────────────────────────
                 Section {
-                    TextField(selectedType.titlePlaceholder, text: $title)
-                    TextField("Location (optional)", text: $location)
-                    TextField("Notes (optional)", text: $detail)
+                    if selectedType == .ride {
+                        // Searchable ride picker row
+                        Button {
+                            showRidePicker = true
+                        } label: {
+                            HStack {
+                                Text(selectedRide?.name ?? "Select a ride…")
+                                    .foregroundStyle(
+                                        selectedRide == nil
+                                            ? AppColor.textTertiary
+                                            : AppColor.textPrimary
+                                    )
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(AppColor.textTertiary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+
+                        // Auto-filled land display (read-only)
+                        if let land = selectedRide?.land, !land.isEmpty {
+                            HStack {
+                                Text("Land")
+                                    .foregroundStyle(AppColor.textSecondary)
+                                Spacer()
+                                Text(land)
+                                    .foregroundStyle(AppColor.textTertiary)
+                            }
+                        }
+
+                        TextField("Notes (optional)", text: $detail)
+                    } else {
+                        TextField(selectedType.titlePlaceholder, text: $title)
+                        TextField("Location (optional)", text: $location)
+                        TextField("Notes (optional)", text: $detail)
+                    }
                 } header: {
                     Text("Details")
                 }
@@ -691,9 +1202,22 @@ struct AddMyDayItemSheet: View {
                         .disabled(!canAdd)
                 }
             }
+            // Ride picker pushed onto the NavigationStack.
+            .navigationDestination(isPresented: $showRidePicker) {
+                RidePickerView(park: park) { ride in
+                    selectedRide   = ride
+                    showRidePicker = false
+                }
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        // Clear ride/title state when the user switches item types.
+        .onChange(of: selectedType) { _, _ in
+            selectedRide = nil
+            title        = ""
+            location     = ""
+        }
     }
 
     // ── Type grid ─────────────────────────────────────────────────────────────
@@ -720,17 +1244,92 @@ struct AddMyDayItemSheet: View {
     // ── Commit ────────────────────────────────────────────────────────────────
 
     private func commitAdd() {
-        let trimmedTitle    = title.trimmingCharacters(in: .whitespaces)
-        let trimmedLocation = location.trimmingCharacters(in: .whitespaces)
-        let trimmedDetail   = detail.trimmingCharacters(in: .whitespaces)
+        let trimmedDetail = detail.trimmingCharacters(in: .whitespaces)
 
-        var item              = MyDayItem(title: trimmedTitle, type: selectedType)
-        item.land             = trimmedLocation.isEmpty ? nil : trimmedLocation
-        item.detail           = trimmedDetail.isEmpty   ? nil : trimmedDetail
-        item.scheduledTime    = hasScheduledTime ? scheduledTime : nil
+        if selectedType == .ride, let ride = selectedRide {
+            var item           = MyDayItem(title: ride.name, type: .ride)
+            item.rideId        = ride.id
+            item.land          = ride.land.isEmpty ? nil : ride.land
+            item.parkId        = park.backendId
+            item.detail        = trimmedDetail.isEmpty ? nil : trimmedDetail
+            item.scheduledTime = hasScheduledTime ? scheduledTime : nil
+            onAdd(item)
+        } else {
+            let trimmedTitle    = title.trimmingCharacters(in: .whitespaces)
+            let trimmedLocation = location.trimmingCharacters(in: .whitespaces)
 
-        onAdd(item)
+            var item              = MyDayItem(title: trimmedTitle, type: selectedType)
+            item.land             = trimmedLocation.isEmpty ? nil : trimmedLocation
+            item.detail           = trimmedDetail.isEmpty   ? nil : trimmedDetail
+            item.scheduledTime    = hasScheduledTime ? scheduledTime : nil
+            onAdd(item)
+        }
+
         dismiss()
+    }
+}
+
+// MARK: - RidePickerView
+
+/// Full-screen searchable ride list scoped to a single park.
+/// Grouped by land; sorted alphabetically within each land.
+private struct RidePickerView: View {
+
+    let park:     Park
+    let onSelect: (Ride) -> Void
+
+    @Query private var allRides: [Ride]
+    @State private var searchText = ""
+
+    // All rides for this park, alphabetically sorted.
+    private var parkRides: [Ride] {
+        allRides
+            .filter { $0.park == park.rawValue }
+            .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
+    }
+
+    // Filtered by current search query.
+    private var filteredRides: [Ride] {
+        guard !searchText.isEmpty else { return parkRides }
+        let q = searchText.lowercased()
+        return parkRides.filter {
+            $0.name.lowercased().contains(q) || $0.land.lowercased().contains(q)
+        }
+    }
+
+    // Rides grouped by land, each group sorted alphabetically.
+    private var groupedRides: [(land: String, rides: [Ride])] {
+        Dictionary(grouping: filteredRides, by: \.land)
+            .map { (land: $0.key, rides: $0.value.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }) }
+            .sorted { $0.land.localizedCompare($1.land) == .orderedAscending }
+    }
+
+    var body: some View {
+        List {
+            if groupedRides.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+            } else {
+                ForEach(groupedRides, id: \.land) { group in
+                    Section(group.land) {
+                        ForEach(group.rides, id: \.id) { ride in
+                            Button {
+                                AppHaptic.selection()
+                                onSelect(ride)
+                            } label: {
+                                Text(ride.name)
+                                    .foregroundStyle(AppColor.textPrimary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+        .searchable(text: $searchText, prompt: "Search \(park.shortName) rides…")
+        .navigationTitle("\(park.shortName) Rides")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -823,10 +1422,11 @@ import SwiftData
         for: schema,
         configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
     )
-    return MyDayView()
+    return MyDayView(selectedPark: .constant(.magicKingdom))
         .environment(store)
         .environment(WaitTimeViewModel(container: container))
         .environment(AppNavigationCoordinator())
+        .environment(LocationService())
         .modelContainer(container)
 }
 
@@ -836,14 +1436,21 @@ import SwiftData
         for: schema,
         configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
     )
-    return MyDayView()
+    return MyDayView(selectedPark: .constant(.magicKingdom))
         .environment(MyDayStore())
         .environment(WaitTimeViewModel(container: container))
         .environment(AppNavigationCoordinator())
+        .environment(LocationService())
         .modelContainer(container)
 }
 
 #Preview("Add item sheet") {
-    AddMyDayItemSheet { _ in }
+    let schema    = Schema([Ride.self, RideLog.self, WaitTimeCache.self])
+    let container = try! ModelContainer(
+        for: schema,
+        configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+    )
+    return AddMyDayItemSheet(park: .magicKingdom) { _ in }
+        .modelContainer(container)
 }
 #endif

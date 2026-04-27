@@ -2,9 +2,25 @@
 //  RideSeeder.swift
 //  DisneyRideTracker
 //
-//  Populates the SwiftData store with the canonical ride list on first launch,
+//  Populates the SwiftData store with the canonical ride list on every launch
 //  and migrates older schemas in place so user logs are preserved across
 //  structural changes to the park/land hierarchy.
+//
+//  Stale-row cleanup (runs every call):
+//  ─────────────────────────────────────
+//  Pass 1 — DELETE: rides whose `id` is not in the current canonical seed set
+//    AND not in RideMasterData.typeByStableID. These are phantom rows from
+//    pre-RideMasterData schemas, attractions removed from the park, or IDs
+//    produced by an older seeder format. Deletion cascades to RideLogs.
+//    (History for a non-existent attraction is not meaningful.)
+//
+//  Pass 2 — CORRECT IN-PLACE: rides whose `id` IS canonical but whose stored
+//    `park`, `land`, or `name` fields have drifted from master data (e.g. a
+//    botched migration, a partial overwrite). Corrected without deletion so
+//    the user's ride-log history is preserved.
+//
+//  The same canonical gate (typeByStableID) used for stale-row removal is used
+//  in HomeView at query time — so the two layers always agree on what is valid.
 //
 
 import Foundation
@@ -93,209 +109,83 @@ enum RideSeeder {
             byID[newID] = ride
         }
 
-        // Remove rides that are no longer in the canonical list (e.g. retired
-        // attractions, or stale rows from an older schema). Logs cascade-delete.
-        for ride in existing where !seenIDs.contains(ride.id) {
-            context.delete(ride)
+        // ── Pass 1: Remove stale rides ────────────────────────────────────────
+        //
+        // A ride is stale when its `id` is absent from the canonical seed set
+        // OR from typeByStableID. Either condition alone is sufficient to prove the
+        // ride has no valid corresponding master-data entry.
+        //
+        // Using typeByStableID as the authoritative gate (rather than only seenIDs)
+        // ensures this cleanup logic stays in sync with the HomeView guard that
+        // excludes rides at query time. If the two ever diverge, the more restrictive
+        // check (not in typeByStableID) wins.
+        //
+        // ⚠️  Cascade: RideLog entries for deleted rides are also deleted.
+        //     This is intentional — logs for non-existent attractions are not
+        //     recoverable or meaningful to the user.
+        var deletedIDSet  = Set<String>()  // for pass-2 guard
+        var staleRemovedLog = [String]()   // for DEBUG output
+
+        for ride in existing {
+            let inSeedSet    = seenIDs.contains(ride.id)
+            let inMasterData = RideMasterData.typeByStableID[ride.id] != nil
+
+            // Delete if absent from EITHER the seed set OR typeByStableID.
+            // The two should always agree; if they diverge (e.g. a ride was removed
+            // from seedableAttractions but left in `all`, or vice-versa), err on the
+            // side of removal to prevent silent ride-count inflation at query time.
+            if !inSeedSet || !inMasterData {
+                let reason = !inSeedSet ? "not in canonical seeds" : "not in typeByStableID"
+                staleRemovedLog.append("\(ride.id)  [\(reason)]")
+                deletedIDSet.insert(ride.id)
+                context.delete(ride)
+            }
+        }
+
+        // ── Pass 2: Correct drifted metadata in-place ────────────────────────
+        //
+        // Rides whose stableID is valid but whose stored park/land/name have
+        // drifted from master data are corrected without deletion, preserving logs.
+        var correctedIDs = [String]()
+        for ride in existing where !deletedIDSet.contains(ride.id) {
+            guard let master = masterByStableID[ride.id] else { continue }
+            var didFix = false
+            if ride.park != master.park.rawValue { ride.park = master.park.rawValue; didFix = true }
+            if ride.land != master.land          { ride.land = master.land;          didFix = true }
+            if ride.name != master.name          { ride.name = master.name;          didFix = true }
+            if didFix { correctedIDs.append(ride.id) }
         }
 
         try? context.save()
+
+#if DEBUG
+        printSeedSummary(staleRemoved: staleRemovedLog, corrected: correctedIDs)
+        validateLandAssignments()
+#endif
     }
 
     // MARK: - Ride List
 
-    static let allSeeds: [Seed] = mkSeeds + epcotSeeds + dhsSeeds + akSeeds + disneylandSeeds + dcaSeeds
+    /// Derived from RideMasterData — the single source of truth for all park attractions.
+    /// Adding, removing, or renaming a ride is done exclusively in RideMasterData.swift;
+    /// this seeder picks up the change automatically on next launch.
+    static let allSeeds: [Seed] = RideMasterData.seedableAttractions.map {
+        Seed(name: $0.name, park: $0.park, land: $0.land)
+    }
 
     static var canonicalRideIDs: Set<String> {
         Set(allSeeds.map(\.stableID))
     }
 
-    // MARK: Walt Disney World — Magic Kingdom
+    // MARK: - Private helpers
 
-    private static let mkSeeds: [Seed] = [
-        // Adventureland
-        Seed(name: "Pirates of the Caribbean",                  park: .magicKingdom, land: "Adventureland"),
-        Seed(name: "Walt Disney's Enchanted Tiki Room",         park: .magicKingdom, land: "Adventureland"),
-
-        // Frontierland
-        Seed(name: "Big Thunder Mountain Railroad",             park: .magicKingdom, land: "Frontierland"),
-        Seed(name: "Tiana's Bayou Adventure",                   park: .magicKingdom, land: "Frontierland"),
-        Seed(name: "Country Bear Jamboree",                     park: .magicKingdom, land: "Frontierland"),
-
-        // Liberty Square
-        Seed(name: "Haunted Mansion",                           park: .magicKingdom, land: "Liberty Square"),
-
-        // Fantasyland
-        Seed(name: "Seven Dwarfs Mine Train",                   park: .magicKingdom, land: "Fantasyland"),
-        Seed(name: "Peter Pan's Flight",                        park: .magicKingdom, land: "Fantasyland"),
-        Seed(name: "it's a small world",                        park: .magicKingdom, land: "Fantasyland"),
-        Seed(name: "The Barnstormer",                           park: .magicKingdom, land: "Fantasyland"),
-        Seed(name: "Dumbo the Flying Elephant",                 park: .magicKingdom, land: "Fantasyland"),
-        Seed(name: "Under the Sea: Journey of the Little Mermaid", park: .magicKingdom, land: "Fantasyland"),
-        Seed(name: "Prince Charming Regal Carrousel",           park: .magicKingdom, land: "Fantasyland"),
-        Seed(name: "Mad Tea Party",                             park: .magicKingdom, land: "Fantasyland"),
-
-        // Tomorrowland
-        Seed(name: "Space Mountain",                            park: .magicKingdom, land: "Tomorrowland"),
-        Seed(name: "Tomorrowland Speedway",                     park: .magicKingdom, land: "Tomorrowland"),
-        Seed(name: "Buzz Lightyear's Space Ranger Spin",        park: .magicKingdom, land: "Tomorrowland"),
-        Seed(name: "Carousel of Progress",                      park: .magicKingdom, land: "Tomorrowland"),
-        Seed(name: "Astro Orbiter",                             park: .magicKingdom, land: "Tomorrowland")
-    ]
-
-    // MARK: Walt Disney World — EPCOT
-
-    private static let epcotSeeds: [Seed] = [
-        // World Celebration
-        Seed(name: "Spaceship Earth",                           park: .epcot, land: "World Celebration"),
-
-        // World Discovery
-        Seed(name: "Guardians of the Galaxy: Cosmic Rewind",    park: .epcot, land: "World Discovery"),
-        Seed(name: "Test Track",                                park: .epcot, land: "World Discovery"),
-        Seed(name: "Mission: SPACE",                            park: .epcot, land: "World Discovery"),
-
-        // World Nature
-        Seed(name: "Soarin' Around the World",                  park: .epcot, land: "World Nature"),
-        Seed(name: "Journey Into Imagination with Figment",     park: .epcot, land: "World Nature"),
-        Seed(name: "Living with the Land",                      park: .epcot, land: "World Nature"),
-        Seed(name: "The Seas with Nemo & Friends",              park: .epcot, land: "World Nature"),
-        Seed(name: "Journey of Water",                          park: .epcot, land: "World Nature"),
-
-        // World Showcase
-        Seed(name: "Remy's Ratatouille Adventure",              park: .epcot, land: "World Showcase"),
-        Seed(name: "Gran Fiesta Tour Starring The Three Caballeros", park: .epcot, land: "World Showcase"),
-        Seed(name: "Frozen Ever After",                         park: .epcot, land: "World Showcase")
-    ]
-
-    // MARK: Walt Disney World — Hollywood Studios
-
-    private static let dhsSeeds: [Seed] = [
-        // Hollywood Boulevard
-        Seed(name: "Mickey & Minnie's Runaway Railway",         park: .hollywoodStudios, land: "Hollywood Boulevard"),
-
-        // Echo Lake
-        Seed(name: "Star Tours",                                park: .hollywoodStudios, land: "Echo Lake"),
-
-        // Sunset Boulevard
-        Seed(name: "Tower of Terror",                           park: .hollywoodStudios, land: "Sunset Boulevard"),
-        Seed(name: "Rock 'n' Roller Coaster Starring Aerosmith",park: .hollywoodStudios, land: "Sunset Boulevard"),
-        Seed(name: "Tiana's Bayou Adventure (DHS)",             park: .hollywoodStudios, land: "Sunset Boulevard"),
-
-        // Toy Story Land
-        Seed(name: "Slinky Dog Dash",                           park: .hollywoodStudios, land: "Toy Story Land"),
-        Seed(name: "Toy Story Mania!",                          park: .hollywoodStudios, land: "Toy Story Land"),
-        Seed(name: "Alien Swirling Saucers",                    park: .hollywoodStudios, land: "Toy Story Land"),
-
-        // Star Wars: Galaxy's Edge
-        Seed(name: "Star Wars: Rise of the Resistance",         park: .hollywoodStudios, land: "Star Wars: Galaxy's Edge"),
-        Seed(name: "Millennium Falcon: Smugglers Run",          park: .hollywoodStudios, land: "Star Wars: Galaxy's Edge")
-    ]
-
-    // MARK: Walt Disney World — Animal Kingdom
-
-    private static let akSeeds: [Seed] = [
-        // Pandora – The World of Avatar
-        Seed(name: "Avatar Flight of Passage",                  park: .animalKingdom, land: "Pandora"),
-        Seed(name: "Na'vi River Journey",                       park: .animalKingdom, land: "Pandora"),
-
-        // Africa
-        Seed(name: "Kilimanjaro Safaris",                       park: .animalKingdom, land: "Africa"),
-        Seed(name: "Wildlife Express Train",                    park: .animalKingdom, land: "Africa"),
-
-        // Asia
-        Seed(name: "Expedition Everest",                        park: .animalKingdom, land: "Asia"),
-        Seed(name: "Kali River Rapids",                         park: .animalKingdom, land: "Asia"),
-
-        // DinoLand U.S.A.
-        Seed(name: "DINOSAUR",                                  park: .animalKingdom, land: "DinoLand U.S.A."),
-        Seed(name: "TriceraTop Spin",                           park: .animalKingdom, land: "DinoLand U.S.A.")
-    ]
-
-    // MARK: Disneyland
-
-    private static let disneylandSeeds: [Seed] = [
-        // Main Street
-        Seed(name: "Disneyland Railroad",                       park: .disneyland, land: "Main Street"),
-        Seed(name: "Main Street Vehicles",                      park: .disneyland, land: "Main Street"),
-
-        // Adventureland
-        Seed(name: "Pirates of the Caribbean",                  park: .disneyland, land: "Adventureland"),
-        Seed(name: "Indiana Jones Adventure",                   park: .disneyland, land: "Adventureland"),
-        Seed(name: "Jungle Cruise",                             park: .disneyland, land: "Adventureland"),
-        Seed(name: "Enchanted Tiki Room",                       park: .disneyland, land: "Adventureland"),
-
-        // Frontierland
-        Seed(name: "Big Thunder Mountain Railroad",             park: .disneyland, land: "Frontierland"),
-        Seed(name: "Tiana's Bayou Adventure",                   park: .disneyland, land: "Frontierland"),
-        Seed(name: "Mark Twain Riverboat",                      park: .disneyland, land: "Frontierland"),
-        Seed(name: "Sailing Ship Columbia",                     park: .disneyland, land: "Frontierland"),
-        Seed(name: "Pirate's Lair on Tom Sawyer Island",        park: .disneyland, land: "Frontierland"),
-
-        // Fantasyland
-        Seed(name: "Matterhorn Bobsleds",                       park: .disneyland, land: "Fantasyland"),
-        Seed(name: "Peter Pan's Flight",                        park: .disneyland, land: "Fantasyland"),
-        Seed(name: "it's a small world",                        park: .disneyland, land: "Fantasyland"),
-        Seed(name: "Snow White's Enchanted Wish",               park: .disneyland, land: "Fantasyland"),
-        Seed(name: "Mr. Toad's Wild Ride",                      park: .disneyland, land: "Fantasyland"),
-        Seed(name: "Dumbo the Flying Elephant",                 park: .disneyland, land: "Fantasyland"),
-        Seed(name: "King Arthur Carrousel",                     park: .disneyland, land: "Fantasyland"),
-        Seed(name: "Mad Tea Party",                             park: .disneyland, land: "Fantasyland"),
-        Seed(name: "Pinocchio's Daring Journey",                park: .disneyland, land: "Fantasyland"),
-
-        // Tomorrowland
-        Seed(name: "Space Mountain",                            park: .disneyland, land: "Tomorrowland"),
-        Seed(name: "Buzz Lightyear Astro Blasters",             park: .disneyland, land: "Tomorrowland"),
-        Seed(name: "Autopia",                                   park: .disneyland, land: "Tomorrowland"),
-        Seed(name: "Astro Orbitor",                             park: .disneyland, land: "Tomorrowland"),
-        Seed(name: "Finding Nemo Submarine Voyage",             park: .disneyland, land: "Tomorrowland"),
-        Seed(name: "Star Wars Hyperspace Mountain",             park: .disneyland, land: "Tomorrowland"),
-
-        // Star Wars: Galaxy's Edge
-        Seed(name: "Star Wars: Rise of the Resistance",         park: .disneyland, land: "Star Wars: Galaxy's Edge"),
-        Seed(name: "Millennium Falcon: Smugglers Run",          park: .disneyland, land: "Star Wars: Galaxy's Edge"),
-
-        // Mickey's Toontown
-        Seed(name: "Roger Rabbit's Car Toon Spin",              park: .disneyland, land: "Mickey's Toontown"),
-        Seed(name: "Mickey & Minnie's Runaway Railway",         park: .disneyland, land: "Mickey's Toontown"),
-        Seed(name: "Chip 'n' Dale's GADGETcoaster",             park: .disneyland, land: "Mickey's Toontown")
-    ]
-
-    // MARK: Disney California Adventure
-
-    private static let dcaSeeds: [Seed] = [
-        // Buena Vista Street
-        Seed(name: "Red Car Trolley",                           park: .californiaAdventure, land: "Buena Vista Street"),
-
-        // Hollywood Land
-        Seed(name: "Guardians of the Galaxy: Mission Breakout!", park: .californiaAdventure, land: "Hollywood Land"),
-        Seed(name: "WEB SLINGERS: A Spider-Man Adventure",       park: .californiaAdventure, land: "Hollywood Land"),
-        Seed(name: "Monsters Inc. Mike & Sulley to the Rescue!", park: .californiaAdventure, land: "Hollywood Land"),
-
-        // Avengers Campus
-        Seed(name: "WEB SLINGERS: A Spider-Man Adventure (AC)",  park: .californiaAdventure, land: "Avengers Campus"),
-        Seed(name: "Avengers Assemble: Flight Force",            park: .californiaAdventure, land: "Avengers Campus"),
-
-        // Cars Land
-        Seed(name: "Radiator Springs Racers",                    park: .californiaAdventure, land: "Cars Land"),
-        Seed(name: "Mater's Junkyard Jamboree",                  park: .californiaAdventure, land: "Cars Land"),
-        Seed(name: "Luigi's Rollickin' Roadsters",               park: .californiaAdventure, land: "Cars Land"),
-
-        // Grizzly Peak
-        Seed(name: "Grizzly River Run",                          park: .californiaAdventure, land: "Grizzly Peak"),
-        Seed(name: "Soarin' Around the World",                   park: .californiaAdventure, land: "Grizzly Peak"),
-
-        // Pixar Pier
-        Seed(name: "Incredicoaster",                             park: .californiaAdventure, land: "Pixar Pier"),
-        Seed(name: "Toy Story Midway Mania!",                    park: .californiaAdventure, land: "Pixar Pier"),
-        Seed(name: "Inside Out Emotional Whirlwind",             park: .californiaAdventure, land: "Pixar Pier"),
-        Seed(name: "Jessie's Critter Carousel",                  park: .californiaAdventure, land: "Pixar Pier"),
-        Seed(name: "Pixar Pal-A-Round",                          park: .californiaAdventure, land: "Pixar Pier"),
-
-        // Paradise Gardens Park
-        Seed(name: "Goofy's Sky School",                         park: .californiaAdventure, land: "Paradise Gardens Park"),
-        Seed(name: "Jumpin' Jellyfish",                          park: .californiaAdventure, land: "Paradise Gardens Park"),
-        Seed(name: "Golden Zephyr",                              park: .californiaAdventure, land: "Paradise Gardens Park")
-    ]
+    /// Cached stableID → MasterAttraction lookup for seeded attractions only.
+    /// Used by pass-2 metadata correction.
+    private static let masterByStableID: [String: MasterAttraction] = {
+        var map = [String: MasterAttraction](minimumCapacity: RideMasterData.seedableAttractions.count)
+        for a in RideMasterData.seedableAttractions { map[a.stableID] = a }
+        return map
+    }()
 }
 
 private extension RideSeeder.Seed {
@@ -305,3 +195,98 @@ private extension RideSeeder.Seed {
         "\(park.rawValue)|\(land)|\(name)"
     }
 }
+
+// MARK: - DEBUG validation & summary
+
+#if DEBUG
+private extension RideSeeder {
+
+    /// Prints the stale-cleanup summary and per-park seeded counts.
+    /// Called at the end of every seedIfNeeded run in DEBUG builds.
+    static func printSeedSummary(staleRemoved: [String], corrected: [String]) {
+        print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("🌱 RideSeeder — seed summary")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        // ── Stale-row report ─────────────────────────────────────────────
+        if staleRemoved.isEmpty {
+            print("✅ Stale rows removed : 0  (no phantom or unrecognised IDs)")
+        } else {
+            print("🗑️  Stale rows removed : \(staleRemoved.count)")
+            for entry in staleRemoved {
+                print("   — \(entry)")
+            }
+            print("   ↳ Ride logs for these attractions were cascade-deleted.")
+        }
+
+        // ── Metadata-correction report ────────────────────────────────────
+        if corrected.isEmpty {
+            print("✅ Metadata corrections: 0  (all park/land/name fields match master data)")
+        } else {
+            print("🔧 Metadata corrections: \(corrected.count)  (park/land/name fixed in-place; logs preserved)")
+            for id in corrected {
+                print("   ~ \(id)")
+            }
+        }
+
+        // ── Per-park seeded counts ────────────────────────────────────────
+        print("────────────────────────────────────────────")
+        print("📊 Final seeded counts per park:")
+        for park in Park.allCases {
+            let seeds      = allSeeds.filter { $0.park == park }
+            let rideSeeds  = seeds.filter { RideMasterData.typeByStableID[$0.stableID] == .ride }
+            let nonRide    = seeds.count - rideSeeds.count
+            print("   \(park.rawValue.padding(toLength: 28, withPad: " ", startingAt: 0))"
+                + "\(seeds.count) total  "
+                + "(\(rideSeeds.count) rides · \(nonRide) non-rides excluded from counts)")
+        }
+        let totalSeeds     = allSeeds.count
+        let totalRideSeeds = allSeeds.filter { RideMasterData.typeByStableID[$0.stableID] == .ride }.count
+        print("   \("TOTAL".padding(toLength: 28, withPad: " ", startingAt: 0))"
+            + "\(totalSeeds) total  "
+            + "(\(totalRideSeeds) rides · \(totalSeeds - totalRideSeeds) non-rides)")
+
+        // ── typeByStableID coverage check ─────────────────────────────────
+        // Every seeded ID should appear in typeByStableID. A gap here means
+        // seedableAttractions and all have diverged — investigate RideMasterData.
+        let missingFromIndex = allSeeds.filter {
+            RideMasterData.typeByStableID[$0.stableID] == nil
+        }
+        if missingFromIndex.isEmpty {
+            print("✅ typeByStableID coverage: all \(totalSeeds) seeds present")
+        } else {
+            print("⚠️  typeByStableID GAPS — \(missingFromIndex.count) seed(s) missing from index:")
+            for seed in missingFromIndex {
+                print("   ⚠️  \(seed.stableID)")
+            }
+            print("   ↳ These IDs will be EXCLUDED from ride counts at query time.")
+            print("   ↳ Check that seedableAttractions and all are consistent in RideMasterData.")
+        }
+
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    }
+
+    /// Logs any seed whose land is not present in Park.lands for that park.
+    /// Catches mismatches between seeder land strings and the canonical land list.
+    static func validateLandAssignments() {
+        var mismatches: [(Seed, String)] = []
+        for seed in allSeeds {
+            if !seed.park.lands.contains(seed.land) {
+                mismatches.append((seed, "land '\(seed.land)' not in Park.lands for \(seed.park.rawValue)"))
+            }
+        }
+        if !mismatches.isEmpty {
+            for (seed, reason) in mismatches {
+                print("⚠️ RideSeeder: \(seed.park.rawValue) — \(seed.name) — \(reason)")
+            }
+        }
+
+        // Detect duplicate stableIDs (would cause SwiftData constraint violation).
+        let ids = allSeeds.map(\.stableID)
+        let dupes = Dictionary(grouping: ids, by: { $0 }).filter { $0.value.count > 1 }.keys
+        for dupe in dupes.sorted() {
+            print("⚠️ RideSeeder: duplicate stableID '\(dupe)'")
+        }
+    }
+}
+#endif
