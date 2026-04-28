@@ -736,47 +736,41 @@ private struct HomeMetadataPill: View {
 // MARK: - Quick Filters
 
 struct HomeQuickFilterRow: View {
-    let shortWaitCount: Int
     let openNowCount: Int
     let plannedCount: Int
     let totalRideCount: Int
-    let onShortWaits: () -> Void
     let onNearby: () -> Void
     let onOpenNow: () -> Void
     let onMyPlan: () -> Void
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: AppSpacing.sm) {
-                HomeFilterChip(
-                    title: "Short Waits",
-                    value: "\(shortWaitCount)",
-                    icon: "timer",
-                    color: AppColor.success,
-                    action: onShortWaits
-                )
-                HomeFilterChip(
-                    title: "Nearby",
-                    value: "Map",
-                    icon: "location.fill",
-                    color: Color.blue,
-                    action: onNearby
-                )
-                HomeFilterChip(
-                    title: "Open Now",
-                    value: "\(openNowCount)/\(totalRideCount)",
-                    icon: "checkmark.circle.fill",
-                    color: AppColor.brandPrimary,
-                    action: onOpenNow
-                )
-                HomeFilterChip(
-                    title: "My Plan",
-                    value: "\(plannedCount)",
-                    icon: "checklist",
-                    color: Color.purple,
-                    action: onMyPlan
-                )
-            }
+        // Three chips fill the row evenly without a scroll view now that
+        // Short Waits has been removed. HStack expands each chip to equal width.
+        HStack(spacing: AppSpacing.sm) {
+            HomeFilterChip(
+                title: "Nearby",
+                value: "Map",
+                icon: "location.fill",
+                color: Color.blue,
+                action: onNearby
+            )
+            .frame(maxWidth: .infinity)
+            HomeFilterChip(
+                title: "Open Now",
+                value: "\(openNowCount)/\(totalRideCount)",
+                icon: "checkmark.circle.fill",
+                color: AppColor.brandPrimary,
+                action: onOpenNow
+            )
+            .frame(maxWidth: .infinity)
+            HomeFilterChip(
+                title: "My Plan",
+                value: "\(plannedCount)",
+                icon: "checklist",
+                color: Color.purple,
+                action: onMyPlan
+            )
+            .frame(maxWidth: .infinity)
         }
     }
 }

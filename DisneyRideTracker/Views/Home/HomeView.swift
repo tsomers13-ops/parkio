@@ -269,12 +269,12 @@ struct HomeView: View {
 
         let candidates = rideableCandidates
         let upNext = visibleUpNextItems
-        let shortWaits = upNext.filter { $0.state.waitMinutes! <= 20 }
+        let parkWideShortWaits = candidates.filter { ($0.state.waitMinutes ?? Int.max) <= 20 }
 
         print("────────────────────────────────────────────")
-        print("  rideableCandidates : \(candidates.count)")
-        print("  visibleUpNextItems : \(upNext.count) (capped at 6)")
-        print("  shortWaitCount     : \(shortWaits.count) (≤20 min in visible 6)")
+        print("  rideableCandidates : \(candidates.count)  (park-wide open rides)")
+        print("  visibleUpNextItems : \(upNext.count)  (Up Next preview, capped at 6)")
+        print("  short waits ≤20 min: \(parkWideShortWaits.count)  (park-wide, chip removed)")
         print("────────────────────────────────────────────")
         print("  Up Next breakdown:")
         for item in upNext {
@@ -297,9 +297,8 @@ struct HomeView: View {
 
     // MARK: - Up Next — single source of truth
 
-    /// Canonical Up Next candidate list. Both the visible card rows and the
-    /// Short Waits chip count are derived from this array, so they are always
-    /// in sync.
+    /// Canonical Up Next candidate list. The visible card rows are derived from
+    /// this array and capped at 6.
     ///
     /// Inclusion rules (all three must hold):
     ///   1. `type == .ride`  — shows, character meets, walkthroughs excluded
@@ -429,12 +428,6 @@ struct HomeView: View {
 
     private var openRideCount: Int   { rideableCandidates.count }
 
-    private var shortWaitCount: Int {
-        // Derived from visibleUpNextItems — the same 6 rows the user sees.
-        // waitMinutes is guaranteed non-nil in visibleUpNextItems, so force-unwrap is safe.
-        visibleUpNextItems.filter { $0.state.waitMinutes! <= 20 }.count
-    }
-
     private var averageWaitMinutes: Int? {
         let waits = rideableCandidates.compactMap(\.state.waitMinutes)
         guard !waits.isEmpty else { return nil }
@@ -523,11 +516,9 @@ struct HomeView: View {
                         .animation(AppMotion.standard, value: activeStreakMilestone)
 
                         HomeQuickFilterRow(
-                            shortWaitCount: shortWaitCount,
                             openNowCount: openRideCount,
                             plannedCount: myDayStore.remainingCount,
                             totalRideCount: parkRides.count,
-                            onShortWaits: { showAttractionsList = true },
                             onNearby: { coordinator.selectedTab = 1 },
                             onOpenNow: { showAttractionsList = true },
                             onMyPlan: { coordinator.selectedTab = 2 }
