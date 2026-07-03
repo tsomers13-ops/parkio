@@ -67,7 +67,7 @@ struct HomeHeaderView: View {
         case 5..<12:  return "Good morning"
         case 12..<17: return "Good afternoon"
         case 17..<22: return "Good evening"
-        default:      return "Ready for magic"
+        default:      return "Good night"
         }
     }
 
@@ -81,15 +81,20 @@ struct HomeHeaderView: View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack(alignment: .top, spacing: AppSpacing.md) {
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text(park.displayName)
+                    Text("Your Day")
                         .font(.largeTitle.bold())
                         .foregroundStyle(AppColor.textPrimary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.82)
 
-                    Text(Self.dateFormatter.string(from: Date()))
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(AppColor.textSecondary)
+                    // Park name demoted to secondary context alongside the date.
+                    // This keeps park identity clear without leading with the park brand.
+                    HStack(spacing: 5) {
+                        Image(systemName: park.systemImageName)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(park.accentColor)
+                        Text("\(park.displayName) · \(Self.dateFormatter.string(from: Date()))")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
                 }
 
                 Spacer(minLength: AppSpacing.sm)
@@ -116,7 +121,7 @@ struct HomeHeaderView: View {
                 }
             }
 
-            Text("\(greeting). Ready for \(park.displayName)?")
+            Text("\(greeting). Here's today's overview.")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
