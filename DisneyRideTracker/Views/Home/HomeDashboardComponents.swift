@@ -1316,3 +1316,164 @@ private struct HomeQuickActionButton: View {
         )
     }
 }
+
+// MARK: - Best Food Nearby
+
+/// Home-screen dining preview card.
+/// Shows the top three Parkio-scored venues for the current park.
+/// Tapping "Browse all food & dining" navigates to AttractionsListView with
+/// the Dining filter pre-selected via the onSeeAll closure in HomeView.
+///
+/// Empty state: shown when the park has no seeded dining venues yet.
+/// Dining recommendation logic is completely separate from the ride
+/// recommendation engine — this card never appears inside ride flows.
+struct HomeBestFoodNearbyCard: View {
+    /// Up to three top-rated MasterAttractions for this park (shouldAppearInDiningPicker == true),
+    /// pre-sorted by parkioScore descending. Caller supplies Array(topDining(for:).prefix(3)).
+    let venues: [MasterAttraction]
+    let park: Park
+    let onSeeAll: () -> Void
+
+    var body: some View {
+        if venues.isEmpty {
+            // ── Empty state ────────────────────────────────────────────────────
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Label("Best Food Nearby", systemImage: "fork.knife")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppColor.textSecondary)
+
+                Text("Food recommendations coming soon.")
+                    .font(.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(AppSpacing.xl)
+            .background(AppColor.card)
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl))
+            .shadow(color: .black.opacity(0.04), radius: 8, x: 0, y: 3)
+        } else {
+            // ── Venue rows + footer ────────────────────────────────────────────
+            VStack(spacing: 0) {
+                ForEach(Array(venues.enumerated()), id: \.element.stableID) { index, venue in
+                    HomeDiningVenueRow(venue: venue, park: park)
+
+                    if index < venues.count - 1 {
+                        Divider()
+                            .padding(.leading, 80)
+                    }
+                }
+
+                Divider()
+
+                Button {
+                    AppHaptic.light()
+                    onSeeAll()
+                } label: {
+                    HStack {
+                        Text("Browse all food & dining")
+                            .font(.subheadline.weight(.semibold))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(AppColor.brandPrimary)
+                    .padding(AppSpacing.cardPadding)
+                }
+                .buttonStyle(.plain)
+            }
+            .background(AppColor.card)
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl))
+            .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
+        }
+    }
+}
+
+private struct HomeDiningVenueRow: View {
+    let venue: MasterAttraction
+    let park: Park
+
+    private var dining: DiningMetadata? {
+        RideMasterData.diningByStableID[venue.stableID]
+    }
+
+    /// Score badge colour — green for unmissable (9–10), gold for recommended (7–8),
+    /// secondary for solid backup (≤6). Mirrors the parkioScore legend in DiningMetadata.
+    private var scoreColor: Color {
+        guard let score = dining?.parkioScore else { return AppColor.textTertiary }
+        if score >= 9 { return AppColor.success }
+        if score >= 7 { return AppColor.brandGoldDeep }
+        return AppColor.textSecondary
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+
+            // ── Parkio score column (fixed 56 pt) ──────────────────────────────
+            VStack(spacing: 1) {
+                if let score = dining?.parkioScore {
+                    Text("\(score)")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(scoreColor)
+                    Text("/ 10")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(AppColor.textTertiary)
+                } else {
+                    Text("—")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+            }
+            .frame(width: 56, alignment: .center)
+
+            // ── Hairline column separator ──────────────────────────────────────
+            Rectangle()
+                .fill(AppColor.skeleton.opacity(0.6))
+                .frame(width: 0.5, height: 36)
+                .padding(.trailing, AppSpacing.md)
+
+            // ── Venue name + verdict + first signature item ────────────────────
+            VStack(alignment: .leading, spacing: 3) {
+                Text(venue.name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(1)
+
+                if let verdict = dining?.shortVerdict {
+                    Text(verdict)
+                        .font(.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .lineLimit(1)
+                }
+
+                if let firstItem = dining?.signatureItems.first {
+                    Text(firstItem)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(park.accentColor)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: AppSpacing.sm)
+
+            // ── Right: price tier + mobile order badge ─────────────────────────
+            VStack(alignment: .trailing, spacing: AppSpacing.xs) {
+                if let price = dining?.priceTier.displayString {
+                    Text(price)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+
+                if dining?.mobileOrderAvailable == true {
+                    HomeMetadataPill(
+                        icon: "iphone",
+                        text: "Mobile Order",
+                        color: AppColor.success
+                    )
+                }
+            }
+            .padding(.trailing, AppSpacing.md)
+        }
+        .padding(.vertical, AppSpacing.md)
+        .contentShape(Rectangle())
+    }
+}

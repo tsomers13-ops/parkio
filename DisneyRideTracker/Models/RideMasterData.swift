@@ -56,6 +56,28 @@ enum AttractionType: String, Sendable {
     case transport
     /// Announced or under construction — not currently operating.
     case future
+
+    // ── Dining types ──────────────────────────────────────────────────────────
+    /// Counter-service restaurant; typically supports mobile order.
+    case quickService
+    /// Standalone snack kiosk or outdoor cart (no full seating required).
+    case snackStand
+    /// Seated, waiter-service restaurant; reservations typically recommended.
+    case tableService
+    /// Bar, lounge, or beverage-led venue with light food offerings.
+    case lounge
+    /// Seasonal festival booth (e.g. EPCOT Food & Wine, Festival of the Arts).
+    case festivalBooth
+
+    /// True for all dining venue types.
+    var isDining: Bool {
+        switch self {
+        case .quickService, .snackStand, .tableService, .lounge, .festivalBooth:
+            return true
+        default:
+            return false
+        }
+    }
 }
 
 // MARK: - MasterAttraction
@@ -85,6 +107,9 @@ struct MasterAttraction: Sendable {
     /// explicitly with `hasLiveWaitTime: true` for the rare non-ride that posts a live
     /// wait (e.g. Monsters, Inc. Laugh Floor, Zootopia: Better Zoogether!).
     let hasLiveWaitTime: Bool
+    /// Parkio editorial dining metadata. Non-nil only when `type.isDining == true`.
+    /// Sourced from RideMasterData+Dining.swift. Never user-generated.
+    let dining: DiningMetadata?
 
     // MARK: Designated init
 
@@ -93,12 +118,13 @@ struct MasterAttraction: Sendable {
         park: Park,
         land: String,
         type: AttractionType,
-        outdoor: Bool           = false,
-        map: Int?               = nil,
+        outdoor: Bool            = false,
+        map: Int?                = nil,
         seed: Bool,
-        aliases: [String]       = [],
-        entityId: String?       = nil,
-        hasLiveWaitTime: Bool?  = nil   // nil → infer: true for .ride, false otherwise
+        aliases: [String]        = [],
+        entityId: String?        = nil,
+        hasLiveWaitTime: Bool?   = nil,   // nil → infer: true for .ride, false otherwise
+        dining: DiningMetadata?  = nil    // non-nil only for dining venue types
     ) {
         self.name                = name
         self.park                = park
@@ -110,6 +136,7 @@ struct MasterAttraction: Sendable {
         self.aliases             = aliases
         self.themeparksEntityId  = entityId
         self.hasLiveWaitTime     = hasLiveWaitTime ?? (type == .ride)
+        self.dining              = dining
     }
 
     // MARK: Derived
@@ -130,8 +157,11 @@ struct MasterAttraction: Sendable {
     /// appear in ride recommendations; only traditional ride queues belong there.
     var shouldBeRecommended: Bool { type == .ride }
 
-    /// Appears in My Day ride picker.
-    var shouldAppearInRidePicker: Bool { shouldSeed }
+    /// Appears in My Day ride / attraction picker (excludes dining venues).
+    var shouldAppearInRidePicker: Bool { shouldSeed && !type.isDining }
+
+    /// Appears in the My Day dining picker (future feature — type must be a dining variant).
+    var shouldAppearInDiningPicker: Bool { shouldSeed && type.isDining }
 
     /// Gets a map pin (coordinate entry in MapCoordinates.json required separately).
     var shouldAppearOnMap: Bool { mapPriority != nil }
@@ -144,8 +174,12 @@ enum RideMasterData {
     // ── Master list ───────────────────────────────────────────────────────────
 
     static let all: [MasterAttraction] =
-        mkAttractions + epcotAttractions + dhsAttractions +
-        akAttractions + disneylandAttractions + dcaAttractions
+        mkAttractions        + mkDining        +
+        epcotAttractions     + epcotDining     +
+        dhsAttractions       + dhsDining       +
+        akAttractions        + akDining        +
+        disneylandAttractions + disneylandDining +
+        dcaAttractions       + dcaDining
 
     // ── Seeder bridge ─────────────────────────────────────────────────────────
 
@@ -217,10 +251,10 @@ private extension RideMasterData {
            type: .ride, outdoor: true, map: 3, seed: true,
            aliases: ["The Magic Carpets of Aladdin"]),
 
-        // Show — not seeded; map pin added if coordinates are provided in MapCoordinates.json.
+        // Show — not seeded; map: 3 so guests can locate the theatre entrance.
         MA("Walt Disney's Enchanted Tiki Room",
            park: .magicKingdom, land: "Adventureland",
-           type: .show, outdoor: false, map: nil, seed: false),
+           type: .show, outdoor: false, map: 3, seed: false),
 
         // ── Frontierland ──────────────────────────────────────────────────────
         MA("Big Thunder Mountain Railroad",
@@ -286,9 +320,10 @@ private extension RideMasterData {
            type: .ride, outdoor: true, map: 3, seed: true,
            aliases: ["The Barnstormer", "The Barnstormer Featuring The Great Goofini"]),
 
+        // map: 3 — large theatre; guests benefit from a pin to locate the entrance.
         MA("Mickey's PhilharMagic",
            park: .magicKingdom, land: "Fantasyland",
-           type: .show, outdoor: false, map: nil, seed: false),
+           type: .show, outdoor: false, map: 3, seed: false),
 
         // ── Tomorrowland ──────────────────────────────────────────────────────
         MA("Space Mountain",
@@ -325,6 +360,26 @@ private extension RideMasterData {
            park: .magicKingdom, land: "Tomorrowland",
            type: .show, outdoor: false, map: 3, seed: true,
            hasLiveWaitTime: true),
+
+        // Carousel of Progress — rotating theatre; posts a live wait time.
+        // Seeded so guests can add it to their day and see current queue length.
+        MA("Carousel of Progress",
+           park: .magicKingdom, land: "Tomorrowland",
+           type: .ride, outdoor: false, map: 3, seed: true,
+           aliases: ["Walt Disney's Carousel of Progress"]),
+
+        // Hall of Presidents — large indoor theatre in Liberty Square; no live
+        // wait time, but map: 3 pin helps guests locate it between show starts.
+        MA("Hall of Presidents",
+           park: .magicKingdom, land: "Liberty Square",
+           type: .show, outdoor: false, map: 3, seed: false),
+
+        // Country Bear Jamboree — Frontierland indoor show; seed: true so guests
+        // can block it in My Day. No live wait time posted via ThemeParks.wiki.
+        // [VERIFY] Confirm operating status and current show format.
+        MA("Country Bear Jamboree",
+           park: .magicKingdom, land: "Frontierland",
+           type: .show, outdoor: false, map: 3, seed: true),
 
         // ── Character Meet & Greets ───────────────────────────────────────────
         // map: nil until GPS coordinates are added to MapCoordinates.json.
@@ -402,9 +457,10 @@ private extension RideMasterData {
            park: .epcot, land: "World Nature",
            type: .ride, outdoor: false, map: 2, seed: true),
 
+        // map: 3 — show theatre inside The Seas pavilion; pin helps guests locate entry.
         MA("Turtle Talk with Crush",
            park: .epcot, land: "World Nature",
-           type: .show, outdoor: false, map: nil, seed: false),
+           type: .show, outdoor: false, map: 3, seed: false),
 
         // Journey of Water, Inspired by Moana — self-guided outdoor walkthrough;
         // no queue, no posted wait time.
@@ -459,9 +515,26 @@ private extension RideMasterData {
            type: .ride, outdoor: false, map: 2, seed: true,
            aliases: ["Star Tours: The Adventures Continue"]),
 
+        // map: 3 — large outdoor amphitheatre; guests time their route to catch shows.
         MA("Indiana Jones Epic Stunt Spectacular!",
            park: .hollywoodStudios, land: "Echo Lake",
-           type: .show, outdoor: true, map: nil, seed: false),
+           type: .show, outdoor: true, map: 3, seed: false),
+
+        // For the First Time in Forever: A Frozen Sing-Along Celebration — Echo Lake
+        // indoor theatre; seeded so guests can schedule the show in My Day.
+        MA("For the First Time in Forever: A Frozen Sing-Along Celebration",
+           park: .hollywoodStudios, land: "Echo Lake",
+           type: .show, outdoor: false, map: 3, seed: true,
+           aliases: ["Frozen Sing-Along Celebration"]),
+
+        // ── Grand Avenue ──────────────────────────────────────────────────────
+        // Muppet*Vision 3D — large 3D theatre between Echo Lake and Toy Story Land.
+        // seed: true so guests can add it to My Day. No live wait time from the API,
+        // but the show runs on a schedule guests plan around.
+        MA("Muppet*Vision 3D",
+           park: .hollywoodStudios, land: "Grand Avenue",
+           type: .show, outdoor: false, map: 3, seed: true,
+           aliases: ["MuppetVision 3D", "Muppet Vision 3D"]),
 
         // ── Sunset Boulevard ──────────────────────────────────────────────────
         MA("The Twilight Zone Tower of Terror",
@@ -478,6 +551,13 @@ private extension RideMasterData {
                "Rock 'n' Roller Coaster Starring Aerosmith",
                "Rock 'n' Roller Coaster",
            ]),
+
+        // Beauty and the Beast – Live on Stage — Sunset Boulevard outdoor amphitheatre.
+        // seed: true so guests can plan the show. No live wait time.
+        MA("Beauty and the Beast \u{2013} Live on Stage",
+           park: .hollywoodStudios, land: "Sunset Boulevard",
+           type: .show, outdoor: true, map: 3, seed: true,
+           aliases: ["Beauty and the Beast: Live on Stage"]),
 
         // ── Toy Story Land ────────────────────────────────────────────────────
         MA("Slinky Dog Dash",
@@ -568,22 +648,24 @@ private extension RideMasterData {
            type: .ride, outdoor: false, map: 2, seed: true),
 
         // ── Shows ─────────────────────────────────────────────────────────────
-        // Festival of the Lion King — indoor, Africa theatre; no live wait time.
+        // Festival of the Lion King — indoor, Africa theatre; map: 3 so guests can plan
+        // their route to the Harambe Theatre. One of the most-attended Disney shows.
         MA("Festival of the Lion King",
            park: .animalKingdom, land: "Africa",
-           type: .show, outdoor: false, map: nil, seed: true),
+           type: .show, outdoor: false, map: 3, seed: true),
 
-        // UP! A Great Bird Adventure — outdoor amphitheatre, Asia.
+        // UP! A Great Bird Adventure — outdoor amphitheatre, Asia; map: 3.
         MA("UP! A Great Bird Adventure",
            park: .animalKingdom, land: "Asia",
-           type: .show, outdoor: false, map: nil, seed: true),
+           type: .show, outdoor: false, map: 3, seed: true),
 
         // Finding Nemo: The Big Blue...and Beyond! — formerly Theater in the Wild
         // (DinoLand U.S.A.); venue persists post-DinoLand transformation (April 2026).
-        // Land assignment may need correction once the new area name is confirmed.
+        // map: 3 — large indoor theatre; land assignment may need updating once
+        // the replacement area name is confirmed.
         MA("Finding Nemo: The Big Blue...and Beyond!",
            park: .animalKingdom, land: "Discovery Island",
-           type: .show, outdoor: false, map: nil, seed: true),
+           type: .show, outdoor: false, map: 3, seed: true),
 
         // ── Character Meet & Greets ───────────────────────────────────────────
         // Canonical stable ID uses the original seeder name.

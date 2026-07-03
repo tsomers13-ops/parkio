@@ -32,6 +32,11 @@ struct DisneyRideTrackerApp: App {
     // JSON-persisted to Documents; injected so any view can read or mutate it.
     @State private var myDayStore = MyDayStore()
 
+    // ── Dining rating store ───────────────────────────────────────────────────
+    // Owns all user dining ratings (1–5 stars, favourite, notes).
+    // UserDefaults JSON; injected so RideDetailView and DiningRatingSheet can access it.
+    @State private var diningRatingStore = DiningRatingStore()
+
     // ── Navigation coordinator ────────────────────────────────────────────────
     // Single source of truth for root tab selection + cross-tab navigation state
     // (e.g. My Day "Show on Map" → switches to map tab + selects a ride).
@@ -76,6 +81,7 @@ struct DisneyRideTrackerApp: App {
                 .environment(ConnectivityMonitor.shared)
                 .environment(locationService)
                 .environment(myDayStore)
+                .environment(diningRatingStore)
                 .environment(navigationCoordinator)
                 // Seed static ride catalog on first launch.
                 .onAppear {

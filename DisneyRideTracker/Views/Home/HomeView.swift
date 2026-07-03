@@ -73,6 +73,7 @@ struct HomeView: View {
     @State private var parkHoursService    = ParkHoursService()
     @State private var showAttractionsList = false
     @State private var showAddItemSheet    = false
+    @State private var showDiningList      = false
 
     // ── First-ride nudge ───────────────────────────────────────────────────────
     @State  private var nudgeTimerFired = false
@@ -570,6 +571,26 @@ struct HomeView: View {
                         )
                         .padding(.horizontal, AppSpacing.screenEdge)
 
+                        // ── Best Food Nearby ──────────────────────────────────
+                        // Shows top-3 Parkio-scored dining venues for this park.
+                        // Completely separate from ride recommendation logic —
+                        // dining never appears in rideableCandidates or bestNextRide.
+                        HomeSectionHeader(
+                            title: "Best Food Nearby",
+                            subtitle: "Parkio picks · top-rated venues",
+                            actionLabel: "See All",
+                            action: { showDiningList = true }
+                        )
+                        .padding(.horizontal, AppSpacing.screenEdge)
+                        .padding(.bottom, -AppSpacing.md)
+
+                        HomeBestFoodNearbyCard(
+                            venues: Array(RideMasterData.topDining(for: selectedPark).prefix(3)),
+                            park: selectedPark,
+                            onSeeAll: { showDiningList = true }
+                        )
+                        .padding(.horizontal, AppSpacing.screenEdge)
+
                         // ── Park Day Summary ──────────────────────────────────
                         // Appears once ≥3 rides are logged today. Slides in from
                         // the bottom; dismissed via date-scoped UserDefaults key.
@@ -610,6 +631,9 @@ struct HomeView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $showAttractionsList) {
                 AttractionsListView(park: selectedPark, rides: parkRides)
+            }
+            .navigationDestination(isPresented: $showDiningList) {
+                AttractionsListView(park: selectedPark, rides: parkRides, initialCategoryFilter: .dining)
             }
             .sheet(isPresented: $showAddItemSheet) {
                 AddMyDayItemSheet(park: selectedPark) { item in

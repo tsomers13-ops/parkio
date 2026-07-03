@@ -26,9 +26,11 @@ struct RideDetailView: View {
     /// Navigation bar title — reflects the kind of attraction.
     private var detailTitle: String {
         switch attractionType {
-        case .characterMeet:           return "Character Experience"
-        case .show, .walkthrough:      return "Show"
-        case .ride, .transport, .future: return "Ride"
+        case .characterMeet:                              return "Character Experience"
+        case .show, .walkthrough:                         return "Show"
+        case .ride, .transport, .future:                  return "Ride"
+        case .quickService, .snackStand, .tableService,
+             .lounge, .festivalBooth:                     return "Dining"
         }
     }
 
@@ -44,9 +46,11 @@ struct RideDetailView: View {
     /// Section header for the date-logging section.
     private var logSectionTitle: String {
         switch attractionType {
-        case .characterMeet:           return "Log a character visit"
-        case .show, .walkthrough:      return "Log a show visit"
-        case .ride, .transport, .future: return "Log a ride date"
+        case .characterMeet:                              return "Log a character visit"
+        case .show, .walkthrough:                         return "Log a show visit"
+        case .ride, .transport, .future:                  return "Log a ride date"
+        case .quickService, .snackStand, .tableService,
+             .lounge, .festivalBooth:                     return "Log a visit"
         }
     }
 
@@ -80,6 +84,11 @@ struct RideDetailView: View {
                         .padding(.vertical, AppSpacing.sm)
                     }
                     .listRowBackground(AppColor.card)
+
+                    // ── My Rating (dining only) ──────────────────
+                    if attractionType.isDining {
+                        DiningRatingSection(ride: ride, accentColor: accentColor)
+                    }
 
                     // ── Log a visit ──────────────────────────────
                     Section(logSectionTitle) {

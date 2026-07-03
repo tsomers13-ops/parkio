@@ -50,6 +50,7 @@ enum AttractionCategoryFilter: String, CaseIterable, Identifiable {
     case rides      = "Rides"
     case shows      = "Shows"
     case characters = "Characters"
+    case dining     = "Dining"
 
     var id: String { rawValue }
 
@@ -59,6 +60,7 @@ enum AttractionCategoryFilter: String, CaseIterable, Identifiable {
         case .rides:      return "bolt.fill"
         case .shows:      return "theatermasks.fill"
         case .characters: return "person.fill.checkmark"
+        case .dining:     return "fork.knife"
         }
     }
 
@@ -69,6 +71,7 @@ enum AttractionCategoryFilter: String, CaseIterable, Identifiable {
         case .rides:      return [.ride, .transport]
         case .shows:      return [.show, .walkthrough]
         case .characters: return [.characterMeet]
+        case .dining:     return [.quickService, .snackStand, .tableService, .lounge, .festivalBooth]
         }
     }
 }
@@ -126,8 +129,9 @@ struct AttractionsListView: View {
 
     // ── Data ─────────────────────────────────────────────────────────────────
     private let rides: [Ride]
-    @Environment(WaitTimeViewModel.self) private var waitTimeVM
-    @Environment(MyDayStore.self)        private var myDayStore
+    @Environment(WaitTimeViewModel.self)   private var waitTimeVM
+    @Environment(MyDayStore.self)          private var myDayStore
+    @Environment(DiningRatingStore.self)   private var diningRatingStore
 
     // ── UI state ──────────────────────────────────────────────────────────────
     @State private var sort:              AttractionSort           = .waitAscending
@@ -146,11 +150,12 @@ struct AttractionsListView: View {
     // on larger stores that can stall the Home -> All Attractions push even if
     // this view's body is reduced to a trivial Text.
 
-    init(park: Park, rides: [Ride] = []) {
+    init(park: Park, rides: [Ride] = [], initialCategoryFilter: AttractionCategoryFilter = .all) {
         self.park = park
         self.rides = rides
             .filter { $0.park == park.rawValue }
             .sorted { $0.order < $1.order }
+        _categoryFilter = State(initialValue: initialCategoryFilter)
 
         // Load persisted favorites for this park
         let favKey = "favorites_\(park.rawValue)"
@@ -249,16 +254,37 @@ struct AttractionsListView: View {
             recentRides = []
         }
 
-        // Sort or group the non-favorite rides
-        let currentRides:    [Ride]
-        let currentSections: [LandSection]
+        // ── Sort / group ───────────────────────────────────────────────────────
+        // When the Dining filter is active, bypass the ride-star favorites split
+        // and apply dining-specific sort: (1) heart-favorited venues first,
+        // (2) highest personal rating, (3) A–Z.  Unrated venues (no entry in
+        // DiningRatingStore) sort last.  Ride sorting is completely unaffected.
+        let currentRides:     [Ride]
+        let currentSections:  [LandSection]
+        let resolvedFavRides: [Ride]
 
-        if sort == .byLand {
-            currentRides    = []
-            currentSections = makeLandSections(from: nonFavRides, liveMap: liveMap)
+        if categoryFilter == .dining {
+            resolvedFavRides = []
+            currentSections  = []
+            currentRides     = filtered.sorted { lhs, rhs in
+                let lRating = diningRatingStore.rating(for: lhs.id)
+                let rRating = diningRatingStore.rating(for: rhs.id)
+                let lFav    = lRating?.isFavorite ?? false
+                let rFav    = rRating?.isFavorite ?? false
+                let lRate   = lRating?.rating ?? 0
+                let rRate   = rRating?.rating ?? 0
+                if lFav != rFav   { return lFav }
+                if lRate != rRate { return lRate > rRate }
+                return lhs.name < rhs.name
+            }
+        } else if sort == .byLand {
+            resolvedFavRides = favRides
+            currentRides     = []
+            currentSections  = makeLandSections(from: nonFavRides, liveMap: liveMap)
         } else {
-            currentSections = []
-            currentRides    = sortedRides(nonFavRides, liveMap: liveMap)
+            resolvedFavRides = favRides
+            currentSections  = []
+            currentRides     = sortedRides(nonFavRides, liveMap: liveMap)
         }
 
         return RenderSnapshot(
@@ -268,7 +294,7 @@ struct AttractionsListView: View {
             openCount:           openCount,
             rides:               currentRides,
             sections:            currentSections,
-            favoriteRides:       favRides,
+            favoriteRides:       resolvedFavRides,
             recentlyViewedRides: recentRides
         )
     }
@@ -980,6 +1006,8 @@ private struct AttractionRow: View {
             switch attractionType {
             case .characterMeet: return "Times vary"
             case .show:          return "Schedule"
+            case .quickService, .snackStand, .tableService, .lounge, .festivalBooth:
+                return RideMasterData.diningByStableID[ride.id]?.priceTier.displayString ?? "$"
             default:             return "—"
             }
         }
@@ -999,7 +1027,12 @@ private struct AttractionRow: View {
     }
 
     private var waitColor: Color {
-        guard let live = liveState else { return AppColor.textTertiary }
+        guard let live = liveState else {
+            // Dining venues show price-tier text in gold — distinct from the
+            // "closed" grey used for attractions with no live data yet.
+            if attractionType.isDining { return AppColor.brandGoldDeep }
+            return AppColor.textTertiary
+        }
         if live.status.isRideable {
             guard let mins = live.waitMinutes else { return AppColor.success }
             return AppColor.waitColor(minutes: mins)
@@ -1165,6 +1198,7 @@ private extension RideStatus {
         AttractionsListView(park: .magicKingdom)
             .environment(WaitTimeViewModel(container: container))
             .environment(MyDayStore())
+            .environment(DiningRatingStore())
             .modelContainer(container)
     }
 }
