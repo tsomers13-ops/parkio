@@ -6,6 +6,7 @@
 //   • WaitTimeViewModel created once here, injected via .environment().
 //   • ConnectivityMonitor singleton injected alongside it.
 //   • scenePhase changes drive onBackground() / onForeground() lifecycle hooks.
+//   • AppAppearanceManager drives .preferredColorScheme() at the window level.
 
 import SwiftUI
 import SwiftData
@@ -41,6 +42,11 @@ struct DisneyRideTrackerApp: App {
     // Single source of truth for root tab selection + cross-tab navigation state
     // (e.g. My Day "Show on Map" → switches to map tab + selects a ride).
     @State private var navigationCoordinator = AppNavigationCoordinator()
+
+    // ── Appearance manager ────────────────────────────────────────────────────
+    // Persists the user's Light / Dark / System preference and vends the
+    // ColorScheme? applied to the WindowGroup via .preferredColorScheme().
+    @State private var appearanceManager = AppAppearanceManager()
 
     // ── Scene phase ───────────────────────────────────────────────────────────
 
@@ -83,6 +89,10 @@ struct DisneyRideTrackerApp: App {
                 .environment(myDayStore)
                 .environment(diningRatingStore)
                 .environment(navigationCoordinator)
+                .environment(appearanceManager)
+                // Apply the user's appearance preference to the entire window.
+                // nil → Follow System (SwiftUI default). .light / .dark → forced.
+                .preferredColorScheme(appearanceManager.colorScheme)
                 // Seed static ride catalog on first launch.
                 .onAppear {
                     RideSeeder.seedIfNeeded(context: sharedModelContainer.mainContext)

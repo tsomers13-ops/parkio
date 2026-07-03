@@ -18,6 +18,7 @@ struct ProfileView: View {
 
     @State private var showResetAlert = false
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppAppearanceManager.self) private var appearanceManager
 
     private var parkStats: [ParkStat] {
         Park.allCases.map { park in
@@ -82,6 +83,36 @@ struct ProfileView: View {
                                 label: "Park Visits",
                                 value: "This Year"
                             )
+                        }
+                    }
+                    .listRowBackground(AppColor.card)
+
+                    // ── Appearance ────────────────────────────────
+                    Section(header:
+                        Text("Appearance")
+                            .foregroundStyle(AppColor.textSecondary)
+                            .textCase(nil)
+                    ) {
+                        ForEach(AppearanceMode.allCases) { mode in
+                            HStack(spacing: AppSpacing.md) {
+                                Image(systemName: mode.icon)
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppColor.brandPrimary)
+                                    .frame(width: 24)
+                                Text(mode.label)
+                                    .foregroundStyle(AppColor.textPrimary)
+                                Spacer()
+                                if appearanceManager.mode == mode {
+                                    Image(systemName: "checkmark")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(AppColor.brandPrimary)
+                                }
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                appearanceManager.mode = mode
+                                AppHaptic.light()
+                            }
                         }
                     }
                     .listRowBackground(AppColor.card)
