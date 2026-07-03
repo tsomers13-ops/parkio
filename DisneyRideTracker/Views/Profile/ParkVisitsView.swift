@@ -11,11 +11,12 @@ struct ParkVisitsView: View {
     @State private var showingAddVisit = false
 
     private var selectedYearVisits: [ParkVisit] {
-        visits.filter { $0.visitYear == selectedYear }
+        visits.filter { Calendar.current.component(.year, from: $0.visitDate) == selectedYear }
     }
 
     private var availableYears: [Int] {
-        let years = Set(visits.map(\.visitYear)).union([Calendar.current.component(.year, from: Date())])
+        let years = Set(visits.map { Calendar.current.component(.year, from: $0.visitDate) })
+            .union([Calendar.current.component(.year, from: Date())])
         return years.sorted(by: >)
     }
 
@@ -123,14 +124,17 @@ struct ParkVisitsView: View {
     }
 
     private func addVisit(park: Park, date: Date) {
+        // Normalize to park-local start-of-day so manual visits group correctly
+        // with auto-created (rideLog) visits on the same calendar day.
+        let localDay = ParkVisitService.parkLocalDay(for: date, park: park)
         let visit = ParkVisit(
-            parkId: park.backendId,
-            parkName: park.displayName,
-            visitDate: date
+            parkId:    park.backendId,
+            visitDate: localDay,
+            source:    "manual"
         )
         modelContext.insert(visit)
         try? modelContext.save()
-        selectedYear = visit.visitYear
+        selectedYear = Calendar.current.component(.year, from: localDay)
         AppHaptic.success()
     }
 
@@ -278,7 +282,7 @@ private struct ParkVisitHistoryRow: View {
                 .frame(width: 10, height: 10)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(visit.parkName)
+                Text(park?.displayName ?? visit.parkId)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(Self.dateFormatter.string(from: visit.visitDate))

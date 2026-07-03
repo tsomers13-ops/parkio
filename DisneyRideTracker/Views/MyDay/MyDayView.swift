@@ -8,7 +8,7 @@
 //   • Toolbar: Filter menu (funnel icon)  +  Sort menu (↑↓ icon)  +  Add (+)
 //   • Contextual filter-empty state when a filter hides all items (separate from true-empty)
 //   • Stats row: x remaining, y done
-//   • "Show on Map" action for ride items — switches to Map tab + selects ride
+//   • "Show on Map" action for ride/show/character items with a map pin — switches to Map
 //   • Long-press row to set / change / remove the scheduled time
 //
 // Sort modes (Anytime section only):
@@ -23,6 +23,12 @@
 //   • Subtle reinforcement line — "Optimized for your next ride" — visible whenever
 //     Smart sort is active. Fades in/out with .transition(.opacity).
 //   • Empty state updated to surface Smart mode as a value prop.
+//
+// Add Item sheet pickers:
+//   • Ride      — RidePickerView (SwiftData @Query, seeded rides only)
+//   • Show      — MasterAttractionPickerView filtered by .show
+//   • Character — MasterAttractionPickerView filtered by .characterMeet
+//   • All other types (Food, Shopping, Note, Custom) — free-form text fields
 //
 // Data: @Environment(MyDayStore.self) — injected once at app root.
 // Navigation: @Environment(AppNavigationCoordinator.self) — for map handoff.
@@ -76,6 +82,7 @@ struct MyDayView: View {
     @Environment(MyDayStore.self)                private var store
     @Environment(WaitTimeViewModel.self)         private var waitTimeVM
     @Environment(AppNavigationCoordinator.self)  private var coordinator
+    @Environment(\.modelContext)                 private var modelContext
 
     @State private var filter:            MyDayFilter    = .all
     @State private var sortMode:          SortMode       = .smart
@@ -207,8 +214,9 @@ struct MyDayView: View {
                             item:        item,
                             matchedRide: matchedRide(for: item),
                             isTopPick:   item.id == topPickId,
+                            onToggle:    { withAnimation(AppMotion.quick) { handleToggle(item: item) }; AppHaptic.light() },
                             onSetTime:   { editingTimeItem = item },
-                            onShowOnMap: item.type == .ride && item.rideId != nil
+                            onShowOnMap: item.rideId != nil && isItemMapVisible(item)
                                 ? { showOnMap(item: item) }
                                 : nil
                         )
@@ -218,7 +226,7 @@ struct MyDayView: View {
                         // completes the item without having to reveal the button.
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button {
-                                withAnimation(AppMotion.quick) { store.toggle(item) }
+                                withAnimation(AppMotion.quick) { handleToggle(item: item) }
                                 AppHaptic.light()
                             } label: {
                                 if item.isChecked {
@@ -236,7 +244,7 @@ struct MyDayView: View {
                             // Delete — destructive role applies the system red tint
                             // and positions it as the outermost trailing action.
                             Button(role: .destructive) {
-                                withAnimation(AppMotion.standard) { store.remove(item) }
+                                withAnimation(AppMotion.standard) { handleDelete(item: item) }
                                 AppHaptic.light()
                             } label: {
                                 Label("Delete", systemImage: "trash")
@@ -315,6 +323,18 @@ struct MyDayView: View {
     private func matchedRide(for item: MyDayItem) -> Ride? {
         guard let rideId = item.rideId else { return nil }
         return allRides.first { $0.id == rideId }
+    }
+
+    /// True when the item has a rideId that maps to a map-visible attraction
+    /// (shouldAppearOnMap == true). Governs whether "Show on Map" is offered.
+    ///
+    /// • Ride items   — all have a mapPriority → button shown.
+    /// • Show items   — only those with a map pin (e.g. Monsters, Inc. Laugh Floor).
+    /// • Character items — all have mapPriority == nil → button hidden.
+    /// • Free-form items — rideId is nil → caller's nil-guard already blocks this.
+    private func isItemMapVisible(_ item: MyDayItem) -> Bool {
+        guard let rideId = item.rideId else { return false }
+        return RideMasterData.all.first { $0.stableID == rideId }?.shouldAppearOnMap == true
     }
 
     /// Reorders the Anytime section: rides first (open → short wait → no data → closed/down),
@@ -594,12 +614,162 @@ struct MyDayView: View {
         }
     }
 
+    // MARK: - RideLog bridge
+
+    /// Central toggle handler for all My Day checkmarks and swipe-to-complete actions.
+    ///
+    /// For `.ride` items:
+    ///   • Completing  → creates a RideLog in SwiftData (with duplicate guard).
+    ///   • Un-completing → removes the RideLog created by this My Day item.
+    /// For all other types the store toggle is called without touching SwiftData.
+    ///
+    /// Call sites must wrap this in `withAnimation` themselves so the animation
+    /// context is consistent with the surrounding swipe / button environment.
+    private func handleToggle(item: MyDayItem) {
+        let wasChecked = item.isChecked     // capture BEFORE mutation
+        store.toggle(item)                  // flip isChecked, persist JSON
+
+        guard item.type == .ride else {
+            #if DEBUG
+            print("ℹ️ [MyDay] toggle '\(item.title)' type=.\(item.type.rawValue) — RideLog skipped (non-ride)")
+            #endif
+            return
+        }
+
+        let itemKey = item.id.uuidString
+
+        if !wasChecked {
+            // ── Completing: create a RideLog (duplicate guard first) ───────────
+            let existing = fetchRideLogs(myDayItemId: itemKey)
+            guard existing.isEmpty else {
+                #if DEBUG
+                print("⏩ [MyDay] RideLog already exists for '\(item.title)' — duplicate skipped")
+                #endif
+                return
+            }
+            guard let ride = matchedRide(for: item) else {
+                #if DEBUG
+                print("⚠️ [MyDay] Ride not found for rideId='\(item.rideId ?? "nil")' — RideLog not created")
+                #endif
+                return
+            }
+            let log = RideLog(date: Date(), ride: ride, myDayItemId: itemKey)
+            modelContext.insert(log)
+            ride.logs.append(log)
+            try? modelContext.save()
+            #if DEBUG
+            print("✅ [MyDay] RideLog created — '\(ride.name)' \(log.date) [myDayItemId=\(itemKey)]")
+            #endif
+
+            // Upsert ParkVisit for the park-local calendar day of the ride.
+            if let park = Park(rawValue: ride.park) {
+                ParkVisitService.upsertParkVisit(for: park, rideDate: log.date, context: modelContext)
+            } else {
+                #if DEBUG
+                print("⚠️ [MyDay] Unknown park rawValue '\(ride.park)' — ParkVisit skipped")
+                #endif
+            }
+
+        } else {
+            // ── Un-completing: remove the associated RideLog ───────────────────
+            let toDelete = fetchRideLogs(myDayItemId: itemKey)
+            if toDelete.isEmpty {
+                #if DEBUG
+                print("ℹ️ [MyDay] No MyDay-sourced RideLog found to remove for '\(item.title)'")
+                #endif
+            } else {
+                // Capture park + date BEFORE deletion so the cleanup check
+                // can run against the post-deletion state of the store.
+                let deletionTargets: [(park: Park, date: Date)] = toDelete.compactMap { log in
+                    guard let ride = log.ride, let park = Park(rawValue: ride.park) else { return nil }
+                    return (park, log.date)
+                }
+
+                toDelete.forEach { modelContext.delete($0) }
+                try? modelContext.save()
+                #if DEBUG
+                print("🗑️ [MyDay] RideLog removed — '\(item.title)' [myDayItemId=\(itemKey)]")
+                #endif
+
+                // Cleanup ParkVisit for each affected park+day (retains if other
+                // RideLogs still exist for that park on that park-local day).
+                for target in deletionTargets {
+                    ParkVisitService.cleanupParkVisitIfNeeded(
+                        for:     target.park,
+                        rideDate: target.date,
+                        context: modelContext
+                    )
+                }
+            }
+        }
+    }
+
+    /// Fetches all RideLogs whose myDayItemId matches key.
+    /// Uses an in-memory filter after a full fetch to avoid SwiftData #Predicate
+    /// limitations with optional String comparisons across iOS 17 versions.
+    private func fetchRideLogs(myDayItemId key: String) -> [RideLog] {
+        let descriptor = FetchDescriptor<RideLog>()
+        let all = (try? modelContext.fetch(descriptor)) ?? []
+        return all.filter { $0.myDayItemId == key }
+    }
+
     // MARK: - Delete
+
+    /// Single delete handler for ALL My Day item removal paths (trailing swipe,
+    /// edit-mode .onDelete). Mirrors the cleanup contract of handleToggle:
+    ///
+    ///   • Ride items that were completed (isChecked == true) will have a linked
+    ///     RideLog identified by myDayItemId. That log is deleted first, then
+    ///     ParkVisitService.cleanupParkVisitIfNeeded is called so the ParkVisit
+    ///     is removed only when no other RideLogs remain for that park+day.
+    ///   • Non-ride items and unchecked ride items (no linked RideLog) are
+    ///     removed from MyDayStore only — no SwiftData changes needed.
+    ///
+    /// store.remove(item) is always the final step so the UI update comes after
+    /// SwiftData writes are committed.
+    private func handleDelete(item: MyDayItem) {
+        if item.type == .ride {
+            let itemKey    = item.id.uuidString
+            let linkedLogs = fetchRideLogs(myDayItemId: itemKey)
+
+            if !linkedLogs.isEmpty {
+                // Capture park+date BEFORE deletion so the cleanup check
+                // runs against the post-deletion state of the store.
+                let deletionTargets: [(park: Park, date: Date)] = linkedLogs.compactMap { log in
+                    guard let ride = log.ride,
+                          let park = Park(rawValue: ride.park) else { return nil }
+                    return (park, log.date)
+                }
+
+                linkedLogs.forEach { modelContext.delete($0) }
+                try? modelContext.save()
+
+                #if DEBUG
+                print("🗑️ [MyDay] Delete — \(linkedLogs.count) RideLog(s) removed for '\(item.title)' [myDayItemId=\(itemKey)]")
+                #endif
+
+                for target in deletionTargets {
+                    ParkVisitService.cleanupParkVisitIfNeeded(
+                        for:      target.park,
+                        rideDate: target.date,
+                        context:  modelContext
+                    )
+                }
+            } else {
+                #if DEBUG
+                print("ℹ️ [MyDay] Delete — no linked RideLog for '\(item.title)' (item was not completed)")
+                #endif
+            }
+        }
+
+        // Always remove from MyDayStore regardless of type or completion state.
+        store.remove(item)
+    }
 
     private func deleteFromSection(offsets: IndexSet, sectionItems: [MyDayItem]) {
         let toDelete = offsets.map { sectionItems[$0] }
         withAnimation(AppMotion.standard) {
-            for item in toDelete { store.remove(item) }
+            for item in toDelete { handleDelete(item: item) }
         }
     }
 }
@@ -746,6 +916,10 @@ private struct MyDayItemRow: View {
     /// True when this row is the top smart-sort pick in the Anytime section.
     /// Defaults to false so all existing call sites compile without change.
     var isTopPick:   Bool          = false
+    /// Called when the user taps the checkmark button or triggers the leading swipe.
+    /// MyDayView owns this closure and routes it through handleToggle(item:) so that
+    /// RideLog creation/deletion is handled alongside the store.toggle() call.
+    let onToggle:    () -> Void
     let onSetTime:   () -> Void
     let onShowOnMap: (() -> Void)?
 
@@ -910,8 +1084,7 @@ private struct MyDayItemRow: View {
 
             // ── Check button ───────────────────────────────────────────────────
             Button {
-                withAnimation(AppMotion.quick) { store.toggle(item) }
-                AppHaptic.light()
+                onToggle()
             } label: {
                 Image(systemName: item.isChecked
                       ? "checkmark.circle.fill"
@@ -1110,14 +1283,23 @@ struct AddMyDayItemSheet: View {
         comps.second  = 0
         return cal.date(from: comps) ?? now
     }()
-    @State private var selectedRide:      Ride?         = nil
-    @State private var showRidePicker:    Bool          = false
+    @State private var selectedRide:        Ride?              = nil
+    @State private var showRidePicker:      Bool               = false
+    @State private var selectedAttraction:  MasterAttraction?  = nil
+    @State private var showAttractionPicker: Bool              = false
+
+    /// The AttractionType to filter MasterAttractionPickerView with.
+    /// Only meaningful when selectedType is .show or .character.
+    private var attractionFilterType: AttractionType {
+        selectedType == .show ? .show : .characterMeet
+    }
 
     private var canAdd: Bool {
-        if selectedType == .ride {
-            return selectedRide != nil
+        switch selectedType {
+        case .ride:               return selectedRide != nil
+        case .show, .character:   return selectedAttraction != nil
+        default:                  return !title.trimmingCharacters(in: .whitespaces).isEmpty
         }
-        return !title.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     var body: some View {
@@ -1165,6 +1347,41 @@ struct AddMyDayItemSheet: View {
                         }
 
                         TextField("Notes (optional)", text: $detail)
+
+                    } else if selectedType == .show || selectedType == .character {
+                        // Searchable master-attraction picker row
+                        Button {
+                            showAttractionPicker = true
+                        } label: {
+                            HStack {
+                                Text(selectedAttraction?.name
+                                     ?? "Select a \(selectedType == .show ? "show" : "character")…")
+                                    .foregroundStyle(
+                                        selectedAttraction == nil
+                                            ? AppColor.textTertiary
+                                            : AppColor.textPrimary
+                                    )
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(AppColor.textTertiary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+
+                        // Auto-filled land display (read-only)
+                        if let land = selectedAttraction?.land, !land.isEmpty {
+                            HStack {
+                                Text("Land")
+                                    .foregroundStyle(AppColor.textSecondary)
+                                Spacer()
+                                Text(land)
+                                    .foregroundStyle(AppColor.textTertiary)
+                            }
+                        }
+
+                        TextField("Notes (optional)", text: $detail)
+
                     } else {
                         TextField(selectedType.titlePlaceholder, text: $title)
                         TextField("Location (optional)", text: $location)
@@ -1209,14 +1426,25 @@ struct AddMyDayItemSheet: View {
                     showRidePicker = false
                 }
             }
+            // Show / Character picker pushed onto the NavigationStack.
+            .navigationDestination(isPresented: $showAttractionPicker) {
+                MasterAttractionPickerView(
+                    park:       park,
+                    filterType: attractionFilterType
+                ) { attraction in
+                    selectedAttraction   = attraction
+                    showAttractionPicker = false
+                }
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        // Clear ride/title state when the user switches item types.
+        // Clear picker state when the user switches item types.
         .onChange(of: selectedType) { _, _ in
-            selectedRide = nil
-            title        = ""
-            location     = ""
+            selectedRide       = nil
+            selectedAttraction = nil
+            title              = ""
+            location           = ""
         }
     }
 
@@ -1247,6 +1475,7 @@ struct AddMyDayItemSheet: View {
         let trimmedDetail = detail.trimmingCharacters(in: .whitespaces)
 
         if selectedType == .ride, let ride = selectedRide {
+            // ── Ride path — linked to a SwiftData Ride record ─────────────────
             var item           = MyDayItem(title: ride.name, type: .ride)
             item.rideId        = ride.id
             item.land          = ride.land.isEmpty ? nil : ride.land
@@ -1254,7 +1483,22 @@ struct AddMyDayItemSheet: View {
             item.detail        = trimmedDetail.isEmpty ? nil : trimmedDetail
             item.scheduledTime = hasScheduledTime ? scheduledTime : nil
             onAdd(item)
+
+        } else if (selectedType == .show || selectedType == .character),
+                  let attraction = selectedAttraction {
+            // ── Show / Character path — linked to a MasterAttraction ──────────
+            // rideId stores the stableID so "Show on Map" and coordinate
+            // resolution both work for attractions where shouldAppearOnMap == true.
+            var item           = MyDayItem(title: attraction.name, type: selectedType)
+            item.rideId        = attraction.stableID
+            item.land          = attraction.land.isEmpty ? nil : attraction.land
+            item.parkId        = park.backendId
+            item.detail        = trimmedDetail.isEmpty ? nil : trimmedDetail
+            item.scheduledTime = hasScheduledTime ? scheduledTime : nil
+            onAdd(item)
+
         } else {
+            // ── Free-form path — Food, Shopping, Note, Custom ─────────────────
             let trimmedTitle    = title.trimmingCharacters(in: .whitespaces)
             let trimmedLocation = location.trimmingCharacters(in: .whitespaces)
 
@@ -1329,6 +1573,94 @@ private struct RidePickerView: View {
         }
         .searchable(text: $searchText, prompt: "Search \(park.shortName) rides…")
         .navigationTitle("\(park.shortName) Rides")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - MasterAttractionPickerView
+
+/// Full-screen searchable list of shows or characters for a single park.
+/// Backed by RideMasterData static data (not SwiftData) so it works for
+/// attraction types that are not seeded into the ride store.
+/// Grouped by land; sorted alphabetically within each land.
+private struct MasterAttractionPickerView: View {
+
+    let park:       Park
+    /// Filter to apply — must be .show or .characterMeet.
+    let filterType: AttractionType
+    let onSelect:   (MasterAttraction) -> Void
+
+    @State private var searchText = ""
+
+    private var navigationTitle: String {
+        let kind = filterType == .show ? "Shows" : "Characters"
+        return "\(park.shortName) \(kind)"
+    }
+
+    /// All attractions in this park matching the filter type, alphabetically sorted.
+    private var parkAttractions: [MasterAttraction] {
+        RideMasterData.all
+            .filter { $0.park == park && $0.type == filterType }
+            .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
+    }
+
+    /// Filtered by current search query.
+    private var filteredAttractions: [MasterAttraction] {
+        guard !searchText.isEmpty else { return parkAttractions }
+        let q = searchText.lowercased()
+        return parkAttractions.filter {
+            $0.name.lowercased().contains(q) || $0.land.lowercased().contains(q)
+        }
+    }
+
+    /// Attractions grouped by land, each group sorted alphabetically.
+    private var grouped: [(land: String, attractions: [MasterAttraction])] {
+        Dictionary(grouping: filteredAttractions, by: \.land)
+            .map { (land: $0.key,
+                    attractions: $0.value.sorted {
+                        $0.name.localizedCompare($1.name) == .orderedAscending
+                    }) }
+            .sorted { $0.land.localizedCompare($1.land) == .orderedAscending }
+    }
+
+    var body: some View {
+        let kindLabel = filterType == .show ? "shows" : "characters"
+
+        List {
+            if grouped.isEmpty && searchText.isEmpty {
+                ContentUnavailableView(
+                    "No \(filterType == .show ? "Shows" : "Characters")",
+                    systemImage: filterType == .show ? "theatermasks.fill" : "person.crop.circle.fill",
+                    description: Text(
+                        "\(park.displayName) doesn't have any \(kindLabel) in the current data."
+                    )
+                )
+            } else if grouped.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+            } else {
+                ForEach(grouped, id: \.land) { group in
+                    Section(group.land) {
+                        ForEach(group.attractions, id: \.stableID) { attraction in
+                            Button {
+                                AppHaptic.selection()
+                                onSelect(attraction)
+                            } label: {
+                                Text(attraction.name)
+                                    .foregroundStyle(AppColor.textPrimary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+        .searchable(
+            text: $searchText,
+            prompt: "Search \(park.shortName) \(kindLabel)…"
+        )
+        .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
     }
 }

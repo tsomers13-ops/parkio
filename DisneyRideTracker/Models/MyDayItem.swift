@@ -119,7 +119,7 @@ struct MyDayItem: Identifiable, Codable, Equatable {
     /// Stable UUID assigned on creation. Never changes.
     var id: UUID = UUID()
 
-    /// Primary display text — ride name, food item name, show title, etc.
+    /// Primary display text — ride name, show title, character name, etc.
     var title: String
 
     /// Category that drives the icon and color.
@@ -128,11 +128,22 @@ struct MyDayItem: Identifiable, Codable, Equatable {
     /// Optional area string — land name, restaurant area, show venue, etc.
     var land: String?
 
-    /// Backend park identifier — e.g. "magic-kingdom". Set when type == .ride.
+    /// Backend park identifier — e.g. "magic-kingdom".
+    /// Set for rides (via RidePickerView), shows, and character experiences
+    /// (via MasterAttractionPickerView) so map cross-referencing works.
     var parkId: String?
 
-    /// Ride stable ID from MapRideAnnotation / Ride SwiftData model.
-    /// Set when type == .ride so the item can be cross-referenced with the map.
+    /// Stable attraction identifier.
+    ///
+    /// • Ride items    — stores the SwiftData `Ride.id`, which equals the
+    ///                   RideMasterData stableID ("{Park.rawValue}|{land}|{name}").
+    ///                   Used to resolve live wait times and map positions.
+    ///
+    /// • Show / Character items — stores the `MasterAttraction.stableID`
+    ///   ("{Park.rawValue}|{land}|{name}") chosen in MasterAttractionPickerView.
+    ///   Enables "Show on Map" for attractions where shouldAppearOnMap == true.
+    ///
+    /// Free-form items (food, shopping, note, custom) leave this nil.
     var rideId: String?
 
     /// Optional free-text detail — meeting time, reservation number, etc.

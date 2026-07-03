@@ -90,6 +90,15 @@ struct QuickLogSheet: View {
         modelContext.insert(log)
         ride.logs.append(log)
         try? modelContext.save()
+
+        #if DEBUG
+        print("✅ [QuickLog] RideLog created — '\(ride.name)' \(logDate)")
+        #endif
+
+        // Upsert ParkVisit for the park-local calendar day of the user-selected logDate.
+        // park is already typed (let park: Park on QuickLogSheet) — no reverse-lookup needed.
+        ParkVisitService.upsertParkVisit(for: park, rideDate: logDate, context: modelContext)
+
         AppHaptic.success()
         withAnimation(AppMotion.spring) {
             loggedRide = ride

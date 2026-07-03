@@ -152,7 +152,13 @@ private extension MapCoordinateService {
     static func validate(annotationsByPark: [String: [MapRideAnnotation]], source: String) {
         var ids: [String: [String]] = [:]
         var coordinateOwners: [String: [String]] = [:]
-        let canonicalIDs = RideSeeder.canonicalRideIDs
+
+        // Gate: only attractions with shouldAppearOnMap == true (mapPriority != nil) should
+        // ever have a JSON entry. Using this set (rather than canonicalRideIDs / all seeded
+        // attractions) prevents false "ID MISMATCH" warnings for non-map attractions like
+        // Liberty Belle Riverboat (seed:false, map:3) and suppresses noisy "MISSING COORD"
+        // warnings for character meets and non-map shows that intentionally have no pin.
+        let mapVisibleIDs = Set(RideMasterData.all.filter(\.shouldAppearOnMap).map(\.stableID))
 
         for (parkId, annotations) in annotationsByPark {
             for annotation in annotations {
@@ -163,9 +169,13 @@ private extension MapCoordinateService {
                     print("⚠️ MapCoordinateService[\(source)]: WRONG PARK — \(annotation.id) has parkId=\(annotation.parkId) but is listed under '\(parkId)'.")
                 }
 
-                // Ride ID mismatch: annotation id not in the canonical seeder set.
-                if !canonicalIDs.contains(annotation.id) {
-                    print("⚠️ MapCoordinateService[\(source)]: ID MISMATCH — '\(annotation.id)' is not a canonical RideSeeder stableID.")
+                // ID mismatch: annotation id not in the map-visible master-data set.
+                // This fires for stale entries (attraction removed from master data),
+                // entries with wrong park casing, wrong land name, or wrong ride name.
+                // It will NOT fire for attractions that are seeded but intentionally
+                // excluded from the map (mapPriority == nil) — those simply have no entry.
+                if !mapVisibleIDs.contains(annotation.id) {
+                    print("⚠️ MapCoordinateService[\(source)]: ID MISMATCH — '\(annotation.id)' [\(annotation.rideName)] is not a map-visible MasterAttraction stableID.")
                 }
 
                 // Out-of-bounds coordinate check.
@@ -189,15 +199,18 @@ private extension MapCoordinateService {
             print("⚠️ MapCoordinateService[\(source)]: DUPLICATE COORD \(coordinate): \(owners.joined(separator: " | ")).")
         }
 
-        // Missing coordinates: rides in the canonical seeder with no matching annotation.
+        // Missing coordinates: map-visible attractions (shouldAppearOnMap == true) with no
+        // JSON entry. Only attractions where mapPriority != nil are expected to have a GPS
+        // entry — character meets, non-map shows, and unseeded walkthrough/transports with
+        // mapPriority == nil are intentionally absent and must NOT generate warnings here.
         let jsonIDs = Set(ids.keys)
-        let missing = canonicalIDs.subtracting(jsonIDs).sorted()
+        let missing = mapVisibleIDs.subtracting(jsonIDs).sorted()
         if !missing.isEmpty {
             for id in missing {
                 print("⚠️ MapCoordinateService[\(source)]: MISSING COORD — '\(id)' has no entry in \(source).")
             }
         } else {
-            print("✅ MapCoordinateService[\(source)]: all \(canonicalIDs.count) canonical rides have coordinates.")
+            print("✅ MapCoordinateService[\(source)]: all \(mapVisibleIDs.count) map-visible attractions have coordinates.")
         }
 
         // Wrong land: JSON land field differs from the park's canonical land list.

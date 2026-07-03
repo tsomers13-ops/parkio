@@ -105,7 +105,7 @@ private struct MapContentView: View {
                     .environment(waitTimeVM)
             }
             .ignoresSafeArea(edges: .bottom)
-            .navigationTitle(selectedPark.shortName)
+            .navigationTitle("Map")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { mapToolbar }
             .refreshable { await waitTimeVM.refresh() }
