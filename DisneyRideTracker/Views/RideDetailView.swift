@@ -85,8 +85,13 @@ struct RideDetailView: View {
                     }
                     .listRowBackground(AppColor.card)
 
-                    // ── My Rating (dining only) ──────────────────
+                    // ── Dining context (dining only) ─────────────
+                    // Phase 2: recommendation summary + rating section.
+                    // DiningRecommendationSection renders above DiningRatingSection
+                    // so guests see context ("Loved this last trip · Jul 3") before
+                    // the edit controls. Neither section affects ride/show flows.
                     if attractionType.isDining {
+                        DiningRecommendationSection(ride: ride, accentColor: accentColor)
                         DiningRatingSection(ride: ride, accentColor: accentColor)
                     }
 

@@ -989,11 +989,32 @@ private struct AttractionRow: View {
 
     @State private var showDetail = false
 
+    // ── Phase 2: dining rating store for inline rating display ────────────────
+    @Environment(DiningRatingStore.self) private var diningRatingStore
+
     // ── Derived (cheap — all inputs pre-computed by parent) ───────────────────
 
     /// Type looked up from the static RideMasterData index — O(1), no allocation.
     private var attractionType: AttractionType {
         RideMasterData.typeByStableID[ride.id] ?? .ride
+    }
+
+    /// Current dining rating for this venue, or nil if not a dining venue / unrated.
+    private var diningRating: DiningRating? {
+        guard attractionType.isDining else { return nil }
+        return diningRatingStore.rating(for: ride.id)
+    }
+
+    /// Compact label text for the dining row secondary line.
+    private var diningRatingLabel: String? {
+        guard let r = diningRating else { return nil }
+        switch r.rating {
+        case 5: return "Loved it"
+        case 4: return "Great"
+        case 3: return "Good"
+        case 2: return "Just OK"
+        default: return "Wouldn't Return"
+        }
     }
 
     private var isOpen: Bool {
@@ -1079,7 +1100,7 @@ private struct AttractionRow: View {
                     .frame(width: 0.5, height: 36)
                     .padding(.trailing, AppSpacing.md)
 
-                // ── Ride name + land ──────────────────────────────────────
+                // ── Venue / ride name + secondary info ───────────────────
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: AppSpacing.xs) {
                         Text(ride.name)
@@ -1098,17 +1119,51 @@ private struct AttractionRow: View {
                         }
                     }
 
-                    Text(ride.land)
-                        .font(.caption)
-                        .foregroundStyle(AppColor.textTertiary)
-                        .lineLimit(1)
+                    // ── Phase 2: dining rating row ────────────────────────
+                    // Show heart + compact stars + label when dining and rated.
+                    // Unrated dining and non-dining rows show the land name.
+                    if attractionType.isDining, let r = diningRating {
+                        HStack(spacing: AppSpacing.xs) {
+                            // Favourite heart
+                            if r.isFavorite {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(AppColor.error)
+                            }
+                            // Compact star strip (7 pt)
+                            HStack(spacing: 1) {
+                                ForEach(1...5, id: \.self) { i in
+                                    Image(systemName: i <= r.rating ? "star.fill" : "star")
+                                        .font(.system(size: 7, weight: .bold))
+                                        .foregroundStyle(
+                                            i <= r.rating ? AppColor.brandGoldDeep : AppColor.skeleton
+                                        )
+                                }
+                            }
+                            // Rating label
+                            if let label = diningRatingLabel {
+                                Text(label)
+                                    .font(.caption)
+                                    .foregroundStyle(AppColor.textTertiary)
+                            }
+                        }
+                    } else {
+                        // Default: land name for rides, shows, unrated dining
+                        Text(ride.land)
+                            .font(.caption)
+                            .foregroundStyle(AppColor.textTertiary)
+                            .lineLimit(1)
+                    }
                 }
 
                 Spacer(minLength: AppSpacing.sm)
 
-                // ── Right accessory: favorite star + My Day + chevron ─────
+                // ── Right accessory: favourite / dining-heart / My Day / chevron ──
                 HStack(spacing: AppSpacing.xs) {
-                    if isFavorite {
+                    // Dining-favourite heart (❤️) or ride-favourite star (⭐)
+                    if attractionType.isDining {
+                        // Heart shown inline in secondary line — nothing extra here
+                    } else if isFavorite {
                         Image(systemName: "star.fill")
                             .font(.caption)
                             .foregroundStyle(Color.yellow)

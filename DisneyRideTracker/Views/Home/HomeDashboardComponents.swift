@@ -1319,23 +1319,28 @@ private struct HomeQuickActionButton: View {
 
 // MARK: - Best Food Nearby
 
-/// Home-screen dining preview card.
-/// Shows the top three Parkio-scored venues for the current park.
-/// Tapping "Browse all food & dining" navigates to AttractionsListView with
-/// the Dining filter pre-selected via the onSeeAll closure in HomeView.
+/// Home-screen personalised dining preview card.
+///
+/// Phase 2: Accepts `[DiningRecommendation]` pre-ranked by
+/// `DiningRecommendationService.topRecommendations(for:store:)`.
+/// The card adapts its subtitle and row labels to reflect user history:
+///   • Favourite → "One of your favorites"
+///   • ★★★★★     → "Loved this last trip"
+///   • ★★★★☆     → "Really enjoyed this"
+///   • Unrated   → parkio shortVerdict (fallback to Phase 1 behaviour)
 ///
 /// Empty state: shown when the park has no seeded dining venues yet.
 /// Dining recommendation logic is completely separate from the ride
 /// recommendation engine — this card never appears inside ride flows.
 struct HomeBestFoodNearbyCard: View {
-    /// Up to three top-rated MasterAttractions for this park (shouldAppearInDiningPicker == true),
-    /// pre-sorted by parkioScore descending. Caller supplies Array(topDining(for:).prefix(3)).
-    let venues: [MasterAttraction]
+    /// Up to 3 pre-ranked DiningRecommendations for this park.
+    /// Caller: DiningRecommendationService.topRecommendations(for:store:limit:3).
+    let recommendations: [DiningRecommendation]
     let park: Park
     let onSeeAll: () -> Void
 
     var body: some View {
-        if venues.isEmpty {
+        if recommendations.isEmpty {
             // ── Empty state ────────────────────────────────────────────────────
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Label("Best Food Nearby", systemImage: "fork.knife")
@@ -1354,10 +1359,10 @@ struct HomeBestFoodNearbyCard: View {
         } else {
             // ── Venue rows + footer ────────────────────────────────────────────
             VStack(spacing: 0) {
-                ForEach(Array(venues.enumerated()), id: \.element.stableID) { index, venue in
-                    HomeDiningVenueRow(venue: venue, park: park)
+                ForEach(Array(recommendations.enumerated()), id: \.element.id) { index, rec in
+                    HomeDiningVenueRow(recommendation: rec, park: park)
 
-                    if index < venues.count - 1 {
+                    if index < recommendations.count - 1 {
                         Divider()
                             .padding(.leading, 80)
                     }
@@ -1389,8 +1394,12 @@ struct HomeBestFoodNearbyCard: View {
 }
 
 private struct HomeDiningVenueRow: View {
-    let venue: MasterAttraction
+    let recommendation: DiningRecommendation
     let park: Park
+
+    private var venue:  MasterAttraction    { recommendation.venue }
+    private var rating: DiningRating?       { recommendation.rating }
+    private var label:  DiningRecommendation.Label { recommendation.label }
 
     private var dining: DiningMetadata? {
         RideMasterData.diningByStableID[venue.stableID]
@@ -1403,6 +1412,15 @@ private struct HomeDiningVenueRow: View {
         if score >= 9 { return AppColor.success }
         if score >= 7 { return AppColor.brandGoldDeep }
         return AppColor.textSecondary
+    }
+
+    /// Secondary line: personalised label when the user has rated the venue;
+    /// falls back to the editorial shortVerdict for unvisited venues.
+    private var secondaryText: String? {
+        if !label.isUnvisited {
+            return label.displayString
+        }
+        return dining?.shortVerdict
     }
 
     var body: some View {
@@ -1431,21 +1449,42 @@ private struct HomeDiningVenueRow: View {
                 .frame(width: 0.5, height: 36)
                 .padding(.trailing, AppSpacing.md)
 
-            // ── Venue name + verdict + first signature item ────────────────────
+            // ── Venue name + personalised secondary + signature item ───────────
             VStack(alignment: .leading, spacing: 3) {
-                Text(venue.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .lineLimit(1)
-
-                if let verdict = dining?.shortVerdict {
-                    Text(verdict)
-                        .font(.caption)
-                        .foregroundStyle(AppColor.textTertiary)
+                // Name row — heart badge when marked favourite
+                HStack(spacing: AppSpacing.xs) {
+                    Text(venue.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
+
+                    if case .markedFavorite = label {
+                        Image(systemName: "heart.fill")
+                            .font(.caption2)
+                            .foregroundStyle(AppColor.error)
+                    }
                 }
 
-                if let firstItem = dining?.signatureItems.first {
+                // Secondary line: personalised label or editorial verdict
+                if let secondary = secondaryText {
+                    HStack(spacing: 3) {
+                        // Star row for rated venues (not favourite — label already shows ❤️)
+                        if let r = rating, !label.isUnvisited {
+                            if case .markedFavorite = label {
+                                // favourite label replaces stars
+                            } else {
+                                compactStars(r.rating)
+                            }
+                        }
+                        Text(secondary)
+                            .font(.caption)
+                            .foregroundStyle(label.isPositive ? AppColor.textSecondary : AppColor.textTertiary)
+                            .lineLimit(1)
+                    }
+                }
+
+                // Signature item shown for unrated venues (replaces label copy)
+                if label.isUnvisited, let firstItem = dining?.signatureItems.first {
                     Text(firstItem)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(park.accentColor)
@@ -1475,5 +1514,17 @@ private struct HomeDiningVenueRow: View {
         }
         .padding(.vertical, AppSpacing.md)
         .contentShape(Rectangle())
+    }
+
+    /// Compact filled/empty stars for the home card (caption2 size).
+    @ViewBuilder
+    private func compactStars(_ count: Int) -> some View {
+        HStack(spacing: 1) {
+            ForEach(1...5, id: \.self) { i in
+                Image(systemName: i <= count ? "star.fill" : "star")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(i <= count ? AppColor.brandGoldDeep : AppColor.skeleton)
+            }
+        }
     }
 }

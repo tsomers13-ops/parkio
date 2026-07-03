@@ -68,6 +68,7 @@ struct HomeView: View {
     @Environment(MyDayStore.self)               private var myDayStore
     @Environment(AppNavigationCoordinator.self) private var coordinator
     @Environment(LocationService.self)          private var locationService
+    @Environment(DiningRatingStore.self)        private var diningRatingStore
 
     @State private var weatherService      = WeatherService()
     @State private var parkHoursService    = ParkHoursService()
@@ -429,6 +430,15 @@ struct HomeView: View {
 
     private var openRideCount: Int   { rideableCandidates.count }
 
+    /// Subtitle for the "Best Food Nearby" home section header.
+    /// Reflects whether the ranking is personalised (user has rated ≥1 venue)
+    /// or editorial-only (no ratings yet).
+    private var diningCardSubtitle: String {
+        let allDining = RideMasterData.topDining(for: selectedPark)
+        let hasRatings = allDining.contains { diningRatingStore.rating(for: $0.stableID) != nil }
+        return hasRatings ? "Based on your visits" : "Parkio picks · top-rated venues"
+    }
+
     private var averageWaitMinutes: Int? {
         let waits = rideableCandidates.compactMap(\.state.waitMinutes)
         guard !waits.isEmpty else { return nil }
@@ -572,12 +582,13 @@ struct HomeView: View {
                         .padding(.horizontal, AppSpacing.screenEdge)
 
                         // ── Best Food Nearby ──────────────────────────────────
-                        // Shows top-3 Parkio-scored dining venues for this park.
-                        // Completely separate from ride recommendation logic —
-                        // dining never appears in rideableCandidates or bestNextRide.
+                        // Phase 2: personalised ranking via DiningRecommendationService.
+                        // Falls back to Parkio score order when the user has no ratings.
+                        // Dining logic is completely separate from ride recommendations —
+                        // this section never influences rideableCandidates or bestNextRide.
                         HomeSectionHeader(
                             title: "Best Food Nearby",
-                            subtitle: "Parkio picks · top-rated venues",
+                            subtitle: diningCardSubtitle,
                             actionLabel: "See All",
                             action: { showDiningList = true }
                         )
@@ -585,7 +596,10 @@ struct HomeView: View {
                         .padding(.bottom, -AppSpacing.md)
 
                         HomeBestFoodNearbyCard(
-                            venues: Array(RideMasterData.topDining(for: selectedPark).prefix(3)),
+                            recommendations: DiningRecommendationService.topRecommendations(
+                                for: selectedPark,
+                                store: diningRatingStore
+                            ),
                             park: selectedPark,
                             onSeeAll: { showDiningList = true }
                         )
