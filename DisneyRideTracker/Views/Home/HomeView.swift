@@ -477,6 +477,27 @@ struct HomeView: View {
                             .padding(.horizontal, AppSpacing.screenEdge)
                             .padding(.top, -AppSpacing.md)
 
+                        // ── First-launch guidance card ─────────────────────────
+                        // Visible immediately when the user has zero ride logs and
+                        // has not previously dismissed the first-ride orientation.
+                        // Shares hasDismissedFirstRideNudge so dismissal is stored
+                        // permanently and neither the card nor the in-card nudge
+                        // reappear once the user taps away.
+                        if allRideLogs.isEmpty && !hasDismissedFirstRideNudge {
+                            HomeFirstLaunchCard(
+                                park: selectedPark,
+                                onGetStarted: { showAttractionsList = true },
+                                onDismiss: {
+                                    withAnimation(AppMotion.standard) {
+                                        hasDismissedFirstRideNudge = true
+                                    }
+                                    AppHaptic.light()
+                                }
+                            )
+                            .padding(.horizontal, AppSpacing.screenEdge)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+
                         // ── Best Next Ride card + streak banner ────────────────
                         // Grouped in a tight VStack so the banner sits flush
                         // below the card without a full sectionGap in between.
@@ -668,11 +689,13 @@ struct HomeView: View {
                 debugDumpParkCounts()
                 #endif
             }
-            // First-ride nudge: 60-second countdown.
+            // First-ride nudge: 8-second countdown.
             // Guard prevents re-running if already fired or permanently dismissed.
+            // Also guards on zero logs — experienced users who have dismissed the
+            // first-launch card never see the in-card nudge again.
             .task(id: "firstRideNudge") {
                 guard !hasDismissedFirstRideNudge, !nudgeTimerFired else { return }
-                try? await Task.sleep(for: .seconds(60))
+                try? await Task.sleep(for: .seconds(8))
                 guard !Task.isCancelled else { return }
                 withAnimation(AppMotion.standard) { nudgeTimerFired = true }
             }
@@ -767,6 +790,53 @@ private struct ParkPill: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - First-Launch Guidance Card
+
+/// Shown immediately on first open when the user has zero ride logs.
+/// Provides orientation without a timer delay or full onboarding flow.
+/// Dismissed via the X button or by tapping "See All attractions" —
+/// both write to hasDismissedFirstRideNudge (@AppStorage, permanent).
+private struct HomeFirstLaunchCard: View {
+    let park: Park
+    let onGetStarted: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: AppSpacing.md) {
+            Image(systemName: "hand.wave.fill")
+                .font(.title3)
+                .foregroundStyle(park.accentColor)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Welcome to Parkio!")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+                Button(action: onGetStarted) {
+                    Text("Browse attractions to log your first ride.")
+                        .font(.caption)
+                        .foregroundStyle(park.accentColor)
+                        .underline()
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer(minLength: 0)
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .padding(AppSpacing.xs)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(AppSpacing.cardPadding)
+        .background(AppColor.card)
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
+        .shadow(color: .black.opacity(0.06), radius: 6, x: 0, y: 2)
     }
 }
 
