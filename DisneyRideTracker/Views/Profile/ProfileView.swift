@@ -124,7 +124,6 @@ struct ProfileView: View {
                             .textCase(nil)
                     ) {
                         ProfileInfoRow(icon: "info.circle", label: "Version", value: "1.0.0")
-                        ProfileInfoRow(icon: "star.fill", label: "Design System", value: "Phase 2")
                         ProfileInfoRow(icon: "mappin.and.ellipse", label: "Parks", value: "6 parks, \(totalRides) rides")
                     }
                     .listRowBackground(AppColor.card)

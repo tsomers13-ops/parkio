@@ -113,7 +113,7 @@ struct HistoryView: View {
                                         .foregroundStyle(AppColor.textSecondary)
                                         .textCase(nil)
                                 ) {
-                                    ForEach(group.logs, id: \.date) { log in
+                                    ForEach(group.logs, id: \.persistentModelID) { log in
                                         if let ride = log.ride {
                                             HistoryLogRow(log: log, ride: ride)
                                                 .listRowBackground(AppColor.card)

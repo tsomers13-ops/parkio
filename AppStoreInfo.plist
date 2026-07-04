@@ -29,7 +29,7 @@
 	<key>NSAccentColorName</key>
 	<string>AccentColor</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>ParkPilot uses your location to show your position on the park map and estimate walking distance to nearby rides.</string>
+	<string>Parkio uses your location to show your position on the park map and estimate walking distance to nearby rides.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -327,9 +327,8 @@ struct HomeView: View {
                 let lhsPlanned = plannedIds.contains(lhs.ride.id)
                 let rhsPlanned = plannedIds.contains(rhs.ride.id)
                 if lhsPlanned != rhsPlanned { return lhsPlanned }
-                // waitMinutes is guaranteed non-nil by the compactMap filter above
-                let lhsWait = lhs.state.waitMinutes!
-                let rhsWait = rhs.state.waitMinutes!
+                let lhsWait = lhs.state.waitMinutes ?? 0
+                let rhsWait = rhs.state.waitMinutes ?? 0
                 if lhsWait != rhsWait { return lhsWait < rhsWait }
                 return lhs.ride.order < rhs.ride.order
             }
