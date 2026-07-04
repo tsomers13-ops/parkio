@@ -123,7 +123,11 @@ struct ProfileView: View {
                             .foregroundStyle(AppColor.textSecondary)
                             .textCase(nil)
                     ) {
-                        ProfileInfoRow(icon: "info.circle", label: "Version", value: "1.0.0")
+                        ProfileInfoRow(
+                            icon: "info.circle",
+                            label: "Version",
+                            value: (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—")
+                        )
                         ProfileInfoRow(icon: "mappin.and.ellipse", label: "Parks", value: "6 parks, \(totalRides) rides")
                     }
                     .listRowBackground(AppColor.card)

@@ -53,11 +53,15 @@ enum BackgroundRefreshService {
             try BGTaskScheduler.shared.submit(request)
         } catch BGTaskScheduler.Error.notPermitted {
             // Background fetch not enabled in capabilities — dev mode or restricted device
+            #if DEBUG
             print("[BGTask] Not permitted — ensure Background Fetch is enabled in capabilities")
+            #endif
         } catch BGTaskScheduler.Error.tooManyPendingTaskRequests {
             // Already scheduled — ignore
         } catch {
+            #if DEBUG
             print("[BGTask] Failed to schedule: \(error)")
+            #endif
         }
     }
 
@@ -87,9 +91,13 @@ enum BackgroundRefreshService {
                 WaitTimeCacheWriter.merge(dto: dto, into: context)
                 try context.save()
 
+                #if DEBUG
                 print("[BGTask] Refreshed \(parkId) in background")
+                #endif
             } catch {
+                #if DEBUG
                 print("[BGTask] Refresh failed: \(error.localizedDescription)")
+                #endif
                 task.setTaskCompleted(success: false)
             }
         }
