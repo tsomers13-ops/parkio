@@ -6,10 +6,17 @@ import SwiftData
 struct RideDetailView: View {
     @Bindable var ride: Ride
 
-    @Environment(\.modelContext) private var context
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext)          private var context
+    @Environment(\.dismiss)               private var dismiss
+    @Environment(WaitTimeViewModel.self)  private var waitTimeVM
 
     @State private var selectedDate: Date = Date()
+
+    /// Live wait state for this ride from the cache — nil if park data not loaded
+    /// or ride name doesn't match any cached entry.
+    private var liveState: LiveRideState? {
+        waitTimeVM.fastLiveState(for: ride)
+    }
 
     /// Accent colour derived from the ride's park — no external injection needed.
     private var accentColor: Color {
@@ -80,6 +87,39 @@ struct RideDetailView: View {
                                     .foregroundStyle(AppColor.textSecondary)
                             }
                             .padding(.top, 2)
+
+                            // ── Live wait time badge (rides/shows only) ────────
+                            // Hidden for dining — wait times are not applicable.
+                            // Shows live state when cached data is available;
+                            // shows a loading chip when a fetch is in progress;
+                            // shows nothing when data is unavailable (no cache yet).
+                            if !attractionType.isDining {
+                                if let state = liveState {
+                                    HStack(spacing: AppSpacing.xs) {
+                                        Image(systemName: "clock.fill")
+                                            .font(.caption2.weight(.semibold))
+                                            .foregroundStyle(state.waitColor)
+                                        Text(state.waitDisplay)
+                                            .font(.callout.weight(.semibold))
+                                            .foregroundStyle(state.waitColor)
+                                    }
+                                    .padding(.horizontal, AppSpacing.sm)
+                                    .padding(.vertical, AppSpacing.xs)
+                                    .background(state.waitColor.opacity(0.12))
+                                    .clipShape(Capsule())
+                                    .padding(.top, AppSpacing.xs)
+                                } else if waitTimeVM.isLoadingActivePark {
+                                    HStack(spacing: AppSpacing.xs) {
+                                        ProgressView()
+                                            .scaleEffect(0.65)
+                                            .tint(AppColor.textTertiary)
+                                        Text("Getting wait time…")
+                                            .font(.caption)
+                                            .foregroundStyle(AppColor.textTertiary)
+                                    }
+                                    .padding(.top, AppSpacing.xs)
+                                }
+                            }
                         }
                         .padding(.vertical, AppSpacing.sm)
                     }
