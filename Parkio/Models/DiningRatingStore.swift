@@ -8,7 +8,7 @@
 // UserDefaults JSON encoding, decoded once on init, written atomically on change.
 //
 // Injection:
-//   Created once in DisneyRideTrackerApp, injected via .environment(diningRatingStore).
+//   Created once in ParkioApp, injected via .environment(diningRatingStore).
 //   Consumers read: @Environment(DiningRatingStore.self) private var ratingStore
 
 import SwiftUI

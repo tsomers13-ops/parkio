@@ -228,7 +228,7 @@ actor WaitTimeService {
             .appendingPathComponent("live")
 
         var request = URLRequest(url: url)
-        request.setValue("DisneyRideTracker/1.0 (iOS; github.com/disneytracker)",
+        request.setValue("Parkio/1.0 (iOS; github.com/parkio)",
                          forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
@@ -288,7 +288,7 @@ actor WaitTimeService {
 
         let url = themeparksBase.appendingPathComponent("destinations")
         var request = URLRequest(url: url)
-        request.setValue("DisneyRideTracker/1.0 (iOS)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Parkio/1.0 (iOS)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json",             forHTTPHeaderField: "Accept")
 
         guard let (data, response) = try? await session.data(for: request),

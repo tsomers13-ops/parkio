@@ -89,7 +89,7 @@ private struct MapContentView: View {
                 // RealMapScreen owns: Apple tile base, UserAnnotation (GPS puck),
                 // ride annotations with real coordinates, bearing polyline,
                 // MapHUDOverlay (filter bar + glance bar), location / compass buttons.
-                // LocationService is already in the environment from DisneyRideTrackerApp.
+                // LocationService is already in the environment from ParkioApp.
                 RealMapScreen()
                     .environment(mapVM)
                     .ignoresSafeArea(edges: .bottom)

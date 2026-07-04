@@ -9,9 +9,9 @@
 //
 // Integration
 // ───────────
-// Injected once via .environment(appearanceManager) in DisneyRideTrackerApp.
+// Injected once via .environment(appearanceManager) in ParkioApp.
 // ProfileView reads it to render the picker.
-// DisneyRideTrackerApp applies .preferredColorScheme(appearanceManager.colorScheme).
+// ParkioApp applies .preferredColorScheme(appearanceManager.colorScheme).
 //
 // Persistence key
 // ───────────────
@@ -63,7 +63,7 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
 
 /// Observable manager that persists and vends the app's appearance preference.
 ///
-/// The manager is created once in DisneyRideTrackerApp and injected via
+/// The manager is created once in ParkioApp and injected via
 /// .environment(appearanceManager). Any view that needs to read or change
 /// the preference accesses it through @Environment(AppAppearanceManager.self).
 @Observable

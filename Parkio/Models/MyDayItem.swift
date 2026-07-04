@@ -13,7 +13,7 @@
 //   and is excluded from iCloud backup by default (park-day ephemeral data).
 //
 // Injection:
-//   Create once in DisneyRideTrackerApp, inject via .environment(myDayStore).
+//   Create once in ParkioApp, inject via .environment(myDayStore).
 //   All consumers read @Environment(MyDayStore.self).
 
 import SwiftUI

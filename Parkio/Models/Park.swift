@@ -1,6 +1,6 @@
 //
 //  Park.swift
-//  DisneyRideTracker
+//  Parkio
 //
 
 import SwiftUI

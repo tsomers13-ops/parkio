@@ -1,6 +1,6 @@
 //
 //  Ride.swift
-//  DisneyRideTracker
+//  Parkio
 //
 
 import Foundation

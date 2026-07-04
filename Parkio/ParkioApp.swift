@@ -1,4 +1,4 @@
-// DisneyRideTrackerApp.swift — App entry point.
+// ParkioApp.swift — App entry point.
 //
 // Wiring summary:
 //   • SwiftData schema includes WaitTimeCache (alongside Ride + RideLog).
@@ -13,7 +13,7 @@ import SwiftData
 import BackgroundTasks
 
 @main
-struct DisneyRideTrackerApp: App {
+struct ParkioApp: App {
 
     // ── SwiftData container ───────────────────────────────────────────────────
 

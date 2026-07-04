@@ -8,7 +8,7 @@
 //   • React to connectivity changes (ConnectivityMonitor).
 //   • Provide all loading / error / stale states views need.
 //
-// Injection: Created once in DisneyRideTrackerApp and injected via .environment().
+// Injection: Created once in ParkioApp and injected via .environment().
 // Views: access via @Environment(WaitTimeViewModel.self).
 //
 // Two-actor concurrency model:

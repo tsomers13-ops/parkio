@@ -142,7 +142,7 @@ actor ParkHoursAPIService {
 
         var request = URLRequest(url: url)
         request.setValue(
-            "DisneyRideTracker/1.0 (iOS; ParkHoursAPIService)",
+            "Parkio/1.0 (iOS; ParkHoursAPIService)",
             forHTTPHeaderField: "User-Agent"
         )
 

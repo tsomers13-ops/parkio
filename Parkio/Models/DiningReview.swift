@@ -7,7 +7,7 @@
 // before any UI is built.
 //
 // When review UI is ready:
-//   1. Add DiningReview.self to the Schema array in DisneyRideTrackerApp.swift.
+//   1. Add DiningReview.self to the Schema array in ParkioApp.swift.
 //   2. Build DiningReviewSheet (capture wouldGoBack, foodRating, itemOrdered, shortTip).
 //   3. Aggregate wouldGoBack% and average foodRating per venue and surface in
 //      the dining list card (DiningVenueRow) and the venue detail view.
@@ -16,7 +16,7 @@
 //   DiningMetadata — Parkio editorial, static, always present for dining venues.
 //   DiningReview   — user-generated, persisted per visit, nil until user logs a meal.
 //
-// TODO: Add DiningReview.self to DisneyRideTrackerApp.swift schema when ready:
+// TODO: Add DiningReview.self to ParkioApp.swift schema when ready:
 //   Schema([Ride.self, RideLog.self, WaitTimeCache.self, ParkVisit.self, DiningReview.self])
 
 import Foundation

@@ -1,4 +1,4 @@
-# Disney Ride Tracker
+# Parkio
 
 A native iOS app built in Swift / SwiftUI / SwiftData for tracking rides across Walt Disney World, Disneyland, and Disney California Adventure.
 
@@ -20,10 +20,10 @@ A native iOS app built in Swift / SwiftUI / SwiftData for tracking rides across 
 ## Project layout
 
 ```
-DisneyRideTracker/
-├── DisneyRideTracker.xcodeproj
-└── DisneyRideTracker/
-    ├── DisneyRideTrackerApp.swift     # @main, SwiftData ModelContainer, seeding
+Parkio/
+├── Parkio.xcodeproj
+└── Parkio/
+    ├── ParkioApp.swift     # @main, SwiftData ModelContainer, seeding
     ├── Models/
     │   ├── Park.swift                 # Park enum + lands + accent colors
     │   ├── Ride.swift                 # @Model Ride
@@ -46,8 +46,8 @@ DisneyRideTracker/
 
 ## How to build
 
-1. Open `DisneyRideTracker.xcodeproj` in Xcode.
-2. Select the **DisneyRideTracker** scheme.
+1. Open `Parkio.xcodeproj` in Xcode.
+2. Select the **Parkio** scheme.
 3. Plug in your iPhone (or pick any iOS 17+ simulator).
 4. In **Signing & Capabilities**, set your Apple ID / Team.
    - The bundle identifier is `com.yourname.disneyRideTracker`. Change it to something unique for your team if Xcode complains.

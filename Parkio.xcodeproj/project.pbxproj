@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		A100000000000000000000D1 /* DisneyRideTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DisneyRideTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A100000000000000000000D1 /* Parkio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Parkio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		A100000000000000000000A1 /* DisneyRideTracker */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = DisneyRideTracker; sourceTree = "<group>"; };
+		A100000000000000000000A1 /* Parkio */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Parkio; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -28,7 +28,7 @@
 		A100000000000000000000C1 = {
 			isa = PBXGroup;
 			children = (
-				A100000000000000000000A1 /* DisneyRideTracker */,
+				A100000000000000000000A1 /* Parkio */,
 				A100000000000000000000C2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -36,7 +36,7 @@
 		A100000000000000000000C2 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A100000000000000000000D1 /* DisneyRideTracker.app */,
+				A100000000000000000000D1 /* Parkio.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -44,9 +44,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A100000000000000000000E1 /* DisneyRideTracker */ = {
+		A100000000000000000000E1 /* Parkio */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A100000000000000000000F1 /* Build configuration list for PBXNativeTarget "DisneyRideTracker" */;
+			buildConfigurationList = A100000000000000000000F1 /* Build configuration list for PBXNativeTarget "Parkio" */;
 			buildPhases = (
 				A100000000000000000000B2 /* Sources */,
 				A100000000000000000000B1 /* Frameworks */,
@@ -57,13 +57,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				A100000000000000000000A1 /* DisneyRideTracker */,
+				A100000000000000000000A1 /* Parkio */,
 			);
-			name = DisneyRideTracker;
+			name = Parkio;
 			packageProductDependencies = (
 			);
-			productName = DisneyRideTracker;
-			productReference = A100000000000000000000D1 /* DisneyRideTracker.app */;
+			productName = Parkio;
+			productReference = A100000000000000000000D1 /* Parkio.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -81,7 +81,7 @@
 					};
 				};
 			};
-			buildConfigurationList = A100000000000000000000F2 /* Build configuration list for PBXProject "DisneyRideTracker" */;
+			buildConfigurationList = A100000000000000000000F2 /* Build configuration list for PBXProject "Parkio" */;
 			compatibilityVersion = "Xcode 15.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -95,7 +95,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A100000000000000000000E1 /* DisneyRideTracker */,
+				A100000000000000000000E1 /* Parkio */,
 			);
 		};
 /* End PBXProject section */
@@ -249,7 +249,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 18;
-				DEVELOPMENT_ASSET_PATHS = "\"DisneyRideTracker/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"Parkio/Preview Content\"";
 				DEVELOPMENT_TEAM = HHCQ35BDZY;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -281,7 +281,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 18;
-				DEVELOPMENT_ASSET_PATHS = "\"DisneyRideTracker/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"Parkio/Preview Content\"";
 				DEVELOPMENT_TEAM = HHCQ35BDZY;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -309,7 +309,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A100000000000000000000F1 /* Build configuration list for PBXNativeTarget "DisneyRideTracker" */ = {
+		A100000000000000000000F1 /* Build configuration list for PBXNativeTarget "Parkio" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1000000000000000000FB01 /* Debug */,
@@ -318,7 +318,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A100000000000000000000F2 /* Build configuration list for PBXProject "DisneyRideTracker" */ = {
+		A100000000000000000000F2 /* Build configuration list for PBXProject "Parkio" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1000000000000000000FA01 /* Debug */,

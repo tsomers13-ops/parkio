@@ -20,7 +20,7 @@ struct ContentView: View {
         return Park.fromBackendId(backendId) ?? .magicKingdom
     }()
 
-    // ViewModel + coordinator injected by DisneyRideTrackerApp.
+    // ViewModel + coordinator injected by ParkioApp.
     @Environment(WaitTimeViewModel.self)        private var waitTimeVM
     @Environment(AppNavigationCoordinator.self) private var coordinator
 

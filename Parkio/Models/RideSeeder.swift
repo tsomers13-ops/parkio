@@ -1,6 +1,6 @@
 //
 //  RideSeeder.swift
-//  DisneyRideTracker
+//  Parkio
 //
 //  Populates the SwiftData store with the canonical ride list on every launch
 //  and migrates older schemas in place so user logs are preserved across
