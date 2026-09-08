@@ -96,6 +96,15 @@ struct ParkioApp: App {
                 // Seed static ride catalog on first launch.
                 .onAppear {
                     RideSeeder.seedIfNeeded(context: sharedModelContainer.mainContext)
+                    // Data-integrity self-check (duplicate IDs, land/park mismatches,
+                    // stale DinoLand entries, missing map priorities, entity-ID coverage).
+                    // Was defined but never called — MapCoordinateService's own validate()
+                    // runs automatically on init, but this higher-level model check did not.
+                    // DEBUG-only; has no effect in Release builds.
+                    #if DEBUG
+                    RideMasterData.validate()
+                    ShopMasterData.validate()
+                    #endif
                 }
                 // Start polling + connectivity observer once the view hierarchy is up.
                 .task {

@@ -34,6 +34,16 @@ struct MapOverlayFilterBar: View {
             FilterChip(label: "Show Ridden",  isOn: $vm.filters.showRidden)
             FilterChip(label: "Hide Closed",  isOn: $vm.filters.hideClosed)
             FilterChip(label: "My Plan Only", isOn: $vm.filters.planOnly)
+
+            // Guest Services (Priority 6) — deliberately NOT a 5th FilterChip
+            // toggling one master "Show Guest Services" boolean. Per the brief:
+            // "a guest looking for First Aid should not have to display 30
+            // restroom markers." Each category is its own independent toggle
+            // inside this menu; the chip itself just opens/closes the list —
+            // see MapViewModel.activeGuestServiceCategories (default empty).
+            if !mapVM.availableGuestServiceCategories.isEmpty {
+                ServicesFilterChip(mapVM: mapVM)
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -85,6 +95,57 @@ private struct FilterChip: View {
     /// Dark mode:  ghost-white at 20% opacity on dark material (still passes WCAG AA).
     /// Unselected: near-invisible tint — pill edge provides the only boundary.
     private var chipFill: Color {
+        guard isOn else { return Color.primary.opacity(0.07) }
+        return colorScheme == .dark
+            ? Color.white.opacity(0.20)
+            : Color.black.opacity(0.80)
+    }
+}
+
+// MARK: - ServicesFilterChip (Priority 6)
+//
+// Same capsule visual language as FilterChip, but opens a Menu of
+// independently-toggleable Guest Service categories instead of flipping one
+// boolean. "Selected" styling activates as soon as ANY category is active,
+// so the chip itself gives an at-a-glance signal that something is showing.
+private struct ServicesFilterChip: View {
+    var mapVM: MapViewModel
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        @Bindable var vm = mapVM
+        let isOn = !vm.activeGuestServiceCategories.isEmpty
+
+        Menu {
+            ForEach(vm.availableGuestServiceCategories, id: \.self) { category in
+                Button {
+                    if vm.activeGuestServiceCategories.contains(category) {
+                        vm.activeGuestServiceCategories.remove(category)
+                    } else {
+                        vm.activeGuestServiceCategories.insert(category)
+                    }
+                    AppHaptic.selection()
+                } label: {
+                    if vm.activeGuestServiceCategories.contains(category) {
+                        Label(category.label, systemImage: "checkmark")
+                    } else {
+                        Text(category.label)
+                    }
+                }
+            }
+        } label: {
+            Text("Services")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(isOn ? Color.white : AppColor.textSecondary)
+                .padding(.horizontal, 10)
+                .frame(height: 32)
+                .background(chipFill(isOn: isOn), in: Capsule())
+        }
+        .animation(AppMotion.quick, value: isOn)
+    }
+
+    private func chipFill(isOn: Bool) -> Color {
         guard isOn else { return Color.primary.opacity(0.07) }
         return colorScheme == .dark
             ? Color.white.opacity(0.20)

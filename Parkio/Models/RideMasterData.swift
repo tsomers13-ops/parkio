@@ -80,6 +80,32 @@ enum AttractionType: String, Sendable {
     }
 }
 
+// MARK: - EntertainmentTier
+
+/// Presentation / prioritization signal for entertainment content.
+///
+/// This is display-only metadata. It does NOT affect:
+///   • Best Next Ride eligibility (`shouldBeRecommended` is still `type == .ride`)
+///   • Ride wait-time logic or `.ride` gating anywhere in the app
+///   • Existing attraction filtering (AttractionsListView, MyDayView, etc.)
+///   • ThemeParks.wiki live wait-time behavior
+///   • Whether an attraction gets an artificial/simulated wait time (it never does)
+///
+/// It exists purely so discovery surfaces (map, home dashboard, and eventually
+/// the Parkio website) can give higher-value entertainment stronger visual
+/// weight without introducing a new `AttractionType` case or an ad-hoc boolean
+/// flag. Every attraction defaults to `.standard`, so this field is fully
+/// additive — no existing `MasterAttraction` call site needs to change.
+enum EntertainmentTier: String, Sendable {
+    /// Normal shows and entertainment — the default for all content.
+    case standard
+    /// Higher-value entertainment that deserves stronger discovery/presentation.
+    case featured
+    /// Entertainment guests organize a significant part of their day around
+    /// (e.g. Fantasmic!, Luminous).
+    case headliner
+}
+
 // MARK: - MasterAttraction
 
 struct MasterAttraction: Sendable {
@@ -110,6 +136,9 @@ struct MasterAttraction: Sendable {
     /// Parkio editorial dining metadata. Non-nil only when `type.isDining == true`.
     /// Sourced from RideMasterData+Dining.swift. Never user-generated.
     let dining: DiningMetadata?
+    /// Presentation/prioritization signal for entertainment content. Display-only —
+    /// see `EntertainmentTier` doc comment. Defaults to `.standard` for all content.
+    let entertainmentTier: EntertainmentTier
 
     // MARK: Designated init
 
@@ -124,7 +153,8 @@ struct MasterAttraction: Sendable {
         aliases: [String]        = [],
         entityId: String?        = nil,
         hasLiveWaitTime: Bool?   = nil,   // nil → infer: true for .ride, false otherwise
-        dining: DiningMetadata?  = nil    // non-nil only for dining venue types
+        dining: DiningMetadata?  = nil,   // non-nil only for dining venue types
+        entertainmentTier: EntertainmentTier = .standard  // display-only; see EntertainmentTier doc comment
     ) {
         self.name                = name
         self.park                = park
@@ -137,6 +167,7 @@ struct MasterAttraction: Sendable {
         self.themeparksEntityId  = entityId
         self.hasLiveWaitTime     = hasLiveWaitTime ?? (type == .ride)
         self.dining              = dining
+        self.entertainmentTier   = entertainmentTier
     }
 
     // MARK: Derived
@@ -483,6 +514,23 @@ private extension RideMasterData {
            type: .ride, outdoor: false, map: 3, seed: true,
            aliases: ["Gran Fiesta Tour Starring The Three Caballeros"]),
 
+        // The American Adventure — Audio-Animatronics theatrical show inside the
+        // American Adventure pavilion. One of EPCOT's marquee attractions; no
+        // live posted wait time (continuous-run theater show).
+        MA("The American Adventure",
+           park: .epcot, land: "World Showcase",
+           type: .show, outdoor: false, map: 2, seed: true,
+           entityId: "1f542745-cda1-4786-a536-5fff373e5964"),
+
+        // Luminous: The Symphony of Us — nighttime spectacular viewed from the
+        // World Showcase promenade around the lagoon. Headliner tier: guests
+        // organize a significant part of their EPCOT evening around this show.
+        MA("Luminous The Symphony of Us",
+           park: .epcot, land: "World Showcase",
+           type: .show, outdoor: true, map: 1, seed: true,
+           entityId: "3dbf1ff2-eee0-44a9-8cd9-22bf920e81e9",
+           entertainmentTier: .headliner),
+
         // ── Character Meet & Greets ───────────────────────────────────────────
         MA("Disney Character Spot",
            park: .epcot, land: "World Celebration",
@@ -525,16 +573,8 @@ private extension RideMasterData {
         MA("For the First Time in Forever: A Frozen Sing-Along Celebration",
            park: .hollywoodStudios, land: "Echo Lake",
            type: .show, outdoor: false, map: 3, seed: true,
-           aliases: ["Frozen Sing-Along Celebration"]),
-
-        // ── Grand Avenue ──────────────────────────────────────────────────────
-        // Muppet*Vision 3D — large 3D theatre between Echo Lake and Toy Story Land.
-        // seed: true so guests can add it to My Day. No live wait time from the API,
-        // but the show runs on a schedule guests plan around.
-        MA("Muppet*Vision 3D",
-           park: .hollywoodStudios, land: "Grand Avenue",
-           type: .show, outdoor: false, map: 3, seed: true,
-           aliases: ["MuppetVision 3D", "Muppet Vision 3D"]),
+           aliases: ["Frozen Sing-Along Celebration"],
+           entityId: "d91a0e9a-8652-4036-822f-e7b12b381273"),
 
         // ── Sunset Boulevard ──────────────────────────────────────────────────
         MA("The Twilight Zone Tower of Terror",
@@ -557,7 +597,25 @@ private extension RideMasterData {
         MA("Beauty and the Beast \u{2013} Live on Stage",
            park: .hollywoodStudios, land: "Sunset Boulevard",
            type: .show, outdoor: true, map: 3, seed: true,
-           aliases: ["Beauty and the Beast: Live on Stage"]),
+           aliases: ["Beauty and the Beast: Live on Stage"],
+           entityId: "375197ac-27ac-41f7-bd93-f4e9b9fc4d5d"),
+
+        // Fantasmic! -- the park's marquee nighttime spectacular, staged at the
+        // Hollywood Hills Amphitheater. Currently Sundays-only per the 2026 guide.
+        // Headliner tier: guests organize a significant part of their evening
+        // around this show.
+        MA("Fantasmic!",
+           park: .hollywoodStudios, land: "Sunset Boulevard",
+           type: .show, outdoor: true, map: 1, seed: true,
+           entityId: "42328c39-76ab-4f03-b862-4206c8d9f7bb",
+           entertainmentTier: .headliner),
+
+        // Disney Villains: Unfairly Ever After -- stage show inside the Sunset
+        // Showcase theater. No live posted wait time.
+        MA("Disney Villains: Unfairly Ever After",
+           park: .hollywoodStudios, land: "Sunset Boulevard",
+           type: .show, outdoor: false, map: 3, seed: true,
+           entityId: "69cb35f2-c58e-4b44-88c9-ea0cc720e075"),
 
         // ── Toy Story Land ────────────────────────────────────────────────────
         MA("Slinky Dog Dash",
@@ -580,6 +638,28 @@ private extension RideMasterData {
         MA("Millennium Falcon: Smugglers Run",
            park: .hollywoodStudios, land: "Star Wars: Galaxy's Edge",
            type: .ride, outdoor: false, map: 1, seed: true),
+
+        // Animation Courtyard section
+        // Walt Disney Presents -- walk-through exhibit (Disney/Pixar movie
+        // previews and a Walt Disney biography display) ending in a theater
+        // presentation. Self-paced; no live posted wait time.
+        MA("Walt Disney Presents",
+           park: .hollywoodStudios, land: "Animation Courtyard",
+           type: .walkthrough, outdoor: false, map: 3, seed: true,
+           entityId: "d7669edc-eaa1-4af2-bbb5-6e98df564166"),
+
+        // The Little Mermaid -- A Musical Adventure -- indoor stage musical.
+        MA("The Little Mermaid \u{2013} A Musical Adventure",
+           park: .hollywoodStudios, land: "Animation Courtyard",
+           type: .show, outdoor: false, map: 3, seed: true,
+           entityId: "a7763ca6-bca3-4e78-b75c-22886aa06bec"),
+
+        // Disney Jr. Mickey Mouse Clubhouse Live! -- newly opened per the 2026
+        // guide. Indoor stage show for young children.
+        MA("Disney Jr. Mickey Mouse Clubhouse Live!",
+           park: .hollywoodStudios, land: "Animation Courtyard",
+           type: .show, outdoor: false, map: 3, seed: true,
+           entityId: "1bbce25c-36eb-4d16-9216-4a1bbd46932b"),
 
         // ── Character Meet & Greets ───────────────────────────────────────────
         MA("Star Wars Character Experiences",

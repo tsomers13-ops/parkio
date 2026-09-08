@@ -75,6 +75,7 @@ struct HomeView: View {
     @State private var showAttractionsList = false
     @State private var showAddItemSheet    = false
     @State private var showDiningList      = false
+    @State private var showShoppingList    = false
 
     // ── First-ride nudge ───────────────────────────────────────────────────────
     @State  private var nudgeTimerFired = false
@@ -644,7 +645,8 @@ struct HomeView: View {
                             onMap: { coordinator.selectedTab = 1 },
                             onMyDay: { coordinator.selectedTab = 2 },
                             onAttractions: { showAttractionsList = true },
-                            onAddItem: { showAddItemSheet = true }
+                            onAddItem: { showAddItemSheet = true },
+                            onShopping: { showShoppingList = true }
                         )
                         .padding(.horizontal, AppSpacing.screenEdge)
                         .padding(.bottom, AppSpacing.xxxl)
@@ -668,6 +670,9 @@ struct HomeView: View {
             }
             .navigationDestination(isPresented: $showDiningList) {
                 AttractionsListView(park: selectedPark, rides: parkRides, initialCategoryFilter: .dining)
+            }
+            .navigationDestination(isPresented: $showShoppingList) {
+                ShoppingListView(park: selectedPark)
             }
             .sheet(isPresented: $showAddItemSheet) {
                 AddMyDayItemSheet(park: selectedPark) { item in

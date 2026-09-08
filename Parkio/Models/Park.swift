@@ -171,7 +171,10 @@ enum Park: String, CaseIterable, Identifiable {
             return [
                 "Hollywood Boulevard",
                 "Echo Lake",
+                "Commissary Lane",
+                "Animation Courtyard",
                 "Grand Avenue",
+                "Pixar Plaza",
                 "Sunset Boulevard",
                 "Toy Story Land",
                 "Star Wars: Galaxy's Edge"

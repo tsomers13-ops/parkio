@@ -129,6 +129,16 @@ struct NearbyRide: Identifiable {
     var waitDisplay: String? { enriched?.liveState?.waitDisplay }
 }
 
+// MARK: - Nearest Guest Service (Priority 6)
+
+/// Straight-line distance to one Guest Service POI. No live state, no wait
+/// time, no walking-time estimate — see nearestGuestService(category:) below.
+struct NearestGuestService: Identifiable {
+    let annotation: MapRideAnnotation
+    let distance:   CLLocationDistance
+    var id: String { annotation.id }
+}
+
 // MARK: - Ride recommendation
 
 struct RideRecommendation {
@@ -244,6 +254,45 @@ final class MapViewModel {
     // ── Annotations ────────────────────────────────────────────────────────────
     private(set) var annotations: [MapRideAnnotation] = []
     var hasCoordinates: Bool { !annotations.isEmpty }
+
+    // ── Guest Services (Priority 6) ───────────────────────────────────────────
+    //
+    // Deliberately separate from `annotations` / `rideAnnotations` /
+    // `buildVisibleAnnotations` — Guest Service pins do NOT go through the ride
+    // declutter/filter pipeline (MapFilterState's showRidden/hideClosed/planOnly/
+    // onlyLowWait are ride-specific concepts that don't apply to a restroom).
+    // Loaded from the SAME MapCoordinates.json entries as rides/dining/shopping
+    // (see loadAnnotations()) — just filtered into a separate array by category
+    // instead of a separate JSON source.
+    private(set) var guestServiceAnnotations: [MapRideAnnotation] = []
+
+    /// Which Guest Service categories the guest has opted into showing. Default
+    /// empty — nothing shows until a guest selects a category (e.g. Restrooms),
+    /// per the brief's explicit "Guest Service POIs stay hidden until a guest
+    /// selects a relevant category" default-visibility rule. Independent
+    /// per-category control (not one master toggle) — see MapOverlayFilterBar.swift.
+    var activeGuestServiceCategories: Set<GuestServiceCategory> = []
+
+    /// Guest Service annotations currently eligible for display: park-scoped and
+    /// filtered to only the categories the guest has switched on. No declutter,
+    /// no zoom-gating — the pilot's ~1-4 pins per park per category is not dense
+    /// enough to need it (see the Priority 6 report's Map Experience section).
+    var visibleGuestServiceAnnotations: [MapRideAnnotation] {
+        guard !activeGuestServiceCategories.isEmpty else { return [] }
+        let activeRideCategories = Set(activeGuestServiceCategories.map(\.rideCategory))
+        return guestServiceAnnotations
+            .filter { $0.parkId == parkId && activeRideCategories.contains($0.category) }
+    }
+
+    /// Guest Service categories that actually have at least one map-visible POI
+    /// in the current park — drives which toggles the "Services" filter chip
+    /// offers (MapOverlayFilterBar.swift), so the menu never advertises a
+    /// category with zero pins to show for this park (e.g. Lockers/ATM/
+    /// Accessibility Services, unpopulated in this pilot).
+    var availableGuestServiceCategories: [GuestServiceCategory] {
+        let present = Set(guestServiceAnnotations.filter { $0.parkId == parkId }.map(\.category))
+        return GuestServiceCategory.allCases.filter { present.contains($0.rideCategory) }
+    }
 
     // ── Ridden state ───────────────────────────────────────────────────────────
     private var riddenRideNames: Set<String>       = []
@@ -766,6 +815,27 @@ final class MapViewModel {
             .map { $0 }
     }
 
+    // MARK: - Priority 6: Nearest Guest Service
+    //
+    // Deliberately the smallest possible "nearest" feature: reuses the exact
+    // same CLLocation.distance(from:) straight-line calculation nearbyRides()
+    // above already uses via locationService?.userLocation — no new distance
+    // math, no routing engine, no walking-time estimate. `distance` is meters
+    // as the crow flies; this type/method never claims "X minutes away" (see
+    // the Priority 6 report's Nearest-Service Behavior section for why that
+    // claim specifically is out of scope this phase).
+    func nearestGuestService(category: GuestServiceCategory) -> NearestGuestService? {
+        guard let userLoc = locationService?.userLocation else { return nil }
+        let targetCategory = category.rideCategory
+        return guestServiceAnnotations
+            .filter { $0.parkId == parkId && $0.category == targetCategory }
+            .compactMap { annotation -> NearestGuestService? in
+                let loc = CLLocation(latitude: annotation.latitude, longitude: annotation.longitude)
+                return NearestGuestService(annotation: annotation, distance: userLoc.distance(from: loc))
+            }
+            .min { $0.distance < $1.distance }
+    }
+
     // MARK: - Phase 4: Dominant land
 
     /// Returns the dominant themed land among the visible annotations, or nil when
@@ -952,9 +1022,17 @@ final class MapViewModel {
 
     // MARK: - Private helpers
 
+    private static let guestServiceRideCategories: Set<RideCategory> = [
+        .restroom, .firstAid, .guestRelations, .babyCare, .lockers, .atm, .accessibilityService
+    ]
+
     private func loadAnnotations() {
         let loaded = coordinateService.annotations(for: parkId)
-        annotations = loaded
+        // Guest Service pins are excluded from `annotations` (the ride/dining/
+        // shopping pipeline) and loaded into their own array instead — see the
+        // "Guest Services (Priority 6)" state block above for why.
+        annotations = loaded.filter { !Self.guestServiceRideCategories.contains($0.category) }
+        guestServiceAnnotations = loaded.filter { Self.guestServiceRideCategories.contains($0.category) }
         stableOutputCache = StableOutputCache()
 
 #if DEBUG

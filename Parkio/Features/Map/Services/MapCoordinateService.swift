@@ -143,7 +143,7 @@ private extension MapCoordinateService {
     static let roughParkBounds: [String: ParkBounds] = [
         "magic-kingdom": .init(minLat: 28.4160, maxLat: 28.4230, minLon: -81.5865, maxLon: -81.5750),
         "epcot": .init(minLat: 28.3670, maxLat: 28.3765, minLon: -81.5545, maxLon: -81.5450),
-        "hollywood-studios": .init(minLat: 28.3525, maxLat: 28.3610, minLon: -81.5650, maxLon: -81.5560),
+        "hollywood-studios": .init(minLat: 28.3525, maxLat: 28.3615, minLon: -81.5650, maxLon: -81.5560),  // maxLat widened from 28.3610 to include the verified Fantasmic! amphitheater coordinate (28.3612252, ThemeParks.wiki)
         "animal-kingdom": .init(minLat: 28.3530, maxLat: 28.3630, minLon: -81.5945, maxLon: -81.5860),
         "disneyland": .init(minLat: 33.8090, maxLat: 33.8165, minLon: -117.9240, maxLon: -117.9160),
         "california-adventure": .init(minLat: 33.8040, maxLat: 33.8095, minLon: -117.9240, maxLon: -117.9160)
@@ -151,14 +151,27 @@ private extension MapCoordinateService {
 
     static func validate(annotationsByPark: [String: [MapRideAnnotation]], source: String) {
         var ids: [String: [String]] = [:]
-        var coordinateOwners: [String: [String]] = [:]
+        // Each coordinate key maps to the (id, category) pairs pinned there, so the
+        // duplicate-coordinate check below (added for Priority 6) can distinguish a
+        // true accidental duplicate (same category at the same coordinate — e.g. two
+        // rides mistakenly pinned identically) from a verified co-located facility
+        // (different categories sharing a coordinate/near-coordinate on purpose — e.g.
+        // First Aid and Baby Care Center in the same building). Same category → still
+        // a warning. Different categories → informational only, not a validation error.
+        var coordinateOwners: [String: [(id: String, category: RideCategory)]] = [:]
 
         // Gate: only attractions with shouldAppearOnMap == true (mapPriority != nil) should
         // ever have a JSON entry. Using this set (rather than canonicalRideIDs / all seeded
         // attractions) prevents false "ID MISMATCH" warnings for non-map attractions like
         // Liberty Belle Riverboat (seed:false, map:3) and suppresses noisy "MISSING COORD"
         // warnings for character meets and non-map shows that intentionally have no pin.
+        // Union with map-visible Shopping stableIDs (ShopMasterData) so Priority 5
+        // shop pins are checked by this SAME validation rather than a duplicate one.
+        // Priority 6 extends the same union with map-visible Guest Service stableIDs
+        // (GuestServiceMasterData) — same reasoning, same single validation pipeline.
         let mapVisibleIDs = Set(RideMasterData.all.filter(\.shouldAppearOnMap).map(\.stableID))
+            .union(ShopMasterData.all.filter(\.shouldAppearOnMap).map(\.stableID))
+            .union(GuestServiceMasterData.all.filter(\.shouldAppearOnMap).map(\.stableID))
 
         for (parkId, annotations) in annotationsByPark {
             for annotation in annotations {
@@ -185,7 +198,7 @@ private extension MapCoordinateService {
 
                 // Duplicate coordinate detection.
                 let coordinateKey = String(format: "%.6f,%.6f", annotation.latitude, annotation.longitude)
-                coordinateOwners[coordinateKey, default: []].append(annotation.id)
+                coordinateOwners[coordinateKey, default: []].append((id: annotation.id, category: annotation.category))
             }
         }
 
@@ -194,9 +207,20 @@ private extension MapCoordinateService {
             print("⚠️ MapCoordinateService[\(source)]: DUPLICATE ID — '\(id)' appears in \(parks.joined(separator: ", ")).")
         }
 
-        // Duplicate coordinate (two different rides sharing the same GPS pin).
+        // Duplicate coordinate (two different pins sharing the same GPS coordinate).
+        // Same category at the same coordinate is almost certainly an accidental
+        // duplicate (still a warning). Different categories at the same coordinate
+        // is treated as a verified co-located facility (e.g. Guest Services'
+        // First Aid + Baby Care, or First Aid + Guest Relations) and reported as
+        // informational, not a warning — see the coordinateOwners doc comment above.
         for (coordinate, owners) in coordinateOwners where owners.count > 1 {
-            print("⚠️ MapCoordinateService[\(source)]: DUPLICATE COORD \(coordinate): \(owners.joined(separator: " | ")).")
+            let distinctCategories = Set(owners.map(\.category))
+            let ownerIDs = owners.map(\.id).joined(separator: " | ")
+            if distinctCategories.count > 1 {
+                print("ℹ️ MapCoordinateService[\(source)]: CO-LOCATED \(coordinate): \(ownerIDs) (verified shared facility — different categories, not flagged as duplicate).")
+            } else {
+                print("⚠️ MapCoordinateService[\(source)]: DUPLICATE COORD \(coordinate): \(ownerIDs).")
+            }
         }
 
         // Missing coordinates: map-visible attractions (shouldAppearOnMap == true) with no

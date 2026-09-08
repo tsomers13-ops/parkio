@@ -1224,6 +1224,12 @@ struct HomeQuickActionsRow: View {
     let onMyDay: () -> Void
     let onAttractions: () -> Void
     let onAddItem: () -> Void
+    // Priority 5B: minimal Shopping discovery entry point. Deliberately a 6th
+    // grid cell here rather than a new tab or a fold into onAttractions —
+    // Shopping is architecturally separate from AttractionsListView (it reads
+    // ShopMasterData directly, not SwiftData Ride rows) and this is the
+    // lowest-footprint way to surface it without a tab-bar/UI redesign.
+    let onShopping: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
@@ -1258,6 +1264,13 @@ struct HomeQuickActionsRow: View {
                     subtitle: "Browse all",
                     color: Color.blue,
                     action: onAttractions
+                )
+                HomeQuickActionButton(
+                    icon: "bag.fill",
+                    title: "Shopping",
+                    subtitle: "Browse shops",
+                    color: Color.pink,
+                    action: onShopping
                 )
                 HomeQuickActionButton(
                     icon: "plus.circle.fill",

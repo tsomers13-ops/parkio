@@ -352,6 +352,27 @@ struct RealMapScreen: View {
                     }
                     .annotationTitles(.hidden)
                 }
+
+                // Guest Service pins (Priority 6) — a second, independent ForEach
+                // over mapVM.visibleGuestServiceAnnotations, deliberately NOT
+                // merged into `visible` above: Guest Services skip the ride
+                // declutter/filter pipeline entirely (see MapViewModel's
+                // "Guest Services" state block). Empty by default — nothing
+                // renders here until a guest turns on a category via the
+                // Services filter (see MapOverlayFilterBar.swift). Native
+                // MapKit title bubble on tap (`.annotationTitles(.automatic)`)
+                // rather than a custom selection/detail flow — this pilot has
+                // no need for one yet.
+                ForEach(mapVM.visibleGuestServiceAnnotations) { annotation in
+                    Annotation(
+                        annotation.rideName,
+                        coordinate: annotation.coordinate,
+                        anchor: .bottom
+                    ) {
+                        GuestServiceAnnotationView(name: annotation.rideName, category: annotation.category)
+                    }
+                    .annotationTitles(.automatic)
+                }
             }
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
             .onTapGesture(coordinateSpace: .local) { point in
@@ -987,6 +1008,34 @@ private struct StaticRealMapPin: View {
             .frame(width: isSelected ? 30 : 14, height: isSelected ? 30 : 14)
             .overlay(Circle().strokeBorder(Color.white.opacity(0.4), lineWidth: 1))
             .shadow(color: .black.opacity(0.18), radius: 2, x: 0, y: 1)
+    }
+}
+
+// MARK: - Guest Service annotation (Priority 6)
+//
+// Deliberately the simplest marker in this file — no wait time, no ridden/
+// planned state, no selection transition. A small filled circle (same basic
+// shape language as StaticRealMapPin above) carrying the category's SF
+// Symbol. Tapping relies on MapKit's own title bubble (`.annotationTitles(
+// .automatic)` on this ForEach — see mapLayer above), not a custom detail
+// sheet; this pilot has no per-POI detail screen to open yet.
+private struct GuestServiceAnnotationView: View {
+    let name: String
+    let category: RideCategory
+
+    var body: some View {
+        Circle()
+            .fill(AppColor.textSecondary)
+            .frame(width: 22, height: 22)
+            .overlay(
+                Image(systemName: category.systemImage)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+            )
+            .overlay(Circle().strokeBorder(Color.white.opacity(0.6), lineWidth: 1))
+            .shadow(color: .black.opacity(0.18), radius: 2, x: 0, y: 1)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(name)
     }
 }
 
