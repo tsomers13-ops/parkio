@@ -19,8 +19,39 @@ func argument(_ name: String, default fallback: String? = nil) -> String? {
     return args[i + 1]
 }
 
+// Verification mode: cross-check the generated venueKey mapping against the
+// real Dining models and exit. Runs instead of an export, never alongside it,
+// so a verification failure can never be mistaken for a successful export.
+if let sidecarPath = argument("--verify-venue-keys") {
+    do {
+        let venues = RideMasterData.all
+            .filter { $0.type.isDining }
+            .map { (stableID: $0.stableID, parkId: $0.parkId, name: $0.name) }
+
+        let result = try VenueKeyVerification.verify(sidecarPath: sidecarPath, venues: venues)
+
+        print("venuekey:verify")
+        print("  venues        : \(venues.count)")
+        print("  eligible      : \(result.eligible.count)")
+        print("  not yet mapped: \(result.ineligible.count)")
+        print("  sourceSha256  : \(result.sourceSha256)")
+
+        if result.problems.isEmpty {
+            print("  OK — every eligible venue maps to exactly one venueKey")
+            exit(0)
+        }
+        FileHandle.standardError.write(Data(
+            ("venuekey:verify FAILED\n  " + result.problems.joined(separator: "\n  ") + "\n").utf8
+        ))
+        exit(1)
+    } catch {
+        FileHandle.standardError.write(Data("venuekey:verify FAILED: \(error)\n".utf8))
+        exit(1)
+    }
+}
+
 guard let outputPath = argument("--output") else {
-    FileHandle.standardError.write(Data("usage: dining-export --output <path> [--repo <path>]\n".utf8))
+    FileHandle.standardError.write(Data("usage: dining-export --output <path> [--repo <path>]\n       dining-export --verify-venue-keys <sidecar.json>\n".utf8))
     exit(2)
 }
 let repo = URL(fileURLWithPath: argument("--repo", default: FileManager.default.currentDirectoryPath)!)
