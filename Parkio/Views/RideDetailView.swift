@@ -130,7 +130,21 @@ struct RideDetailView: View {
                     // DiningRecommendationSection renders above DiningRatingSection
                     // so guests see context ("Loved this last trip · Jul 3") before
                     // the edit controls. Neither section affects ride/show flows.
+                    // Gate 6 order — three distinct concepts, most-shared first:
+                    //   Parkio Community  → what other Parkio guests rated, /5
+                    //   Parkio editorial  → Parkio's own take, /10, in the banner
+                    //   Your private notes→ the guest's journal, never uploaded
                     if attractionType.isDining {
+                        // Only the 62 venues the ratings backend accepts. The
+                        // other 24 get no Community UI and make no request —
+                        // an absent section rather than an apologetic one.
+                        if let venueKey = CommunityRatingService.venueKey(forStableID: ride.id) {
+                            CommunityRatingSection(
+                                venueKey:    venueKey,
+                                venueName:   ride.name,
+                                accentColor: accentColor
+                            )
+                        }
                         DiningRecommendationSection(ride: ride, accentColor: accentColor)
                         DiningRatingSection(ride: ride, accentColor: accentColor)
                     }

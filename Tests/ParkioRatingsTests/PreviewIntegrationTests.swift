@@ -112,3 +112,103 @@ final class PreviewIntegrationTests: XCTestCase {
         print("PREVIEW_SYNTHETIC_ROW venue_key=\(venue) rater_id=\(raterId)")
     }
 }
+
+/// The Community section's state machine driven against a real Preview
+/// deployment — the same view model the SwiftUI section binds to, so this
+/// exercises exactly what a guest's taps would, minus the pixels.
+///
+/// Skipped unless PARKIO_PREVIEW_BASE_URL is set.
+@MainActor
+final class PreviewViewModelLifecycleTests: XCTestCase {
+
+    private func settle() async {
+        for _ in 0..<40 {
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 25_000_000)
+        }
+    }
+
+    func testGuestFacingLifecycleAgainstPreview() async throws {
+        guard let raw = ProcessInfo.processInfo.environment["PARKIO_PREVIEW_BASE_URL"],
+              let baseURL = URL(string: raw) else {
+            throw XCTSkip("PARKIO_PREVIEW_BASE_URL not set")
+        }
+
+        let venue = "ep-le-cellier"
+        let store = InMemoryRatingCredentialStore()
+        let service = CommunityRatingService(
+            transport: URLSession.shared, credentials: store, baseURL: baseURL
+        )
+        let vm = CommunityRatingViewModel(venueKey: venue, service: service)
+
+        // 1–3. Opening the venue shows the zero state, not a fabricated 0.0.
+        vm.loadIfNeeded()
+        await settle()
+        XCTAssertEqual(vm.load, .zero, "preview must start clean")
+        XCTAssertTrue(vm.visibleDimensions.isEmpty)
+
+        // 4. Passive browsing created no identity.
+        XCTAssertNil(try store.load(), "browsing must not mint a credential")
+        XCTAssertFalse(vm.hasPersonalRating)
+
+        // 5–9. Open the form and answer Overall, Taste, Value — Quality unset.
+        vm.openForm()
+        XCTAssertEqual(vm.form, .editing)
+        XCTAssertFalse(vm.canSubmit, "Overall is required")
+        vm.draftOverall = 4
+        vm.draftTaste = 5
+        vm.draftValue = 3
+        XCTAssertTrue(vm.canSubmit)
+
+        // 10–13. Submit: created, aggregate 4.0 / 1 rating, Quality absent.
+        await vm.submit()
+        XCTAssertEqual(vm.form, .success(.created))
+
+        guard case .rated(let created) = vm.load else { return XCTFail("expected rated") }
+        XCTAssertEqual(created.ratingCount, 1)
+        XCTAssertEqual(created.overallAverage, 4)
+        XCTAssertEqual(vm.visibleDimensions.map(\.name), ["Taste", "Value"])
+        XCTAssertFalse(vm.visibleDimensions.contains { $0.name == "Quality" })
+
+        let credential = try XCTUnwrap(try store.load(), "submitting provisions identity")
+
+        // 14–16. A fresh view model — as if the screen were reopened — restores
+        // the personal rating from the server and offers "Update rating".
+        let reopened = CommunityRatingViewModel(
+            venueKey: venue,
+            service: CommunityRatingService(
+                transport: URLSession.shared, credentials: store, baseURL: baseURL
+            )
+        )
+        reopened.loadIfNeeded()
+        await settle()
+        XCTAssertTrue(reopened.hasPersonalRating, "the guest's own rating must come back")
+        XCTAssertEqual(reopened.myRating?.overall, 4)
+        XCTAssertEqual(reopened.myRating?.taste, 5)
+        XCTAssertNil(reopened.myRating?.quality)
+
+        // 17–19. Edit: Overall 4→2, add Quality 4.
+        reopened.openForm()
+        XCTAssertEqual(reopened.draftOverall, 4, "the form prefills from the server")
+        XCTAssertNil(reopened.draftQuality)
+        reopened.draftOverall = 2
+        reopened.draftQuality = 4
+        await reopened.submit()
+
+        // 20–22. Updated, count still 1, average 2.0, Quality now present.
+        XCTAssertEqual(reopened.form, .success(.updated))
+        guard case .rated(let updated) = reopened.load else { return XCTFail("expected rated") }
+        XCTAssertEqual(updated.ratingCount, 1, "an update must not add a vote")
+        XCTAssertEqual(updated.overallAverage, 2)
+        XCTAssertTrue(reopened.visibleDimensions.contains { $0.name == "Quality" })
+
+        // Identity reused, not replaced.
+        XCTAssertEqual(try store.load(), credential)
+
+        // 23. An ineligible venue is refused before any request is possible.
+        XCTAssertNil(CommunityRatingService.venueKey(forStableID: "Magic Kingdom|Liberty Square|Columbia Harbour House"))
+
+        let raterId = credential.split(separator: ".")[1]
+        print("PREVIEW_SYNTHETIC_ROW venue_key=\(venue) rater_id=\(raterId)")
+    }
+}

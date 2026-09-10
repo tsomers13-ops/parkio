@@ -1,4 +1,4 @@
-// DiningRatingSection.swift — "My Rating" List section for the dining detail screen.
+// DiningRatingSection.swift — "Your private notes" List section for the dining detail screen.
 //
 // Embedded in RideDetailView when attractionType.isDining.
 // Ride flows are completely unaffected — this section is never shown for rides,
@@ -6,7 +6,7 @@
 //
 // Phase 2 additions:
 //   DiningRecommendationSection — context-aware summary banner rendered as a
-//   separate List section ABOVE "My Rating". Shows:
+//   separate List section ABOVE "Your private notes". Shows:
 //     • Rated + favourite  → "One of your favorites · Visited [date]"
 //     • Rated ★★★★★        → "Loved this last trip · Visited [date]"
 //     • Rated ★★★★☆        → "Really enjoyed this · Visited [date]"
@@ -15,6 +15,12 @@
 //     • Unrated            → "Haven't tried this yet · Parkio: N/10"
 //
 // DiningRatingSection (existing) — stars, heart, label, notes, date, edit.
+//
+// This is the PRIVATE journal: it lives in UserDefaults, feeds
+// DiningRecommendationService, and never leaves the device. It is not the
+// Community Rating — see Community/CommunityRatingSection.swift, which
+// publishes to every Parkio guest. Gate 6 changed the copy here (and only the
+// copy) so the two cannot be confused on the same screen.
 
 import SwiftUI
 
@@ -125,7 +131,7 @@ struct DiningRatingSection: View {
     // MARK: - Body
 
     var body: some View {
-        Section("My Rating") {
+        Section("Your private notes") {
             content
         }
         .listRowBackground(AppColor.card)
@@ -213,11 +219,13 @@ struct DiningRatingSection: View {
                 AppHaptic.light()
                 showSheet = true
             } label: {
-                Text("Edit Rating")
+                Text("Edit private note")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(accentColor)
             }
             .buttonStyle(.plain)
+
+            privateCaption
         }
         .padding(.vertical, AppSpacing.xs)
     }
@@ -226,17 +234,29 @@ struct DiningRatingSection: View {
 
     private var unratedView: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
-            Text("You haven't rated this location yet.")
+            Text("You haven't added a private note for this location yet.")
                 .font(.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
 
-            Button("Rate This Location") {
+            Button("Add a private note") {
                 AppHaptic.light()
                 showSheet = true
             }
             .buttonStyle(.borderedProminent)
             .tint(accentColor)
+
+            privateCaption
         }
         .padding(.vertical, AppSpacing.xs)
+    }
+
+    // MARK: - Privacy caption
+
+    /// Shown in both states, so the promise is next to the control that relies
+    /// on it rather than only on the empty screen.
+    private var privateCaption: some View {
+        Text("Only you can see this. It never leaves your device.")
+            .font(.caption2)
+            .foregroundStyle(AppColor.textTertiary)
     }
 }

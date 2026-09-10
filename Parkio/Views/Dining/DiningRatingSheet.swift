@@ -68,7 +68,7 @@ struct DiningRatingSheet: View {
                         .padding(.vertical, AppSpacing.sm)
                         .listRowBackground(AppColor.card)
                     } header: {
-                        Text("Your Rating")
+                        Text("Your private rating")
                     }
 
                     // ── Favourite toggle ───────────────────────────────────────
@@ -115,7 +115,7 @@ struct DiningRatingSheet: View {
                 }
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle(existing == nil ? "Rate This Location" : "Edit Rating")
+            .navigationTitle(existing == nil ? "Add a private note" : "Edit private note")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

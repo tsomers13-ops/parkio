@@ -79,13 +79,19 @@ let package = Package(
             // exist to exercise: the Ratings service layer and the generated
             // venueKey mapping.
             exclude: sourcesNotInExporter.filter {
-                $0 != "Parkio/Services" && $0 != "Parkio/Models/DiningVenueKeys.swift"
+                $0 != "Parkio/Services"
+                    && $0 != "Parkio/Models/DiningVenueKeys.swift"
+                    && $0 != "Parkio/Views"
             } + ["Tools/DiningExporter"],
             sources: [
                 "Tests/ParkioRatingsTests",
                 // Real app sources under test — compiled in, not duplicated.
                 "Parkio/Services/Ratings",
                 "Parkio/Models/DiningVenueKeys.swift",
+                // The view model is deliberately SwiftUI-free — Foundation and
+                // Observation only — so the whole Community state machine is
+                // testable without dragging the view layer into SPM.
+                "Parkio/Views/Dining/Community/CommunityRatingViewModel.swift",
                 // The real Dining content deliberately is NOT compiled here:
                 // SPM forbids two targets sharing sources, and those files
                 // belong to the exporter. The 62/24 eligibility boundary is
