@@ -143,6 +143,26 @@ struct AttractionsListView: View {
     @State private var recentlyViewedIds: [String]       = []
     @FocusState private var searchFocused: Bool
 
+    // ── Community ratings (Gate 7) ────────────────────────────────────────────
+    //
+    // Server-owned, read once for the whole park and held here for the life of
+    // this screen. Deliberately NOT SwiftData, NOT UserDefaults and NOT
+    // DiningRatingStore — that store is the guest's private journal and must
+    // stay device-only. Nothing here is persisted.
+    //
+    // Keyed by venueKey, which is why an ineligible venue simply has no entry.
+    @State private var communityRatings: [String: CommunityRatingSummary] = [:]
+    @State private var communityLoad: CommunityLoadState = .notLoaded
+
+    private enum CommunityLoadState: Equatable {
+        case notLoaded
+        case loading
+        case loaded
+        /// Ratings could not be read. Distinct from "loaded with none", though
+        /// both render the same way: no line at all.
+        case unavailable
+    }
+
     // MARK: - Init
     //
     // Keep this view free of @Query. SwiftData query setup/fetch happens
@@ -297,6 +317,64 @@ struct AttractionsListView: View {
             favoriteRides:       resolvedFavRides,
             recentlyViewedRides: recentRides
         )
+    }
+
+    // MARK: - Community ratings
+
+    /// Every rateable venueKey in this park's stable dataset.
+    ///
+    /// Derived from `rides`, which is built once in `init` and never changes —
+    /// NOT from the render snapshot. That is the whole trick: search text,
+    /// category, sort and Open Now all reshape the *displayed subset*, and none
+    /// of them can alter this list, so none of them can trigger a refetch.
+    ///
+    /// The 24 venues outside the pilot resolve to nil and are never requested.
+    private var eligibleVenueKeys: [String] {
+        rides.compactMap { CommunityRatingService.venueKey(forStableID: $0.id) }
+    }
+
+    /// One bulk read for the whole park. EPCOT is 42 keys, DHS is 20 — one
+    /// request each, never one per card.
+    ///
+    /// Idempotent: SwiftUI may run `.task` again on redraw, and a second call
+    /// while loaded or in flight is a no-op.
+    private func loadCommunityRatingsIfNeeded() async {
+        guard communityLoad == .notLoaded else { return }
+        let keys = eligibleVenueKeys
+        guard !keys.isEmpty else {
+            communityLoad = .loaded
+            return
+        }
+        communityLoad = .loading
+        do {
+            // A public read: sends no credential, provisions no identity, and
+            // touches no Keychain. Browsing Dining leaves the guest anonymous.
+            let summaries = try await CommunityRatingService().summaries(venueKeys: keys)
+            communityRatings = summaries
+            communityLoad = .loaded
+        } catch {
+            // Progressive enhancement: the list is already fully usable, so a
+            // failure just means no Community lines. Never a fabricated zero,
+            // never an error row, and no retry.
+            communityRatings = [:]
+            communityLoad = .unavailable
+        }
+    }
+
+    /// Pull-to-refresh: re-read the park's aggregates once.
+    ///
+    /// Resets the guard so the read actually happens, but is still a single
+    /// bulk request — never one per row.
+    private func refreshCommunityRatings() async {
+        communityLoad = .notLoaded
+        await loadCommunityRatingsIfNeeded()
+    }
+
+    /// The Community summary for a row, or nil when the venue is ineligible,
+    /// unrated, or ratings could not be read.
+    private func communitySummary(for ride: Ride) -> CommunityRatingSummary? {
+        guard let key = CommunityRatingService.venueKey(forStableID: ride.id) else { return nil }
+        return communityRatings[key]
     }
 
     // MARK: - Sort helper
@@ -498,6 +576,11 @@ struct AttractionsListView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) { sortMenu }
         }
+        // Keyed on the park, not on any filter state, so this runs once per
+        // presentation of the list rather than once per redraw.
+        .task(id: park.rawValue) {
+            await loadCommunityRatingsIfNeeded()
+        }
     }
 
     // MARK: - Search bar
@@ -676,7 +759,15 @@ struct AttractionsListView: View {
             .padding(.bottom, AppSpacing.xxxl)
         }
         .scrollDismissesKeyboard(.immediately)
-        .refreshable { await waitTimeVM.refresh() }
+        .refreshable {
+            await waitTimeVM.refresh()
+            // One extra bulk read, user-initiated and bounded. This is also the
+            // only way discovery picks up a rating the guest just submitted on
+            // a detail sheet — chosen over refetching on every sheet dismissal,
+            // which would fire even when nothing was rated, and over a global
+            // event bus, which would be a lot of architecture for one row.
+            await refreshCommunityRatings()
+        }
     }
 
     // MARK: - Ride card (shared by flat list sections)
@@ -724,6 +815,7 @@ struct AttractionsListView: View {
                     liveState:        snap.liveMap[ride.id],
                     isPlanned:        snap.plannedIds.contains(ride.id),
                     isFavorite:       snap.favoriteIds.contains(ride.id),
+                    community:        communitySummary(for: ride),
                     onToggleMyDay:    { toggleMyDay(for: ride) },
                     onToggleFavorite: { toggleFavorite(for: ride) },
                     onTap:            { recordRecentlyViewed(ride) }
@@ -819,6 +911,7 @@ struct AttractionsListView: View {
                                     liveState:        snap.liveMap[ride.id],
                                     isPlanned:        snap.plannedIds.contains(ride.id),
                                     isFavorite:       snap.favoriteIds.contains(ride.id),
+                                    community:        communitySummary(for: ride),
                                     onToggleMyDay:    { toggleMyDay(for: ride) },
                                     onToggleFavorite: { toggleFavorite(for: ride) },
                                     onTap:            { recordRecentlyViewed(ride) }
@@ -851,7 +944,15 @@ struct AttractionsListView: View {
             .padding(.bottom, AppSpacing.xxxl)
         }
         .scrollDismissesKeyboard(.immediately)
-        .refreshable { await waitTimeVM.refresh() }
+        .refreshable {
+            await waitTimeVM.refresh()
+            // One extra bulk read, user-initiated and bounded. This is also the
+            // only way discovery picks up a rating the guest just submitted on
+            // a detail sheet — chosen over refetching on every sheet dismissal,
+            // which would fire even when nothing was rated, and over a global
+            // event bus, which would be a lot of architecture for one row.
+            await refreshCommunityRatings()
+        }
     }
 
     // MARK: - Empty state
@@ -983,6 +1084,11 @@ private struct AttractionRow: View {
     let liveState:        LiveRideState?
     let isPlanned:        Bool
     let isFavorite:       Bool
+    /// Server-owned Community aggregate, supplied by the list. nil for an
+    /// ineligible venue, an unrated one, or when ratings could not be read.
+    /// The row NEVER fetches this itself — 42 self-fetching rows would be 42
+    /// requests.
+    let community:        CommunityRatingSummary?
     let onToggleMyDay:    () -> Void
     let onToggleFavorite: () -> Void
     let onTap:            () -> Void
@@ -1153,6 +1259,20 @@ private struct AttractionRow: View {
                             .font(.caption)
                             .foregroundStyle(AppColor.textTertiary)
                             .lineLimit(1)
+                    }
+
+                    // ── Gate 7: Community rating ──────────────────────────
+                    // A third line, dining only, and only when other guests
+                    // have actually rated this venue. Deliberately worded
+                    // rather than starred: the line above may already be the
+                    // guest's own five-star strip, and two star glyphs on one
+                    // row would blur two different things.
+                    //
+                    // Renders nothing for an unrated venue, an ineligible one,
+                    // or when the ratings service is unavailable — no
+                    // placeholder, no reserved space, never a fabricated 0.0.
+                    if attractionType.isDining {
+                        CommunityRatingBadge(summary: community)
                     }
                 }
 
