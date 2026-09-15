@@ -1,9 +1,17 @@
-// CommunityRatingSheet.swift — the Community rating form.
+// CommunityRatingForm.swift — the Community rating form.
 //
 // Explicitly NOT DiningRatingSheet. That sheet edits the private journal —
 // favourite, notes, a personal star that never leaves the device. This one
 // publishes to every Parkio guest, so it says so, and shares no component with
 // it beyond the design tokens.
+//
+// PUSHED, NOT PRESENTED. This used to be a `.sheet` opened from the dining
+// detail — which is itself a sheet. That nested presentation was torn down by
+// SwiftUI the moment it appeared, taking the dining detail with it; a 90-line
+// reproduction containing no Parkio code showed the hierarchy alone is enough
+// to cause it. So the form is now a destination on the NavigationStack
+// RideDetailView already owns. It carries no navigation container of its own:
+// the stack supplies the title, the back button and the pop.
 //
 // Numeric only: no written review, no photo, no title. Overall is required;
 // Taste, Value and Quality are optional and are omitted from the payload when
@@ -11,7 +19,7 @@
 
 import SwiftUI
 
-struct CommunityRatingSheet: View {
+struct CommunityRatingForm: View {
 
     @Bindable var model: CommunityRatingViewModel
     let venueName: String
@@ -22,8 +30,7 @@ struct CommunityRatingSheet: View {
     private var isUpdate: Bool { model.hasPersonalRating }
 
     var body: some View {
-        NavigationStack {
-            Form {
+        Form {
                 Section {
                     CommunityStarRatingInput(
                         dimension: "Overall",
@@ -70,32 +77,29 @@ struct CommunityRatingSheet: View {
                         .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-            }
-            .navigationTitle(isUpdate ? "Update your rating" : "Rate for other guests")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        model.closeForm()
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    if model.form == .submitting {
-                        ProgressView()
-                    } else {
-                        Button(isUpdate ? "Update" : "Submit") {
-                            Task {
-                                await model.submit()
-                                // Only leave on success — a failure keeps every
-                                // selection visible so retry is one tap.
-                                if case .success = model.form { dismiss() }
-                            }
+        }
+        .navigationTitle(isUpdate ? "Update your rating" : "Rate for other guests")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                if model.form == .submitting {
+                    ProgressView()
+                } else {
+                    Button(isUpdate ? "Update" : "Submit") {
+                        Task {
+                            await model.submit()
+                            // Only leave on success — a failure keeps every
+                            // selection visible so retry is one tap.
+                            if case .success = model.form { dismiss() }
                         }
-                        .disabled(!model.canSubmit)
                     }
+                    .disabled(!model.canSubmit)
                 }
             }
         }
+        // Back is the stack's own button, so there is no Cancel item to own the
+        // teardown. Whichever way the guest leaves — back, swipe, or a
+        // successful submit — the draft closes exactly once, here.
+        .onDisappear { model.closeForm() }
     }
 }

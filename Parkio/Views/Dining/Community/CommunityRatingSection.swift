@@ -25,6 +25,14 @@ struct CommunityRatingSection: View {
 
     @State private var model: CommunityRatingViewModel
 
+    /// Drives the push onto RideDetailView's NavigationStack.
+    ///
+    /// Stored, not derived from `model.form`: a `Binding(get:set:)` rebuilt in
+    /// `body` hands SwiftUI a new object each evaluation, and it writes `false`
+    /// into the one it retires — which a `set` closure cannot tell apart from a
+    /// real dismissal.
+    @State private var isPresentingForm = false
+
     init(venueKey: String, venueName: String, accentColor: Color) {
         self.venueKey = venueKey
         self.venueName = venueName
@@ -65,13 +73,11 @@ struct CommunityRatingSection: View {
             }
         }
         .task { model.loadIfNeeded() }
-        .sheet(
-            isPresented: Binding(
-                get: { model.form == .editing || model.form == .submitting || model.form == .failure },
-                set: { if !$0 { model.closeForm() } }
-            )
-        ) {
-            CommunityRatingSheet(model: model, venueName: venueName, accentColor: accentColor)
+        // Pushed onto the stack RideDetailView already owns — never presented
+        // as a second sheet over the dining detail sheet. See the note at the
+        // top of CommunityRatingForm.swift for why.
+        .navigationDestination(isPresented: $isPresentingForm) {
+            CommunityRatingForm(model: model, venueName: venueName, accentColor: accentColor)
         }
     }
 
@@ -167,6 +173,7 @@ struct CommunityRatingSection: View {
         Button {
             AppHaptic.light()
             model.openForm()
+            isPresentingForm = true
         } label: {
             Text(model.hasPersonalRating ? "Update rating" : "Rate for other guests")
                 .font(.subheadline.weight(.semibold))
