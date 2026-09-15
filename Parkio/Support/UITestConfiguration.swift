@@ -29,4 +29,12 @@ enum UITestConfiguration {
         isRunningUITests
             && ProcessInfo.processInfo.arguments.contains("-parkio-open-epcot-dining")
     }
+
+    /// Select EPCOT and stay on Home — the surface Best Food Nearby lives on.
+    /// Only the park is forced; the recommendations themselves come from
+    /// DiningRecommendationService exactly as in production.
+    static var selectsEpcotOnHome: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-select-epcot")
+    }
 }

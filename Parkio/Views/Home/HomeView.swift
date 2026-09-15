@@ -77,6 +77,11 @@ struct HomeView: View {
     @State private var showDiningList      = false
     @State private var showShoppingList    = false
 
+    /// Canonical Ride behind a tapped Best Food Nearby recommendation.
+    /// Resolved from the recommendation's stableID against the same @Query the
+    /// rest of Home uses — never rebuilt from card strings.
+    @State private var selectedDiningRide: Ride?
+
     // ── First-ride nudge ───────────────────────────────────────────────────────
     @State  private var nudgeTimerFired = false
     @AppStorage("hasDismissedFirstRideNudge") private var hasDismissedFirstRideNudge = false
@@ -207,6 +212,13 @@ struct HomeView: View {
     }
 
     // MARK: - Derived ride lists
+
+    /// Resolve a recommendation to the real seeded Ride. Silently does nothing
+    /// if the venue is not in the current park's seeded set — better than
+    /// opening a detail for something that is not there.
+    private func openDiningDetail(for recommendation: DiningRecommendation) {
+        selectedDiningRide = parkRides.first { $0.id == recommendation.venue.stableID }
+    }
 
     private var parkRides: [Ride] {
         allRides
@@ -622,7 +634,8 @@ struct HomeView: View {
                                 store: diningRatingStore
                             ),
                             park: selectedPark,
-                            onSeeAll: { showDiningList = true }
+                            onSeeAll: { showDiningList = true },
+                            onSelect: { openDiningDetail(for: $0) }
                         )
                         .padding(.horizontal, AppSpacing.screenEdge)
 
@@ -672,6 +685,9 @@ struct HomeView: View {
                     selectedPark = .epcot
                     showDiningList = true
                 }
+                if UITestConfiguration.selectsEpcotOnHome {
+                    selectedPark = .epcot
+                }
             }
             .navigationDestination(isPresented: $showAttractionsList) {
                 AttractionsListView(park: selectedPark, rides: parkRides)
@@ -681,6 +697,11 @@ struct HomeView: View {
             }
             .navigationDestination(isPresented: $showShoppingList) {
                 ShoppingListView(park: selectedPark)
+            }
+            // Same canonical detail Dining discovery opens — private journal,
+            // Parkio Community and all — not a Home-specific variant.
+            .sheet(item: $selectedDiningRide) { ride in
+                RideDetailView(ride: ride)
             }
             .sheet(isPresented: $showAddItemSheet) {
                 AddMyDayItemSheet(park: selectedPark) { item in

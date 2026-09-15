@@ -1356,6 +1356,10 @@ struct HomeBestFoodNearbyCard: View {
     let recommendations: [DiningRecommendation]
     let park: Park
     let onSeeAll: () -> Void
+    /// Opens the venue's canonical Dining detail. The card deliberately does
+    /// not resolve the Ride itself — Home owns the @Query and the presentation,
+    /// exactly as it does for "Browse all food & dining".
+    let onSelect: (DiningRecommendation) -> Void
 
     var body: some View {
         if recommendations.isEmpty {
@@ -1378,7 +1382,18 @@ struct HomeBestFoodNearbyCard: View {
             // ── Venue rows + footer ────────────────────────────────────────────
             VStack(spacing: 0) {
                 ForEach(Array(recommendations.enumerated()), id: \.element.id) { index, rec in
-                    HomeDiningVenueRow(recommendation: rec, park: park)
+                    Button {
+                        AppHaptic.light()
+                        onSelect(rec)
+                    } label: {
+                        HomeDiningVenueRow(recommendation: rec, park: park)
+                    }
+                    .buttonStyle(.plain)
+                    // The row is mostly whitespace around a score and a name;
+                    // without this only the glyphs would be tappable.
+                    .contentShape(Rectangle())
+                    .accessibilityIdentifier("parkio.home.bestFood.row")
+                    .accessibilityHint("Opens this venue")
 
                     if index < recommendations.count - 1 {
                         Divider()
