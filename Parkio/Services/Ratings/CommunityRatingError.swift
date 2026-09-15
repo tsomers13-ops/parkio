@@ -35,6 +35,14 @@ enum CommunityRatingError: Error, Equatable {
     /// The write reached the server and did not happen. Never report success.
     case writeFailed
 
+    /// The backend is asking this device to slow down (429).
+    ///
+    /// Deliberately NOT a credential problem. The stored credential is still
+    /// good, so it must not be discarded, and the request must not be retried
+    /// automatically — retrying is what the limit exists to prevent. The guest
+    /// waits a moment and taps again.
+    case rateLimited
+
     /// Any other non-success status.
     case server(status: Int)
 
@@ -48,5 +56,27 @@ enum CommunityRatingError: Error, Equatable {
     /// Whether discarding the credential and retrying could plausibly help.
     var suggestsCredentialRefresh: Bool {
         self == .invalidCredential
+    }
+
+    /// One calm sentence a guest can act on.
+    ///
+    /// Deliberately says nothing about status codes, Cloudflare, IP addresses,
+    /// limiter windows or endpoints: none of that is the guest's problem, and
+    /// naming it would only invite them to debug our infrastructure.
+    var userMessage: String {
+        switch self {
+        case .rateLimited:
+            return "Too many requests. Please wait a moment and try again."
+        case .networkUnavailable:
+            return "You appear to be offline. Check your connection and try again."
+        case .serviceUnavailable, .writeFailed, .server, .decodingFailed:
+            return "We couldn't save your rating. Try again."
+        case .invalidCredential:
+            return "We couldn't save your rating. Try again."
+        case .unknownVenue:
+            return "This spot can't be rated yet."
+        case .validationFailed, .notRateable:
+            return "That rating doesn't look right. Pick a star rating and try again."
+        }
     }
 }

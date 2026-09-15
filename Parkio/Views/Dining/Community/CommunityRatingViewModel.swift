@@ -42,6 +42,13 @@ final class CommunityRatingViewModel {
     private(set) var load: LoadState = .idle
     private(set) var form: FormState = .closed
 
+    /// Why the last submission failed, in words a guest can act on.
+    ///
+    /// Kept beside `FormState` rather than inside it so the state machine stays
+    /// the shape it already was — the sheet still asks "did it fail?" and now
+    /// also "what should I say?".
+    private(set) var formErrorMessage: String?
+
     /// The guest's own current rating, as the server knows it.
     private(set) var myRating: PersonalDiningRating?
 
@@ -129,6 +136,7 @@ final class CommunityRatingViewModel {
         draftTaste = myRating?.taste
         draftValue = myRating?.value
         draftQuality = myRating?.quality
+        formErrorMessage = nil
         form = .editing
     }
 
@@ -136,6 +144,7 @@ final class CommunityRatingViewModel {
 
     func submit() async {
         guard let overall = draftOverall else { return }
+        formErrorMessage = nil
         form = .submitting
 
         let submission = DiningRatingSubmission(
@@ -160,6 +169,12 @@ final class CommunityRatingViewModel {
             form = .success(result.outcome)
         } catch {
             // Selections are deliberately left intact so retry is one tap.
+            //
+            // A rate limit is reported as itself: "try again" with no waiting
+            // advice would invite the guest to tap straight back into the same
+            // limit. Nothing is retried here automatically.
+            formErrorMessage = (error as? CommunityRatingError)?.userMessage
+                ?? CommunityRatingError.writeFailed.userMessage
             form = .failure
         }
     }

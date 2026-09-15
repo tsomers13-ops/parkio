@@ -58,11 +58,16 @@ struct CommunityRatingSheet: View {
                 if model.form == .failure {
                     Section {
                         Label(
-                            "We couldn't save your rating. Try again.",
+                            model.formErrorMessage
+                                ?? "We couldn't save your rating. Try again.",
                             systemImage: "exclamationmark.triangle"
                         )
                         .font(.subheadline)
                         .foregroundStyle(AppColor.error)
+                        // A rate-limit sentence is longer than the generic one,
+                        // so it must be allowed to wrap at large Dynamic Type
+                        // sizes rather than truncate.
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }

@@ -170,6 +170,7 @@ actor CommunityRatingService {
         let request = try makeRequest(path: ParkioAPI.anonymousIdentityPath, method: "POST")
         let (data, http) = try await perform(request)
         guard http.statusCode == 201 || http.statusCode == 200 else {
+            if http.statusCode == 429 { throw CommunityRatingError.rateLimited }
             if http.statusCode == 503 { throw CommunityRatingError.serviceUnavailable }
             throw CommunityRatingError.server(status: http.statusCode)
         }
@@ -230,6 +231,12 @@ actor CommunityRatingService {
             throw CommunityRatingError.unknownVenue(venueKey: venueKey ?? "")
         case 400:
             throw CommunityRatingError.validationFailed(message: errorMessage(from: data))
+        case 429:
+            // Slow down, not "bad credential". This must never reach the 401
+            // recovery path: the credential is fine, deleting it would cost the
+            // guest their identity, and re-minting would spend another request
+            // against the very limit being reported.
+            throw CommunityRatingError.rateLimited
         case 503:
             // The backend distinguishes "cannot read" from "cannot write".
             let code = errorCode(from: data)
