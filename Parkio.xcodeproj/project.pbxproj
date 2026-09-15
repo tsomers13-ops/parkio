@@ -8,14 +8,23 @@
 
 /* Begin PBXFileReference section */
 		A100000000000000000000D1 /* Parkio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Parkio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A100000000000000000000D2 /* ParkioUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ParkioUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A100000000000000000000A1 /* Parkio */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Parkio; sourceTree = "<group>"; };
+		A100000000000000000000A2 /* ParkioUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = ParkioUITests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A100000000000000000000B1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A100000000000000000000B4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -29,6 +38,7 @@
 			isa = PBXGroup;
 			children = (
 				A100000000000000000000A1 /* Parkio */,
+				A100000000000000000000A2 /* ParkioUITests */,
 				A100000000000000000000C2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -37,6 +47,7 @@
 			isa = PBXGroup;
 			children = (
 				A100000000000000000000D1 /* Parkio.app */,
+				A100000000000000000000D2 /* ParkioUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -66,6 +77,28 @@
 			productReference = A100000000000000000000D1 /* Parkio.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A100000000000000000000E3 /* ParkioUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A100000000000000000000F3 /* Build configuration list for PBXNativeTarget "ParkioUITests" */;
+			buildPhases = (
+				A100000000000000000000B5 /* Sources */,
+				A100000000000000000000B4 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A100000000000000000000E5 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A100000000000000000000A2 /* ParkioUITests */,
+			);
+			name = ParkioUITests;
+			packageProductDependencies = (
+			);
+			productName = ParkioUITests;
+			productReference = A100000000000000000000D2 /* ParkioUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -78,6 +111,10 @@
 				TargetAttributes = {
 					A100000000000000000000E1 = {
 						CreatedOnToolsVersion = 15.4;
+					};
+					A100000000000000000000E3 = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = A100000000000000000000E1;
 					};
 				};
 			};
@@ -96,6 +133,7 @@
 			projectRoot = "";
 			targets = (
 				A100000000000000000000E1 /* Parkio */,
+				A100000000000000000000E3 /* ParkioUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -118,7 +156,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A100000000000000000000B5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A100000000000000000000E5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A100000000000000000000E1 /* Parkio */;
+			targetProxy = A100000000000000000000E6 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXContainerItemProxy section */
+		A100000000000000000000E6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A100000000000000000000E2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A100000000000000000000E1;
+			remoteInfo = Parkio;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin XCBuildConfiguration section */
 		A1000000000000000000FA01 /* Debug */ = {
@@ -306,6 +369,40 @@
 			};
 			name = Release;
 		};
+		A1000000000000000000FC01 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HHCQ35BDZY;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = HHCQ35BDZY.ParkioUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Parkio;
+			};
+			name = Debug;
+		};
+		A1000000000000000000FC02 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HHCQ35BDZY;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = HHCQ35BDZY.ParkioUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Parkio;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -314,6 +411,15 @@
 			buildConfigurations = (
 				A1000000000000000000FB01 /* Debug */,
 				A1000000000000000000FB02 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A100000000000000000000F3 /* Build configuration list for PBXNativeTarget "ParkioUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000FC01 /* Debug */,
+				A1000000000000000000FC02 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

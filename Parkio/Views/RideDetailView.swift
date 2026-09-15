@@ -205,6 +205,7 @@ struct RideDetailView: View {
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
             }
+            .accessibilityIdentifier("parkio.dining.detail")
             .navigationTitle(detailTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

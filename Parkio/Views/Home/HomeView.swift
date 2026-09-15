@@ -665,6 +665,14 @@ struct HomeView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
+            // Test-only: land straight on a known surface. Compiles to a
+            // no-op outside DEBUG — see UITestConfiguration.
+            .task {
+                if UITestConfiguration.opensEpcotDiningList {
+                    selectedPark = .epcot
+                    showDiningList = true
+                }
+            }
             .navigationDestination(isPresented: $showAttractionsList) {
                 AttractionsListView(park: selectedPark, rides: parkRides)
             }

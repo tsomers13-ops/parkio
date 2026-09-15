@@ -78,6 +78,7 @@ struct CommunityRatingForm: View {
                     }
                 }
         }
+        .accessibilityIdentifier("parkio.community.ratingForm")
         .navigationTitle(isUpdate ? "Update your rating" : "Rate for other guests")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

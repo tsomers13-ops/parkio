@@ -180,6 +180,7 @@ struct CommunityRatingSection: View {
                 .foregroundStyle(accentColor)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("parkio.community.rateCTA")
     }
 
     private var sharedCaption: some View {
