@@ -43,18 +43,25 @@ final class ParkMapViewModel {
 
     /// Asset name for the park map background image.
     ///
-    /// Resolution order (first match wins):
-    ///   1. "<parkId>_map_mock"  — used in DEBUG if present (lets you test with placeholder art)
-    ///   2. "<parkId>_map"       — production asset name
+    /// Resolution order (first match wins) — see MapImageResolution for the
+    /// pure, unit-tested decision logic this wraps:
+    ///   1. "<parkId>_map"       — production asset. Always preferred when
+    ///                             present, in both DEBUG and release.
+    ///   2. "<parkId>_map_mock"  — DEBUG-only fallback for parks with no
+    ///                             production art yet.
     ///
-    /// Example: "disneyland" → tries "disneyland_map_mock" then "disneyland_map".
+    /// Example: "disneyland" → "disneyland_map" if it exists, else (DEBUG
+    /// only) "disneyland_map_mock".
     /// Add assets to Assets.xcassets using these names.
     var mapImageName: String {
-        let base = parkId.replacingOccurrences(of: "-", with: "_") + "_map"
         #if DEBUG
-        if UIImage(named: base + "_mock") != nil { return base + "_mock" }
+        let isDebugBuild = true
+        #else
+        let isDebugBuild = false
         #endif
-        return base
+        return MapImageResolution.imageName(forParkId: parkId, isDebugBuild: isDebugBuild) {
+            UIImage(named: $0) != nil
+        }
     }
 
     /// True when a map image asset actually exists for the current park.
@@ -73,7 +80,7 @@ final class ParkMapViewModel {
     // MARK: - Actions
 
     func loadPins() {
-        pins = Self.embeddedPins[parkId] ?? []
+        pins = ParkMapPinData.embeddedPins[parkId] ?? []
     }
 
     func pin(forRideId rideId: String) -> ParkMapPin? {
@@ -84,215 +91,6 @@ final class ParkMapViewModel {
     func replacePins(_ newPins: [ParkMapPin]) {
         pins = newPins
     }
-}
-
-// MARK: - Embedded pin datasets
-// Positions are starter estimates calibrated to each park's general layout.
-// Refine mapX/mapY values once real map image assets are added.
-// Use ParkMapViewModel.debugMode = true to see the calibration overlay.
-
-private extension ParkMapViewModel {
-
-    /// Convenience factory — reduces boilerplate in the embedded datasets below.
-    static func pin(
-        _ rideId: String,
-        _ parkId: String,
-        _ name: String,
-        x: Double, y: Double,
-        vx: CGFloat = 0, vy: CGFloat = 0,
-        lx: CGFloat = 0, ly: CGFloat = -18,
-        anchor: PinAnchorType = .bottomCenter,
-        priority: Int = 2
-    ) -> ParkMapPin {
-        ParkMapPin(
-            internalRideId: rideId,
-            parkId: parkId,
-            displayName: name,
-            mapX: x, mapY: y,
-            visualOffsetX: vx, visualOffsetY: vy,
-            labelOffsetX: lx, labelOffsetY: ly,
-            anchorType: anchor,
-            priority: priority
-        )
-    }
-
-    static let embeddedPins: [String: [ParkMapPin]] = [
-        "magic-kingdom":      magicKingdomPins,
-        "epcot":              epcotPins,
-        "hollywood-studios":  hollywoodStudiosPins,
-        "animal-kingdom":     animalKingdomPins,
-        "disneyland":         disneylandPins,
-        "california-adventure": californiaAdventurePins,
-    ]
-
-    // MARK: Magic Kingdom
-
-    // Calibrated to numbered directory markers on magic_kingdom_map (see
-    // docs/MK-MAP-PROVENANCE.md). "mk|liberty-belle" has no numbered marker
-    // on the current official map and keeps its prior general-layout estimate.
-    static let magicKingdomPins: [ParkMapPin] = [
-        // Tomorrowland (east)
-        pin("mk|tron",            "magic-kingdom", "TRON Lightcycle / Run",        x: 0.905, y: 0.285, priority: 1),
-        pin("mk|space-mountain",  "magic-kingdom", "Space Mountain",               x: 0.944, y: 0.451, priority: 1),
-        pin("mk|buzz",            "magic-kingdom", "Buzz Lightyear",               x: 0.767, y: 0.535, priority: 2),
-        pin("mk|astro-orbiter",   "magic-kingdom", "Astro Orbiter",                x: 0.871, y: 0.517, priority: 3),
-        pin("mk|speedway",        "magic-kingdom", "Tomorrowland Speedway",        x: 0.784, y: 0.394, priority: 3),
-        // Fantasyland (north center)
-        pin("mk|seven-dwarfs",    "magic-kingdom", "Seven Dwarfs Mine Train",      x: 0.638, y: 0.232, priority: 1),
-        pin("mk|peter-pan",       "magic-kingdom", "Peter Pan's Flight",           x: 0.448, y: 0.259, priority: 1),
-        pin("mk|small-world",     "magic-kingdom", "it's a small world",           x: 0.461, y: 0.206, priority: 2),
-        pin("mk|winnie-the-pooh", "magic-kingdom", "Winnie the Pooh",              x: 0.647, y: 0.272, priority: 2),
-        pin("mk|little-mermaid",  "magic-kingdom", "Little Mermaid",               x: 0.690, y: 0.140, priority: 2),
-        pin("mk|dumbo",           "magic-kingdom", "Dumbo",                        x: 0.875, y: 0.193, priority: 3),
-        pin("mk|mad-tea-party",   "magic-kingdom", "Mad Tea Party",                x: 0.668, y: 0.285, priority: 3),
-        // Liberty Square / Frontierland (west center)
-        pin("mk|haunted-mansion", "magic-kingdom", "Haunted Mansion",              x: 0.323, y: 0.263, priority: 1),
-        pin("mk|liberty-belle",   "magic-kingdom", "Liberty Belle Riverboat",      x: 0.34, y: 0.49, priority: 3),
-        pin("mk|big-thunder",     "magic-kingdom", "Big Thunder Mountain",         x: 0.103, y: 0.329, priority: 1),
-        pin("mk|tiana",           "magic-kingdom", "Tiana's Bayou Adventure",      x: 0.078, y: 0.364, priority: 1),
-        // Adventureland (southwest)
-        pin("mk|pirates",         "magic-kingdom", "Pirates of the Caribbean",     x: 0.153, y: 0.578, priority: 1),
-        pin("mk|jungle-cruise",   "magic-kingdom", "Jungle Cruise",                x: 0.250, y: 0.587, priority: 2),
-        pin("mk|magic-carpets",   "magic-kingdom", "Magic Carpets of Aladdin",     x: 0.246, y: 0.539, priority: 3),
-        // Transport
-        pin("mk|wdw-railroad",    "magic-kingdom", "WDW Railroad",                 x: 0.517, y: 0.802, priority: 3),
-
-        // ── Dining — calibrated to numbered directory markers on magic_kingdom_map ──
-        // Main Street, U.S.A.
-        pin("mk|dining|tonys-town-square",        "magic-kingdom", "Tony's Town Square Restaurant",                     x: 0.578, y: 0.745, priority: 2),
-        pin("mk|dining|main-street-bakery",       "magic-kingdom", "Main Street Bakery",                                x: 0.526, y: 0.605, priority: 2),
-        pin("mk|dining|plaza-restaurant",         "magic-kingdom", "The Plaza Restaurant",                              x: 0.578, y: 0.570, priority: 2),
-        pin("mk|dining|plaza-ice-cream-parlor",   "magic-kingdom", "Plaza Ice Cream Parlor",                            x: 0.547, y: 0.570, priority: 3),
-        pin("mk|dining|caseys-corner",            "magic-kingdom", "Casey's Corner",                                    x: 0.509, y: 0.570, priority: 2),
-        pin("mk|dining|crystal-palace",           "magic-kingdom", "The Crystal Palace",                                x: 0.448, y: 0.570, priority: 2),
-        // Adventureland
-        pin("mk|dining|spring-roll-cart",         "magic-kingdom", "Spring Roll Snack Cart",                            x: 0.414, y: 0.500, priority: 3),
-        pin("mk|dining|sunshine-tree-terrace",    "magic-kingdom", "Sunshine Tree Terrace",                             x: 0.397, y: 0.513, priority: 3),
-        pin("mk|dining|skipper-canteen",          "magic-kingdom", "Jungle Navigation Co. LTD Skipper Canteen",         x: 0.362, y: 0.513, priority: 2),
-        pin("mk|dining|aloha-isle",               "magic-kingdom", "Aloha Isle",                                       x: 0.224, y: 0.508, priority: 2),
-        pin("mk|dining|beak-and-barrel",          "magic-kingdom", "The Beak and Barrel",                               x: 0.134, y: 0.578, priority: 3),
-        // Frontierland
-        pin("mk|dining|golden-oak-outpost",       "magic-kingdom", "Golden Oak Outpost",                                x: 0.082, y: 0.495, priority: 3),
-        pin("mk|dining|pecos-bill",               "magic-kingdom", "Pecos Bill Tall Tale Inn and Cafe",                 x: 0.177, y: 0.478, priority: 2),
-        // Liberty Square
-        pin("mk|dining|diamond-horseshoe",        "magic-kingdom", "The Diamond Horseshoe",                             x: 0.315, y: 0.465, priority: 3),
-        pin("mk|dining|liberty-tree-tavern",      "magic-kingdom", "Liberty Tree Tavern",                               x: 0.358, y: 0.430, priority: 2),
-        pin("mk|dining|sleepy-hollow",            "magic-kingdom", "Sleepy Hollow",                                     x: 0.427, y: 0.377, priority: 3),
-        // Fantasyland
-        pin("mk|dining|pinocchio-village-haus",   "magic-kingdom", "Pinocchio Village Haus",                            x: 0.513, y: 0.219, priority: 2),
-        pin("mk|dining|cinderellas-royal-table",  "magic-kingdom", "Cinderella's Royal Table",                          x: 0.517, y: 0.307, priority: 1),
-        pin("mk|dining|friars-nook",              "magic-kingdom", "The Friar's Nook",                                  x: 0.569, y: 0.263, priority: 3),
-        pin("mk|dining|storybook-treats",         "magic-kingdom", "Storybook Treats",                                  x: 0.586, y: 0.263, priority: 3),
-        pin("mk|dining|be-our-guest",             "magic-kingdom", "Be Our Guest Restaurant",                           x: 0.616, y: 0.131, priority: 1),
-        pin("mk|dining|gastons-tavern",           "magic-kingdom", "Gaston's Tavern",                                   x: 0.638, y: 0.092, priority: 2),
-        pin("mk|dining|prince-erics-village-market", "magic-kingdom", "Prince Eric's Village Market",                   x: 0.703, y: 0.180, priority: 3),
-        pin("mk|dining|cheshire-cafe",            "magic-kingdom", "Cheshire Café",                                     x: 0.651, y: 0.316, priority: 3),
-        // Tomorrowland
-        pin("mk|dining|energy-bytes",             "magic-kingdom", "Energy Bytes",                                      x: 0.875, y: 0.311, priority: 3),
-        pin("mk|dining|cosmic-rays",              "magic-kingdom", "Cosmic Ray's Starlight Café",                       x: 0.694, y: 0.377, priority: 2),
-        pin("mk|dining|auntie-gravitys",          "magic-kingdom", "Auntie Gravity's Galactic Goodies",                 x: 0.780, y: 0.456, priority: 3),
-        pin("mk|dining|astrofizz",                "magic-kingdom", "AstroFizz Hosted by Coca-Cola",                     x: 0.849, y: 0.465, priority: 3),
-        pin("mk|dining|joffreys",                 "magic-kingdom", "Joffrey's Coffee & Tea Company",                    x: 0.910, y: 0.508, priority: 3),
-        pin("mk|dining|lunching-pad",             "magic-kingdom", "The Lunching Pad",                                  x: 0.780, y: 0.504, priority: 3),
-        pin("mk|dining|tomorrowland-terrace-dessert-party", "magic-kingdom", "Fireworks Dessert Parties at Tomorrowland Terrace Restaurant", x: 0.629, y: 0.565, priority: 3),
-    ]
-
-    // MARK: EPCOT
-
-    static let epcotPins: [ParkMapPin] = [
-        // World Discovery (northeast)
-        pin("ep|guardians",     "epcot", "Guardians: Cosmic Rewind",  x: 0.63, y: 0.20, priority: 1),
-        pin("ep|test-track",    "epcot", "Test Track",                x: 0.71, y: 0.27, priority: 1),
-        pin("ep|mission-space", "epcot", "Mission: SPACE",            x: 0.67, y: 0.28, priority: 2),
-        // World Nature (northwest)
-        pin("ep|soarin",        "epcot", "Soarin'",                   x: 0.27, y: 0.35, priority: 1),
-        pin("ep|living-land",   "epcot", "Living with the Land",      x: 0.23, y: 0.40, priority: 2),
-        pin("ep|nemo",          "epcot", "The Seas with Nemo",        x: 0.19, y: 0.35, priority: 2),
-        // World Showcase (south loop)
-        pin("ep|frozen",        "epcot", "Frozen Ever After",         x: 0.30, y: 0.76, priority: 1),
-        pin("ep|ratatouille",   "epcot", "Remy's Ratatouille",        x: 0.56, y: 0.82, priority: 1),
-        // World Celebration (center)
-        pin("ep|figment",       "epcot", "Journey Into Imagination",  x: 0.35, y: 0.32, priority: 2),
-    ]
-
-    // MARK: Hollywood Studios
-
-    static let hollywoodStudiosPins: [ParkMapPin] = [
-        // Star Wars: Galaxy's Edge (southwest)
-        pin("hs|rise",             "hollywood-studios", "Rise of the Resistance",   x: 0.20, y: 0.72, priority: 1),
-        pin("hs|falcon",           "hollywood-studios", "Millennium Falcon",         x: 0.28, y: 0.65, priority: 1),
-        // Toy Story Land (southeast)
-        pin("hs|slinky",           "hollywood-studios", "Slinky Dog Dash",          x: 0.73, y: 0.68, priority: 1),
-        pin("hs|toy-story-mania",  "hollywood-studios", "Toy Story Mania!",         x: 0.68, y: 0.60, priority: 2),
-        pin("hs|alien",            "hollywood-studios", "Alien Swirling Saucers",   x: 0.77, y: 0.73, priority: 3),
-        // Sunset Boulevard (east)
-        pin("hs|tower-of-terror",  "hollywood-studios", "Tower of Terror",          x: 0.73, y: 0.37, priority: 1),
-        pin("hs|rocknroller",      "hollywood-studios", "Rock 'n' Roller Coaster",  x: 0.68, y: 0.44, priority: 1),
-        // Hollywood Boulevard (center-north)
-        pin("hs|runaway-railway",  "hollywood-studios", "Runaway Railway",          x: 0.50, y: 0.29, priority: 1),
-    ]
-
-    // MARK: Animal Kingdom
-
-    static let animalKingdomPins: [ParkMapPin] = [
-        // Pandora (south)
-        pin("ak|flight-of-passage", "animal-kingdom", "Flight of Passage",      x: 0.53, y: 0.73, priority: 1),
-        pin("ak|navi-river",        "animal-kingdom", "Na'vi River Journey",    x: 0.44, y: 0.73, priority: 2),
-        // Asia (east)
-        pin("ak|everest",           "animal-kingdom", "Expedition Everest",     x: 0.73, y: 0.37, priority: 1),
-        pin("ak|kali",              "animal-kingdom", "Kali River Rapids",      x: 0.68, y: 0.44, priority: 2),
-        // Africa (northwest)
-        pin("ak|safaris",           "animal-kingdom", "Kilimanjaro Safaris",    x: 0.27, y: 0.31, priority: 1),
-    ]
-
-    // MARK: Disneyland
-
-    static let disneylandPins: [ParkMapPin] = [
-        // New Orleans Square (west center)
-        pin("dl|haunted-mansion",  "disneyland", "Haunted Mansion",            x: 0.27, y: 0.46, priority: 1),
-        pin("dl|pirates",          "disneyland", "Pirates of the Caribbean",   x: 0.23, y: 0.52, priority: 1),
-        pin("dl|tiana",            "disneyland", "Tiana's Bayou Adventure",    x: 0.25, y: 0.50, priority: 1),
-        // Adventureland (southwest)
-        pin("dl|jungle-cruise",    "disneyland", "Jungle Cruise",              x: 0.19, y: 0.57, priority: 2),
-        pin("dl|indiana-jones",    "disneyland", "Indiana Jones Adventure",    x: 0.17, y: 0.62, priority: 1),
-        // Frontierland (west)
-        pin("dl|big-thunder",      "disneyland", "Big Thunder Mountain",       x: 0.15, y: 0.46, priority: 1),
-        // Star Wars: Galaxy's Edge (far southwest)
-        pin("dl|rise",             "disneyland", "Rise of the Resistance",     x: 0.13, y: 0.73, priority: 1),
-        pin("dl|falcon",           "disneyland", "Millennium Falcon",          x: 0.21, y: 0.68, priority: 1),
-        // Fantasyland (north center)
-        pin("dl|matterhorn",       "disneyland", "Matterhorn Bobsleds",        x: 0.59, y: 0.27, priority: 1),
-        pin("dl|peter-pan",        "disneyland", "Peter Pan's Flight",         x: 0.44, y: 0.31, priority: 2),
-        pin("dl|small-world",      "disneyland", "it's a small world",         x: 0.39, y: 0.27, priority: 2),
-        // Tomorrowland (east)
-        pin("dl|space-mountain",   "disneyland", "Space Mountain",             x: 0.71, y: 0.47, priority: 1),
-        pin("dl|buzz",             "disneyland", "Buzz Lightyear",             x: 0.73, y: 0.53, priority: 2),
-        // Mickey's Toontown (far north)
-        pin("dl|runaway-railway",  "disneyland", "Runaway Railway",            x: 0.53, y: 0.17, priority: 1),
-        pin("dl|roger-rabbit",     "disneyland", "Roger Rabbit's Car Toon",   x: 0.59, y: 0.17, priority: 2),
-        // Transport
-        pin("dl|railroad",         "disneyland", "Disneyland Railroad",        x: 0.50, y: 0.87, priority: 3),
-    ]
-
-    // MARK: California Adventure
-
-    static let californiaAdventurePins: [ParkMapPin] = [
-        // Avengers Campus (northeast)
-        pin("dca|web-slingers",      "california-adventure", "WEB SLINGERS",                   x: 0.73, y: 0.27, priority: 1),
-        // Hollywood Land (north center)
-        pin("dca|guardians",         "california-adventure", "Guardians: BREAKOUT!",           x: 0.65, y: 0.21, priority: 1),
-        // Cars Land (east center)
-        pin("dca|radiator-springs",  "california-adventure", "Radiator Springs Racers",        x: 0.76, y: 0.52, priority: 1),
-        pin("dca|maters",            "california-adventure", "Mater's Junkyard Jamboree",      x: 0.79, y: 0.59, priority: 2),
-        pin("dca|luigis",            "california-adventure", "Luigi's Rollickin' Roadsters",   x: 0.72, y: 0.59, priority: 3),
-        // Grizzly Peak (center)
-        pin("dca|soarin",            "california-adventure", "Soarin' Around the World",       x: 0.40, y: 0.46, priority: 1),
-        pin("dca|grizzly",           "california-adventure", "Grizzly River Run",              x: 0.45, y: 0.41, priority: 2),
-        // Pixar Pier (south)
-        pin("dca|incredicoaster",    "california-adventure", "Incredicoaster",                 x: 0.61, y: 0.79, priority: 1),
-        pin("dca|toy-story-midway",  "california-adventure", "Toy Story Midway Mania!",        x: 0.56, y: 0.74, priority: 2),
-        pin("dca|inside-out",        "california-adventure", "Inside Out Emotional Whirlwind", x: 0.50, y: 0.80, priority: 2),
-    ]
 }
 
 // MARK: - Preview stub

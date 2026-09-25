@@ -39,15 +39,48 @@ Follows the documented convention in `ParkMapViewModel.mapImageName`
 (`Parkio/Features/Map/ViewModels/ParkMapViewModel.swift`): production asset
 name is `"<parkId>_map"` → `magic_kingdom_map`. This is a sibling of the
 pre-existing `magic_kingdom_map_mock` imageset (abstract placeholder art used
-only in DEBUG builds as a fallback); that mock asset is untouched by this
-change. `ParkMapViewModel.magicKingdomPins` normalized (0–1) coordinates in
-this commit are calibrated against `magic_kingdom_map` (this real artwork),
-using the numbered directory markers printed on the source map as ground
-truth — not against the abstract mock.
+as a DEBUG-only fallback for parks with no production art yet); that mock
+asset is untouched by this change. `mapImageName` resolves the production
+asset first — in both DEBUG and release — and only falls back to the mock in
+DEBUG when no production asset exists (see `MapImageResolution.swift` for the
+unit-tested decision logic). Magic Kingdom always has a production asset, so
+it is never shown the mock. `ParkMapPinData.magicKingdomPins` normalized
+(0–1) coordinates are calibrated against `magic_kingdom_map` (this real
+artwork), using the numbered directory markers printed on the source map as
+ground truth — not against the abstract mock.
 
-Note: `ParkMapCanvasView`/`ParkMapBackgroundView` (the view that renders this
-asset via `ParkMapViewModel`) is not currently wired into the shipping Maps
-tab (see header comment in `MapTabView.swift`) — `RealMapScreen`
-(MapKit-based, GPS lat/lon from `MapCoordinates.json`) is what's live. This
-asset and its pin calibration are therefore inert in the current build, same
-as the existing mock assets for every other park.
+## Live wiring
+
+`MapTabView` routes the Maps tab's surface per park via
+`MapRoutingDecision.renderMode(forParkId:)`: Magic Kingdom renders
+`ParkMapCanvasView`/`ParkMapBackgroundView` (this asset, as an interactive
+pan/zoom image canvas); every other park keeps `RealMapScreen` (MapKit-based,
+GPS lat/lon from `MapCoordinates.json`). Both surfaces share the same
+`MapViewModel`, so ride selection and the bottom sheet behave identically
+either way.
+
+Every `ParkMapPin`'s `internalRideId` is a short calibration handle (e.g.
+`"mk|space-mountain"`, `"mk|dining|be-our-guest"`) — it does not match the
+canonical `"Park|Land|Name"` stableID scheme `RideMasterData`, SwiftData
+`Ride` records, `MapRideAnnotation`, and `DiningVenueKeys` all use.
+`MapPinIdentityResolver` (pure, unit-tested) plus `ParkMapPinResolution.swift`
+(the real-data wiring) resolve a pin's display name to that canonical
+stableID. `ParkMapCanvasView.handlePinTap` then routes on what the pin
+represents:
+  - **Attraction pins** (have a `MapCoordinates.json` GPS annotation) —
+    `MapViewModel.selectRide(stableID)`, the same ride bottom sheet
+    (`RideMapBottomSheetView`) RealMapScreen uses.
+  - **Dining pins** (no GPS annotation — dining venues are not placed via
+    fake coordinates) — resolved straight to their SwiftData `Ride` record
+    and presented via `RideDetailView`, the same dining detail sheet
+    (including `CommunityRatingSection` via the generated venueKey) the
+    EPCOT/Hollywood Studios dining list already uses.
+
+All 31 Magic Kingdom dining pins resolve to a real, rateable venueKey
+locally (see `MagicKingdomMapDiningRatingEligibilityTests`); the live ratings
+backend (`parkio.info`) has not yet been deployed with the Magic Kingdom
+venueKeys this task minted, so `GET /api/dining/mk-*/ratings/` currently
+404s ("Unknown dining venue") until that separate deploy ships —
+`CommunityRatingSection` fails soft on that (renders nothing) rather than
+showing an error, identically to how it behaves for any newly-minted venueKey
+before its first backend deploy.

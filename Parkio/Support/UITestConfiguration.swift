@@ -37,4 +37,11 @@ enum UITestConfiguration {
         isRunningUITests
             && ProcessInfo.processInfo.arguments.contains("-parkio-select-epcot")
     }
+
+    /// Land on the Map tab with Magic Kingdom selected — the surface the
+    /// custom map canvas / dining pin navigation regression test starts from.
+    static var opensMagicKingdomMap: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-open-mk-map")
+    }
 }
