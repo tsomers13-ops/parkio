@@ -153,6 +153,45 @@ private extension ParkMapViewModel {
         pin("mk|magic-carpets",   "magic-kingdom", "Magic Carpets of Aladdin",     x: 0.19, y: 0.65, priority: 3),
         // Transport
         pin("mk|wdw-railroad",    "magic-kingdom", "WDW Railroad",                 x: 0.50, y: 0.87, priority: 3),
+
+        // ── Dining — calibrated to numbered directory markers on magic_kingdom_map ──
+        // Main Street, U.S.A.
+        pin("mk|dining|tonys-town-square",        "magic-kingdom", "Tony's Town Square Restaurant",                     x: 0.578, y: 0.745, priority: 2),
+        pin("mk|dining|main-street-bakery",       "magic-kingdom", "Main Street Bakery",                                x: 0.526, y: 0.605, priority: 2),
+        pin("mk|dining|plaza-restaurant",         "magic-kingdom", "The Plaza Restaurant",                              x: 0.578, y: 0.570, priority: 2),
+        pin("mk|dining|plaza-ice-cream-parlor",   "magic-kingdom", "Plaza Ice Cream Parlor",                            x: 0.547, y: 0.570, priority: 3),
+        pin("mk|dining|caseys-corner",            "magic-kingdom", "Casey's Corner",                                    x: 0.509, y: 0.570, priority: 2),
+        pin("mk|dining|crystal-palace",           "magic-kingdom", "The Crystal Palace",                                x: 0.448, y: 0.570, priority: 2),
+        // Adventureland
+        pin("mk|dining|spring-roll-cart",         "magic-kingdom", "Spring Roll Snack Cart",                            x: 0.414, y: 0.500, priority: 3),
+        pin("mk|dining|sunshine-tree-terrace",    "magic-kingdom", "Sunshine Tree Terrace",                             x: 0.397, y: 0.513, priority: 3),
+        pin("mk|dining|skipper-canteen",          "magic-kingdom", "Jungle Navigation Co. LTD Skipper Canteen",         x: 0.362, y: 0.513, priority: 2),
+        pin("mk|dining|aloha-isle",               "magic-kingdom", "Aloha Isle",                                       x: 0.224, y: 0.508, priority: 2),
+        pin("mk|dining|beak-and-barrel",          "magic-kingdom", "The Beak and Barrel",                               x: 0.134, y: 0.578, priority: 3),
+        // Frontierland
+        pin("mk|dining|golden-oak-outpost",       "magic-kingdom", "Golden Oak Outpost",                                x: 0.082, y: 0.495, priority: 3),
+        pin("mk|dining|pecos-bill",               "magic-kingdom", "Pecos Bill Tall Tale Inn and Cafe",                 x: 0.177, y: 0.478, priority: 2),
+        // Liberty Square
+        pin("mk|dining|diamond-horseshoe",        "magic-kingdom", "The Diamond Horseshoe",                             x: 0.315, y: 0.465, priority: 3),
+        pin("mk|dining|liberty-tree-tavern",      "magic-kingdom", "Liberty Tree Tavern",                               x: 0.358, y: 0.430, priority: 2),
+        pin("mk|dining|sleepy-hollow",            "magic-kingdom", "Sleepy Hollow",                                     x: 0.427, y: 0.377, priority: 3),
+        // Fantasyland
+        pin("mk|dining|pinocchio-village-haus",   "magic-kingdom", "Pinocchio Village Haus",                            x: 0.513, y: 0.219, priority: 2),
+        pin("mk|dining|cinderellas-royal-table",  "magic-kingdom", "Cinderella's Royal Table",                          x: 0.517, y: 0.307, priority: 1),
+        pin("mk|dining|friars-nook",              "magic-kingdom", "The Friar's Nook",                                  x: 0.569, y: 0.263, priority: 3),
+        pin("mk|dining|storybook-treats",         "magic-kingdom", "Storybook Treats",                                  x: 0.586, y: 0.263, priority: 3),
+        pin("mk|dining|be-our-guest",             "magic-kingdom", "Be Our Guest Restaurant",                           x: 0.616, y: 0.131, priority: 1),
+        pin("mk|dining|gastons-tavern",           "magic-kingdom", "Gaston's Tavern",                                   x: 0.638, y: 0.092, priority: 2),
+        pin("mk|dining|prince-erics-village-market", "magic-kingdom", "Prince Eric's Village Market",                   x: 0.703, y: 0.180, priority: 3),
+        pin("mk|dining|cheshire-cafe",            "magic-kingdom", "Cheshire Café",                                     x: 0.651, y: 0.316, priority: 3),
+        // Tomorrowland
+        pin("mk|dining|energy-bytes",             "magic-kingdom", "Energy Bytes",                                      x: 0.875, y: 0.311, priority: 3),
+        pin("mk|dining|cosmic-rays",              "magic-kingdom", "Cosmic Ray's Starlight Café",                       x: 0.694, y: 0.377, priority: 2),
+        pin("mk|dining|auntie-gravitys",          "magic-kingdom", "Auntie Gravity's Galactic Goodies",                 x: 0.780, y: 0.456, priority: 3),
+        pin("mk|dining|astrofizz",                "magic-kingdom", "AstroFizz Hosted by Coca-Cola",                     x: 0.849, y: 0.465, priority: 3),
+        pin("mk|dining|joffreys",                 "magic-kingdom", "Joffrey's Coffee & Tea Company",                    x: 0.910, y: 0.508, priority: 3),
+        pin("mk|dining|lunching-pad",             "magic-kingdom", "The Lunching Pad",                                  x: 0.780, y: 0.504, priority: 3),
+        pin("mk|dining|tomorrowland-terrace-dessert-party", "magic-kingdom", "Fireworks Dessert Parties at Tomorrowland Terrace Restaurant", x: 0.629, y: 0.565, priority: 3),
     ]
 
     // MARK: EPCOT

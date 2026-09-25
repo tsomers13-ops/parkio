@@ -166,13 +166,12 @@ final class CommunityDiscoveryTests: XCTestCase {
         )
     }
 
-    func testExactlySixtyTwoEligible() {
-        XCTAssertEqual(DiningVenueKeys.byStableID.count, 62)
+    func testExactlyNinetyThreeEligible() {
+        XCTAssertEqual(DiningVenueKeys.byStableID.count, 93)
     }
 
     func testIneligibleParksRemainUnsupported() {
         for stableID in [
-            "Magic Kingdom|Liberty Square|Columbia Harbour House",
             "Animal Kingdom|Discovery Island|Flame Tree Barbecue",
             "Disneyland|New Orleans Square|Blue Bayou Restaurant",
             "California Adventure|Pacific Wharf|Pacific Wharf Cafe",
@@ -225,6 +224,16 @@ final class CommunityDiscoveryTests: XCTestCase {
         _ = try await makeService(transport).summaries(venueKeys: dhs)
 
         XCTAssertEqual(transport.requests.count, 1, "20 venues must cost one request")
+    }
+
+    func testMagicKingdomDatasetIsOneRequest() async throws {
+        let mk = keys(prefix: "mk-", count: 31)
+        XCTAssertEqual(mk.count, 31)
+
+        let transport = FakeTransport(status: 200, body: #"{"ratings":{}}"#)
+        _ = try await makeService(transport).summaries(venueKeys: mk)
+
+        XCTAssertEqual(transport.requests.count, 1, "31 venues must cost one request")
     }
 
     func testEmptyKeySetMakesNoRequest() async throws {

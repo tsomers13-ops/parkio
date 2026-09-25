@@ -39,13 +39,12 @@ final class CommunityIsolationTests: XCTestCase {
     // MARK: - Eligibility
 
     func testExactlyTheCurrentPilotIsEligible() {
-        XCTAssertEqual(DiningVenueKeys.byStableID.count, 62)
+        XCTAssertEqual(DiningVenueKeys.byStableID.count, 93)
     }
 
     func testIneligibleParksResolveToNoVenueKey() {
         // One real venue from each park the backend does not cover yet.
         let ineligible = [
-            "Magic Kingdom|Liberty Square|Columbia Harbour House",
             "Animal Kingdom|Discovery Island|Flame Tree Barbecue",
             "Disneyland|New Orleans Square|Blue Bayou Restaurant",
             "California Adventure|Pacific Wharf|Pacific Wharf Cafe",
@@ -62,7 +61,7 @@ final class CommunityIsolationTests: XCTestCase {
     func testIneligibleVenueYieldsNoServiceIdentityAtAll() {
         // The detail screen builds the Community section only when this is
         // non-nil, so nil is what guarantees no UI and no network call.
-        XCTAssertNil(CommunityRatingService.venueKey(forStableID: "Magic Kingdom|Main Street, U.S.A.|Casey's Corner"))
+        XCTAssertNil(CommunityRatingService.venueKey(forStableID: "Animal Kingdom|Discovery Island|Flame Tree Barbecue"))
     }
 
     func testEligibleVenueYieldsAVenueKey() {

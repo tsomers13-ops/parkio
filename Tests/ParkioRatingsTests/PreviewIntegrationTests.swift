@@ -105,7 +105,7 @@ final class PreviewIntegrationTests: XCTestCase {
         XCTAssertNil(otherRating, "a different identity must not see this rating")
 
         // 11. A venue outside the pilot is refused before any request is sent.
-        XCTAssertNil(DiningVenueKeys.venueKey(forStableID: "Magic Kingdom|Liberty Square|Columbia Harbour House"))
+        XCTAssertNil(DiningVenueKeys.venueKey(forStableID: "Animal Kingdom|Discovery Island|Flame Tree Barbecue"))
 
         // Emit exactly what must be cleaned up, and nothing secret.
         let raterId = credential.split(separator: ".")[1]
@@ -206,7 +206,7 @@ final class PreviewViewModelLifecycleTests: XCTestCase {
         XCTAssertEqual(try store.load(), credential)
 
         // 23. An ineligible venue is refused before any request is possible.
-        XCTAssertNil(CommunityRatingService.venueKey(forStableID: "Magic Kingdom|Liberty Square|Columbia Harbour House"))
+        XCTAssertNil(CommunityRatingService.venueKey(forStableID: "Animal Kingdom|Discovery Island|Flame Tree Barbecue"))
 
         let raterId = credential.split(separator: ".")[1]
         print("PREVIEW_SYNTHETIC_ROW venue_key=\(venue) rater_id=\(raterId)")
