@@ -127,32 +127,35 @@ private extension ParkMapViewModel {
 
     // MARK: Magic Kingdom
 
+    // Calibrated to numbered directory markers on magic_kingdom_map (see
+    // docs/MK-MAP-PROVENANCE.md). "mk|liberty-belle" has no numbered marker
+    // on the current official map and keeps its prior general-layout estimate.
     static let magicKingdomPins: [ParkMapPin] = [
         // Tomorrowland (east)
-        pin("mk|tron",            "magic-kingdom", "TRON Lightcycle / Run",        x: 0.75, y: 0.36, priority: 1),
-        pin("mk|space-mountain",  "magic-kingdom", "Space Mountain",               x: 0.72, y: 0.42, priority: 1),
-        pin("mk|buzz",            "magic-kingdom", "Buzz Lightyear",               x: 0.70, y: 0.47, priority: 2),
-        pin("mk|astro-orbiter",   "magic-kingdom", "Astro Orbiter",                x: 0.67, y: 0.50, priority: 3),
-        pin("mk|speedway",        "magic-kingdom", "Tomorrowland Speedway",        x: 0.73, y: 0.54, priority: 3),
+        pin("mk|tron",            "magic-kingdom", "TRON Lightcycle / Run",        x: 0.905, y: 0.285, priority: 1),
+        pin("mk|space-mountain",  "magic-kingdom", "Space Mountain",               x: 0.944, y: 0.451, priority: 1),
+        pin("mk|buzz",            "magic-kingdom", "Buzz Lightyear",               x: 0.767, y: 0.535, priority: 2),
+        pin("mk|astro-orbiter",   "magic-kingdom", "Astro Orbiter",                x: 0.871, y: 0.517, priority: 3),
+        pin("mk|speedway",        "magic-kingdom", "Tomorrowland Speedway",        x: 0.784, y: 0.394, priority: 3),
         // Fantasyland (north center)
-        pin("mk|seven-dwarfs",    "magic-kingdom", "Seven Dwarfs Mine Train",      x: 0.52, y: 0.27, priority: 1),
-        pin("mk|peter-pan",       "magic-kingdom", "Peter Pan's Flight",           x: 0.44, y: 0.30, priority: 1),
-        pin("mk|small-world",     "magic-kingdom", "it's a small world",           x: 0.38, y: 0.24, priority: 2),
-        pin("mk|winnie-the-pooh", "magic-kingdom", "Winnie the Pooh",              x: 0.56, y: 0.31, priority: 2),
-        pin("mk|little-mermaid",  "magic-kingdom", "Little Mermaid",               x: 0.62, y: 0.27, priority: 2),
-        pin("mk|dumbo",           "magic-kingdom", "Dumbo",                        x: 0.48, y: 0.26, priority: 3),
-        pin("mk|mad-tea-party",   "magic-kingdom", "Mad Tea Party",                x: 0.51, y: 0.31, priority: 3),
+        pin("mk|seven-dwarfs",    "magic-kingdom", "Seven Dwarfs Mine Train",      x: 0.638, y: 0.232, priority: 1),
+        pin("mk|peter-pan",       "magic-kingdom", "Peter Pan's Flight",           x: 0.448, y: 0.259, priority: 1),
+        pin("mk|small-world",     "magic-kingdom", "it's a small world",           x: 0.461, y: 0.206, priority: 2),
+        pin("mk|winnie-the-pooh", "magic-kingdom", "Winnie the Pooh",              x: 0.647, y: 0.272, priority: 2),
+        pin("mk|little-mermaid",  "magic-kingdom", "Little Mermaid",               x: 0.690, y: 0.140, priority: 2),
+        pin("mk|dumbo",           "magic-kingdom", "Dumbo",                        x: 0.875, y: 0.193, priority: 3),
+        pin("mk|mad-tea-party",   "magic-kingdom", "Mad Tea Party",                x: 0.668, y: 0.285, priority: 3),
         // Liberty Square / Frontierland (west center)
-        pin("mk|haunted-mansion", "magic-kingdom", "Haunted Mansion",              x: 0.32, y: 0.42, priority: 1),
+        pin("mk|haunted-mansion", "magic-kingdom", "Haunted Mansion",              x: 0.323, y: 0.263, priority: 1),
         pin("mk|liberty-belle",   "magic-kingdom", "Liberty Belle Riverboat",      x: 0.34, y: 0.49, priority: 3),
-        pin("mk|big-thunder",     "magic-kingdom", "Big Thunder Mountain",         x: 0.20, y: 0.47, priority: 1),
-        pin("mk|tiana",           "magic-kingdom", "Tiana's Bayou Adventure",      x: 0.24, y: 0.52, priority: 1),
+        pin("mk|big-thunder",     "magic-kingdom", "Big Thunder Mountain",         x: 0.103, y: 0.329, priority: 1),
+        pin("mk|tiana",           "magic-kingdom", "Tiana's Bayou Adventure",      x: 0.078, y: 0.364, priority: 1),
         // Adventureland (southwest)
-        pin("mk|pirates",         "magic-kingdom", "Pirates of the Caribbean",     x: 0.21, y: 0.60, priority: 1),
-        pin("mk|jungle-cruise",   "magic-kingdom", "Jungle Cruise",                x: 0.17, y: 0.57, priority: 2),
-        pin("mk|magic-carpets",   "magic-kingdom", "Magic Carpets of Aladdin",     x: 0.19, y: 0.65, priority: 3),
+        pin("mk|pirates",         "magic-kingdom", "Pirates of the Caribbean",     x: 0.153, y: 0.578, priority: 1),
+        pin("mk|jungle-cruise",   "magic-kingdom", "Jungle Cruise",                x: 0.250, y: 0.587, priority: 2),
+        pin("mk|magic-carpets",   "magic-kingdom", "Magic Carpets of Aladdin",     x: 0.246, y: 0.539, priority: 3),
         // Transport
-        pin("mk|wdw-railroad",    "magic-kingdom", "WDW Railroad",                 x: 0.50, y: 0.87, priority: 3),
+        pin("mk|wdw-railroad",    "magic-kingdom", "WDW Railroad",                 x: 0.517, y: 0.802, priority: 3),
 
         // ── Dining — calibrated to numbered directory markers on magic_kingdom_map ──
         // Main Street, U.S.A.
