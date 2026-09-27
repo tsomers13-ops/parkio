@@ -264,9 +264,12 @@ private extension RideMasterData {
     static let mkAttractions: [MasterAttraction] = [
 
         // ── Main Street, U.S.A. ───────────────────────────────────────────────
+        // Map pin label is the shorter "WDW Railroad"; alias keeps custom-canvas
+        // pin resolution (MapPinIdentityResolver) an exact match.
         MA("Walt Disney World Railroad",
            park: .magicKingdom, land: "Main Street, U.S.A.",
-           type: .transport, outdoor: true, map: 3, seed: true),
+           type: .transport, outdoor: true, map: 3, seed: true,
+           aliases: ["WDW Railroad"]),
 
         // ── Adventureland ─────────────────────────────────────────────────────
         MA("Pirates of the Caribbean",

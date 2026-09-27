@@ -6,17 +6,23 @@
 //   at creation time.
 //
 // Map layer:
-//   RealMapScreen owns the full MapKit tile surface, user location puck, ride
-//   annotations, follow mode, bearing polyline, HUD (filter bar + glance bar),
-//   and the location / compass buttons.
-//   ParkMapCanvasView / ParkMapBackgroundView are NOT rendered.
+//   MapRoutingDecision.renderMode(forParkId:) picks the renderer per park:
+//     • Magic Kingdom  → ParkMapCanvasView, the supplied production map artwork
+//                        as an interactive pan/zoom image canvas.
+//     • Every other park → RealMapScreen, the full MapKit tile surface, user
+//                        location puck, ride annotations, follow mode, bearing
+//                        polyline, HUD (filter bar + glance bar), and the
+//                        location / compass buttons.
+//   Both renderers share the same MapViewModel, so ride selection and the
+//   bottom sheet (RideMapBottomSheetView) behave identically either way.
 //
 // Park switching (single source of truth):
-//   switchPark(to:) updates mapVM.parkId. MapViewModel's didSet handles annotation
-//   reload and camera reset. Called from the single .onChange(of: selectedPark).
+//   switchPark(to:) updates mapVM.parkId and parkMapVM.parkId. MapViewModel's
+//   didSet handles annotation reload and camera reset; ParkMapViewModel's
+//   didSet reloads its pin set. Called from the single .onChange(of: selectedPark).
 //
 // ZStack layer order in MapContentView:
-//   1. RealMapScreen (MapKit tiles + pins + HUD + location controls)
+//   1. mapSurface   (ParkMapCanvasView or RealMapScreen, per MapRoutingDecision)
 //   2. Top overlay  (park selector pill strip, wait-time banner)
 //   3. RideMapBottomSheetView (always on top)
 
@@ -32,19 +38,26 @@ struct MapTabView: View {
 
     // Lazily initialized so waitTimeVM is available at creation time.
     @State private var mapVM: MapViewModel?
+    // Backs the Magic Kingdom custom canvas. Created alongside mapVM even
+    // though only Magic Kingdom renders it — cheap, and keeps park-switch
+    // sync in one place instead of lazily standing it up mid-switch.
+    @State private var parkMapVM: ParkMapViewModel?
+    @State private var calibrationVM = CalibrationViewModel()
 
     // SwiftData source of truth for ridden/logged state.
     @Query private var allRides: [Ride]
 
     var body: some View {
         Group {
-            if let mapVM {
+            if let mapVM, let parkMapVM {
                 MapContentView(
                     mapVM:        mapVM,
+                    parkMapVM:    parkMapVM,
                     selectedPark: $selectedPark
                 )
+                .environment(calibrationVM)
                 .onChange(of: selectedPark) { _, newPark in
-                    switchPark(to: newPark, mapVM: mapVM)
+                    switchPark(to: newPark, mapVM: mapVM, parkMapVM: parkMapVM)
                 }
                 .onChange(of: allRides) { _, rides in
                     mapVM.updateRiddenState(rides: rides)
@@ -59,7 +72,9 @@ struct MapTabView: View {
                 return
             }
             let mVM = MapViewModel(parkId: selectedPark.backendId, waitTimeVM: waitTimeVM)
+            let pmVM = ParkMapViewModel(parkId: selectedPark.backendId)
             mapVM = mVM
+            parkMapVM = pmVM
             mVM.onAppear()
             mVM.updateRiddenState(rides: allRides)
         }
@@ -67,17 +82,20 @@ struct MapTabView: View {
 
     // MARK: - Park switch
 
-    private func switchPark(to park: Park, mapVM: MapViewModel) {
+    private func switchPark(to park: Park, mapVM: MapViewModel, parkMapVM: ParkMapViewModel) {
         // MapViewModel.parkId didSet calls loadAnnotations() + resetCamera() automatically.
         mapVM.parkId = park.backendId
+        // ParkMapViewModel.parkId didSet calls loadPins() automatically.
+        parkMapVM.parkId = park.backendId
     }
 }
 
 // MARK: - MapContentView
 
-/// Full map experience: RealMapScreen + park selector + bottom sheet.
+/// Full map experience: map surface (routed per park) + park selector + bottom sheet.
 private struct MapContentView: View {
     let mapVM:        MapViewModel
+    let parkMapVM:    ParkMapViewModel
     @Binding var selectedPark: Park
 
     @Environment(WaitTimeViewModel.self) private var waitTimeVM
@@ -85,14 +103,8 @@ private struct MapContentView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // ── Layer 1: Real MapKit map ─────────────────────────────────────
-                // RealMapScreen owns: Apple tile base, UserAnnotation (GPS puck),
-                // ride annotations with real coordinates, bearing polyline,
-                // MapHUDOverlay (filter bar + glance bar), location / compass buttons.
-                // LocationService is already in the environment from ParkioApp.
-                RealMapScreen()
-                    .environment(mapVM)
-                    .ignoresSafeArea(edges: .bottom)
+                // ── Layer 1: map surface (routed per park) ────────────────────────
+                mapSurface
 
                 // ── Layer 2: top chrome ──────────────────────────────────────────
                 // Park selector strip + transient wait-time banner.
@@ -109,6 +121,31 @@ private struct MapContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { mapToolbar }
             .refreshable { await waitTimeVM.refresh() }
+        }
+    }
+
+    // MARK: Map surface
+
+    /// Magic Kingdom renders the supplied production map artwork as an
+    /// interactive pan/zoom canvas; every other park keeps the live MapKit
+    /// experience. Both share `mapVM`, so ride selection and the bottom sheet
+    /// behave identically regardless of which surface is on screen.
+    @ViewBuilder
+    private var mapSurface: some View {
+        switch MapRoutingDecision.renderMode(forParkId: selectedPark.backendId) {
+        case .customCanvas:
+            ParkMapCanvasView()
+                .environment(mapVM)
+                .environment(parkMapVM)
+                .ignoresSafeArea(edges: .bottom)
+        case .liveMap:
+            // RealMapScreen owns: Apple tile base, UserAnnotation (GPS puck),
+            // ride annotations with real coordinates, bearing polyline,
+            // MapHUDOverlay (filter bar + glance bar), location / compass buttons.
+            // LocationService is already in the environment from ParkioApp.
+            RealMapScreen()
+                .environment(mapVM)
+                .ignoresSafeArea(edges: .bottom)
         }
     }
 

@@ -472,7 +472,7 @@ private struct ZoneView: View {
 }
 
 // MARK: - Park layout data
-// Zone bounds enclose the ParkMapPin positions defined in ParkMapViewModel.embeddedPins.
+// Zone bounds enclose the ParkMapPin positions defined in ParkMapPinData.embeddedPins.
 // Coordinates (x, y, w, h) are normalized 0–1. Do NOT adjust without moving pins.
 //
 // canvasColor: adaptive warm parchment (light) / deep charcoal (dark) via mapColor().

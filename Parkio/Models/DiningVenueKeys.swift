@@ -5,8 +5,8 @@
 //   npm run dining:venuekeys:swift -- --output <iOS>/Parkio/Models/DiningVenueKeys.swift \
 //                                      --sidecar <iOS>/Tools/VenueKeys/DiningVenueKeys.json
 //
-// sourceSha256: c66050ecffb84ef8ccb3f8907e3295957a5204b5ad63b72138fce66b87967f3d
-// entries: 62
+// sourceSha256: a7e844bd8b3be46f20ae7e295dc197573c06e4cad9880b3300e7d98c79d29968
+// entries: 93
 //
 // venueKey is the Website-owned immutable identity a Community Rating is filed
 // against. It is NOT a slug, NOT a stableID and NOT a display name, and it is
@@ -84,11 +84,42 @@ enum DiningVenueKeys {
         "Hollywood Studios|Sunset Boulevard|Rosie's All-American Cafe": "hs-rosies",
         "Hollywood Studios|Toy Story Land|Roundup Rodeo BBQ": "hs-roundup-rodeo",
         "Hollywood Studios|Toy Story Land|Woody's Lunch Box": "hs-woodys-lunch-box",
+        "Magic Kingdom|Adventureland|Aloha Isle": "mk-aloha-isle",
+        "Magic Kingdom|Adventureland|Jungle Navigation Co. LTD Skipper Canteen": "mk-skipper-canteen",
+        "Magic Kingdom|Adventureland|Spring Roll Snack Cart": "mk-spring-roll-cart",
+        "Magic Kingdom|Adventureland|Sunshine Tree Terrace": "mk-sunshine-tree-terrace",
+        "Magic Kingdom|Adventureland|The Beak and Barrel": "mk-beak-and-barrel",
+        "Magic Kingdom|Fantasyland|Be Our Guest Restaurant": "mk-be-our-guest",
+        "Magic Kingdom|Fantasyland|Cheshire Café": "mk-cheshire-cafe",
+        "Magic Kingdom|Fantasyland|Cinderella's Royal Table": "mk-cinderellas-royal-table",
+        "Magic Kingdom|Fantasyland|Gaston's Tavern": "mk-gastons-tavern",
+        "Magic Kingdom|Fantasyland|Pinocchio Village Haus": "mk-pinocchio-village-haus",
+        "Magic Kingdom|Fantasyland|Prince Eric's Village Market": "mk-prince-erics-village-market",
+        "Magic Kingdom|Fantasyland|Storybook Treats": "mk-storybook-treats",
+        "Magic Kingdom|Fantasyland|The Friar's Nook": "mk-friars-nook",
+        "Magic Kingdom|Frontierland|Golden Oak Outpost": "mk-golden-oak-outpost",
+        "Magic Kingdom|Frontierland|Pecos Bill Tall Tale Inn and Cafe": "mk-pecos-bill",
+        "Magic Kingdom|Liberty Square|Liberty Tree Tavern": "mk-liberty-tree-tavern",
+        "Magic Kingdom|Liberty Square|Sleepy Hollow": "mk-sleepy-hollow",
+        "Magic Kingdom|Liberty Square|The Diamond Horseshoe": "mk-diamond-horseshoe",
+        "Magic Kingdom|Main Street, U.S.A.|Casey's Corner": "mk-caseys-corner",
+        "Magic Kingdom|Main Street, U.S.A.|Main Street Bakery": "mk-main-street-bakery",
+        "Magic Kingdom|Main Street, U.S.A.|Plaza Ice Cream Parlor": "mk-plaza-ice-cream-parlor",
+        "Magic Kingdom|Main Street, U.S.A.|The Crystal Palace": "mk-crystal-palace",
+        "Magic Kingdom|Main Street, U.S.A.|The Plaza Restaurant": "mk-plaza-restaurant",
+        "Magic Kingdom|Main Street, U.S.A.|Tony's Town Square Restaurant": "mk-tonys-town-square",
+        "Magic Kingdom|Tomorrowland|AstroFizz Hosted by Coca-Cola": "mk-astrofizz",
+        "Magic Kingdom|Tomorrowland|Auntie Gravity's Galactic Goodies": "mk-auntie-gravitys",
+        "Magic Kingdom|Tomorrowland|Cosmic Ray's Starlight Café": "mk-cosmic-rays",
+        "Magic Kingdom|Tomorrowland|Energy Bytes": "mk-energy-bytes",
+        "Magic Kingdom|Tomorrowland|Fireworks Dessert Parties at Tomorrowland Terrace Restaurant": "mk-tomorrowland-terrace-dessert-party",
+        "Magic Kingdom|Tomorrowland|Joffrey's Coffee & Tea Company": "mk-joffreys",
+        "Magic Kingdom|Tomorrowland|The Lunching Pad": "mk-lunching-pad",
     ]
 
     /// Number of venues the backend currently accepts. Guards against a
     /// silent partial regeneration.
-    static let expectedCount = 62
+    static let expectedCount = 93
 
     /// The venueKey for a venue, or nil when it is not rateable yet.
     static func venueKey(forStableID stableID: String) -> String? {

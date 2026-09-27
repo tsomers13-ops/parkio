@@ -44,9 +44,109 @@ private typealias DM = DiningMetadata
 
 extension RideMasterData {
 
+    // 31 venues — reconciled to the full official Magic Kingdom dining directory.
+    // Pre-existing venues keep their editorial DiningMetadata. Newly added venues
+    // are factual-only (dining: nil) — no editorial score/verdict has been
+    // authored for them yet, and none is invented here.
+    // "Columbia Harbour House" (formerly in this list) was removed: it is not
+    // part of the reconciled 31-venue directory this catalog now tracks.
     static let mkDining: [MasterAttraction] = [
 
+        // ── Main Street, U.S.A. ──────────────────────────────────────────────────
+        MA("Tony's Town Square Restaurant",
+           park: .magicKingdom, land: "Main Street, U.S.A.",
+           type: .tableService, outdoor: false, map: 3, seed: true),
+
+        MA("Main Street Bakery",
+           park: .magicKingdom, land: "Main Street, U.S.A.",
+           type: .quickService, outdoor: false, map: 3, seed: true),
+
+        MA("The Plaza Restaurant",
+           park: .magicKingdom, land: "Main Street, U.S.A.",
+           type: .tableService, outdoor: false, map: 3, seed: true),
+
+        MA("Plaza Ice Cream Parlor",
+           park: .magicKingdom, land: "Main Street, U.S.A.",
+           type: .snackStand, outdoor: true, map: 3, seed: true),
+
+        MA("Casey's Corner",
+           park: .magicKingdom, land: "Main Street, U.S.A.",
+           type: .quickService, outdoor: true, map: 3, seed: true),
+
+        MA("The Crystal Palace",
+           park: .magicKingdom, land: "Main Street, U.S.A.",
+           type: .tableService, outdoor: false, map: 3, seed: true),
+
+        // ── Adventureland ─────────────────────────────────────────────────────
+        MA("Spring Roll Snack Cart",
+           park: .magicKingdom, land: "Adventureland",
+           type: .snackStand, outdoor: true, map: 3, seed: true),
+
+        MA("Sunshine Tree Terrace",
+           park: .magicKingdom, land: "Adventureland",
+           type: .snackStand, outdoor: true, map: 3, seed: true),
+
+        MA("Jungle Navigation Co. LTD Skipper Canteen",
+           park: .magicKingdom, land: "Adventureland",
+           type: .tableService, outdoor: false, map: 3, seed: true),
+
+        MA("Aloha Isle",
+           park: .magicKingdom, land: "Adventureland",
+           type: .snackStand, outdoor: true, map: 3, seed: true),
+
+        MA("The Beak and Barrel",
+           park: .magicKingdom, land: "Adventureland",
+           type: .lounge, outdoor: true, map: 3, seed: true),
+
+        // ── Frontierland ──────────────────────────────────────────────────────
+        MA("Golden Oak Outpost",
+           park: .magicKingdom, land: "Frontierland",
+           type: .quickService, outdoor: true, map: 3, seed: true),
+
+        MA("Pecos Bill Tall Tale Inn and Cafe",
+           park: .magicKingdom, land: "Frontierland",
+           type: .quickService, outdoor: false, map: 3, seed: true),
+
+        // ── Liberty Square ────────────────────────────────────────────────────
+        MA("The Diamond Horseshoe",
+           park: .magicKingdom, land: "Liberty Square",
+           type: .quickService, outdoor: false, map: 3, seed: true),
+
+        MA("Liberty Tree Tavern",
+           park: .magicKingdom, land: "Liberty Square",
+           type: .tableService, outdoor: false, map: 3, seed: true),
+
+        MA("Sleepy Hollow",
+           park: .magicKingdom, land: "Liberty Square",
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget, score: 7,
+                      verdict: "Grab a fresh funnel cake and eat by the waterfront. Peak afternoon snack.",
+                      signature: ["Funnel Cake", "Waffle Sandwich"],
+                      mobileOrder: false, indoor: false, kids: true,
+                      dietary: [.vegetarianFriendly])),
+
         // ── Fantasyland ───────────────────────────────────────────────────────
+        MA("Pinocchio Village Haus",
+           park: .magicKingdom, land: "Fantasyland",
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           dining: DM(price: .moderate, score: 7,
+                      verdict: "Watch riders emerge from it's a small world while you eat. Great location.",
+                      signature: ["Flatbread Pizza", "Pasta Bolognese"],
+                      mobileOrder: true, indoor: true, kids: true,
+                      dietary: [.vegetarianFriendly, .kidsMenu])),
+
+        MA("Cinderella's Royal Table",
+           park: .magicKingdom, land: "Fantasyland",
+           type: .tableService, outdoor: false, map: 3, seed: true),
+
+        MA("The Friar's Nook",
+           park: .magicKingdom, land: "Fantasyland",
+           type: .quickService, outdoor: true, map: 3, seed: true),
+
+        MA("Storybook Treats",
+           park: .magicKingdom, land: "Fantasyland",
+           type: .snackStand, outdoor: true, map: 3, seed: true),
+
         // Be Our Guest is technically table service at dinner, quick-service at
         // lunch (walk-up). Table service type reflects the stronger use case.
         MA("Be Our Guest Restaurant",
@@ -67,35 +167,19 @@ extension RideMasterData {
                       mobileOrder: false, indoor: false, kids: true,
                       dietary: [.vegetarianFriendly])),
 
-        MA("Pinocchio Village Haus",
+        MA("Prince Eric's Village Market",
            park: .magicKingdom, land: "Fantasyland",
-           type: .quickService, outdoor: false, map: 3, seed: true,
-           dining: DM(price: .moderate, score: 7,
-                      verdict: "Watch riders emerge from it's a small world while you eat. Great location.",
-                      signature: ["Flatbread Pizza", "Pasta Bolognese"],
-                      mobileOrder: true, indoor: true, kids: true,
-                      dietary: [.vegetarianFriendly, .kidsMenu])),
+           type: .snackStand, outdoor: true, map: 3, seed: true),
 
-        // ── Liberty Square ────────────────────────────────────────────────────
-        MA("Columbia Harbour House",
-           park: .magicKingdom, land: "Liberty Square",
-           type: .quickService, outdoor: false, map: 3, seed: true,
-           dining: DM(price: .moderate, score: 8,
-                      verdict: "Best quick service in MK. Quiet upstairs seating, solid seafood.",
-                      signature: ["Clam Chowder in a Bread Bowl", "Lobster Roll"],
-                      mobileOrder: true, indoor: true, kids: true,
-                      dietary: [.vegetarianFriendly, .kidsMenu])),
-
-        MA("Sleepy Hollow",
-           park: .magicKingdom, land: "Liberty Square",
-           type: .snackStand, outdoor: true, map: 3, seed: true,
-           dining: DM(price: .budget, score: 7,
-                      verdict: "Grab a fresh funnel cake and eat by the waterfront. Peak afternoon snack.",
-                      signature: ["Funnel Cake", "Waffle Sandwich"],
-                      mobileOrder: false, indoor: false, kids: true,
-                      dietary: [.vegetarianFriendly])),
+        MA("Cheshire Café",
+           park: .magicKingdom, land: "Fantasyland",
+           type: .snackStand, outdoor: true, map: 3, seed: true),
 
         // ── Tomorrowland ──────────────────────────────────────────────────────
+        MA("Energy Bytes",
+           park: .magicKingdom, land: "Tomorrowland",
+           type: .snackStand, outdoor: true, map: 3, seed: true),
+
         MA("Cosmic Ray's Starlight Café",
            park: .magicKingdom, land: "Tomorrowland",
            type: .quickService, outdoor: false, map: 3, seed: true,
@@ -104,6 +188,26 @@ extension RideMasterData {
                       signature: ["Rotisserie Chicken", "Half Pound Burger"],
                       mobileOrder: true, indoor: true, kids: true,
                       dietary: [.kidsMenu])),
+
+        MA("Auntie Gravity's Galactic Goodies",
+           park: .magicKingdom, land: "Tomorrowland",
+           type: .snackStand, outdoor: true, map: 3, seed: true),
+
+        MA("AstroFizz Hosted by Coca-Cola",
+           park: .magicKingdom, land: "Tomorrowland",
+           type: .snackStand, outdoor: true, map: 3, seed: true),
+
+        MA("Joffrey's Coffee & Tea Company",
+           park: .magicKingdom, land: "Tomorrowland",
+           type: .snackStand, outdoor: true, map: 3, seed: true),
+
+        MA("The Lunching Pad",
+           park: .magicKingdom, land: "Tomorrowland",
+           type: .snackStand, outdoor: true, map: 3, seed: true),
+
+        MA("Fireworks Dessert Parties at Tomorrowland Terrace Restaurant",
+           park: .magicKingdom, land: "Tomorrowland",
+           type: .tableService, outdoor: true, map: 3, seed: true),
     ]
 }
 

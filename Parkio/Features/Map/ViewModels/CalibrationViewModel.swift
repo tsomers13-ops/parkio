@@ -3,7 +3,7 @@
 // Isolation: CalibrationViewModel holds a working copy of [ParkMapPin].
 // Changes are NOT written back to ParkMapViewModel automatically.
 // Call apply(to:) to commit, or copy the output of exportAsSwift() to
-// paste directly into ParkMapViewModel.embeddedPins.
+// paste directly into ParkMapPinData.embeddedPins.
 //
 // Lifecycle (managed by MapTabView):
 //   sync(from:)   — call when debug mode is activated or park changes
@@ -181,12 +181,12 @@ final class CalibrationViewModel {
     }
 
     /// Returns Swift code that can be pasted directly into
-    /// ParkMapViewModel.embeddedPins to persist calibrated positions.
+    /// ParkMapPinData.embeddedPins to persist calibrated positions.
     func exportAsSwift() -> String {
         var lines: [String] = [
             "// Calibrated pin positions",
             "// Generated: \(Date().formatted(date: .abbreviated, time: .shortened))",
-            "// Paste into ParkMapViewModel.embeddedPins (replace existing entries)",
+            "// Paste into ParkMapPinData.embeddedPins (replace existing entries)",
             "",
         ]
         let grouped = Dictionary(grouping: pins, by: \.parkId)

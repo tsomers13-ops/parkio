@@ -39,6 +39,12 @@ struct ParkMapCanvasView: View {
     @Environment(ParkMapViewModel.self)     private var parkMapVM
     @Environment(CalibrationViewModel.self) private var calibrationVM
 
+    // Dining pins have no GPS annotation (see MapPinIdentityResolver / docs/
+    // MK-MAP-PROVENANCE.md) — they resolve straight to a SwiftData Ride record
+    // and open the same dining detail sheet used everywhere else in the app.
+    @Query private var allRides: [Ride]
+    @State private var selectedDiningRide: Ride?
+
     // ── Transform state ────────────────────────────────────────────────────────
     // scale/baseScale are set to the correct fitScale in .onAppear.
     // They start at 1.0 as a safe non-zero placeholder; the first layout pass
@@ -80,6 +86,33 @@ struct ParkMapCanvasView: View {
         .onChange(of: mapVM.parkId) { _, _ in
             withAnimation(AppMotion.standard) { resetZoom() }
         }
+        // Dining detail — the exact same sheet AttractionsListView/HomeView present,
+        // including CommunityRatingSection via the generated venueKey.
+        .sheet(item: $selectedDiningRide) { ride in
+            RideDetailView(ride: ride)
+        }
+    }
+
+    // MARK: - Pin tap routing
+
+    /// Routes a pin tap to the flow matching what it represents:
+    ///   • A ride/attraction pin (has a GPS annotation) → existing ride
+    ///     selection + bottom-sheet behavior, unchanged from RealMapScreen.
+    ///   • A dining pin (no GPS annotation — see docs/MK-MAP-PROVENANCE.md) →
+    ///     the existing dining detail sheet, resolved to its SwiftData Ride
+    ///     record by canonical stableID.
+    private func handlePinTap(_ pin: ParkMapPin) {
+        guard let stableID = pin.stableID else { return }
+
+        if RideMasterData.typeByStableID[stableID]?.isDining == true {
+            guard let ride = allRides.first(where: { $0.id == stableID }) else { return }
+            mapVM.dismiss()
+            selectedDiningRide = ride
+            return
+        }
+
+        mapVM.selectRide(stableID)
+        mapVM.isZoomed = true
     }
 
     // MARK: - Fit scale
@@ -157,7 +190,7 @@ struct ParkMapCanvasView: View {
                         // Normal mode: enriched ride pins with live wait data.
                         // Pins use pin.canvasPoint(in: cs) → CGPoint(x: cs.width * mapX, y: cs.height * mapY)
                         // A pin at mapX=0.5, mapY=0.5 lands at (cs.width/2, cs.height/2) = canvas center. ✓
-                        PinsLayerView(size: cs, mapVM: mapVM, parkMapVM: parkMapVM)
+                        PinsLayerView(size: cs, mapVM: mapVM, parkMapVM: parkMapVM, onTap: handlePinTap)
                     }
                 }
                 // Explicit frame pins the ZStack at contentSize so .overlay doesn't
@@ -229,6 +262,7 @@ private struct PinsLayerView: View {
     let size: CGSize
     let mapVM: MapViewModel
     let parkMapVM: ParkMapViewModel
+    let onTap: (ParkMapPin) -> Void
 
     private var lookup: [String: EnrichedMarkerWithSelection] {
         // Build a lookup from all park annotations (not decluttered — canvas uses its own pin layer).
@@ -248,14 +282,21 @@ private struct PinsLayerView: View {
         let lkp = lookup
         ZStack(alignment: .topLeading) {
             ForEach(sortedPins) { pin in
+                // pin.internalRideId is a short calibration handle, not the canonical
+                // stableID — resolve it once here so both the live-data lookup and the
+                // selection check key off the same ID the rest of the app uses.
+                // Dining pins have no GPS annotation, so `resolvedId` legitimately
+                // misses `lkp`/`selectedRideId` for them (they open a detail sheet
+                // instead — see ParkMapCanvasView.handlePinTap).
+                let resolvedId = pin.stableID
                 PinView(
                     pin: pin,
                     size: size,
-                    enriched: lkp[pin.internalRideId],
-                    isSelected: mapVM.selectedRideId == pin.internalRideId,
-                    onTap: { mapVM.selectRide(pin.internalRideId); mapVM.isZoomed = true }
+                    enriched: resolvedId.flatMap { lkp[$0] },
+                    isSelected: resolvedId != nil && mapVM.selectedRideId == resolvedId,
+                    onTap: { onTap(pin) }
                 )
-                .zIndex(mapVM.selectedRideId == pin.internalRideId ? 100 : Double(4 - pin.priority))
+                .zIndex(mapVM.selectedRideId == resolvedId ? 100 : Double(4 - pin.priority))
             }
         }
     }

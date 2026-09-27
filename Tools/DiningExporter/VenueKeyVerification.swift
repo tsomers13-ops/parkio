@@ -34,7 +34,7 @@ enum VenueKeyVerification {
     }
 
     /// Parks whose venues the ratings backend accepts today.
-    static let pilotParkIds: Set<String> = ["epcot", "hollywood-studios"]
+    static let pilotParkIds: Set<String> = ["epcot", "hollywood-studios", "magic-kingdom"]
 
     static func verify(
         sidecarPath: String,

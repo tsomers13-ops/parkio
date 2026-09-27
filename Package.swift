@@ -98,6 +98,24 @@ let package = Package(
                 // asserted against the real 86 venues by
                 // `dining-export --verify-venue-keys`, which already owns them.
             ]
+        ),
+
+        // The custom Magic Kingdom map canvas's routing/lookup logic — kept
+        // Foundation-only (no SwiftUI, no UIKit, no SwiftData, no RideMasterData/
+        // Park — see ParkMapPinResolution.swift for that wiring, app-only) so
+        // it is testable here, the same reasoning as ParkioRatingsTests above.
+        .testTarget(
+            name: "ParkioMapTests",
+            path: ".",
+            sources: [
+                "Tests/ParkioMapTests",
+                // Real app sources under test — compiled in, not duplicated.
+                "Parkio/Features/Map/Models/ParkMapPin.swift",
+                "Parkio/Features/Map/Models/ParkMapPinData.swift",
+                "Parkio/Features/Map/MapPinIdentityResolver.swift",
+                "Parkio/Features/Map/MapRoutingDecision.swift",
+                "Parkio/Features/Map/MapImageResolution.swift",
+            ]
         )
     ]
 )
