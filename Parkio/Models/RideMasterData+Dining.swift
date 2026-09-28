@@ -153,7 +153,7 @@ extension RideMasterData {
            park: .magicKingdom, land: "Fantasyland",
            type: .tableService, outdoor: false, map: 3, seed: true,
            dining: DM(price: .upscale, score: 8,
-                      verdict: "The most immersive dining room in MK. Book dinner or walk up for lunch.",
+                      verdict: "The most immersive dining room in MK. Reservations are recommended; walk-up availability may be limited, but it never hurts to ask.",
                       signature: ["French Onion Soup", "The Grey Stuff"],
                       mobileOrder: false, indoor: true, kids: true,
                       dietary: [.vegetarianFriendly, .kidsMenu])),
