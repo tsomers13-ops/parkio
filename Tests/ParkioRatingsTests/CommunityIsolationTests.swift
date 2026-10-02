@@ -1,5 +1,7 @@
 import XCTest
 
+@testable import Parkio
+
 /// The boundaries between the three concepts a dining venue can now carry:
 /// the Community rating (server), the Parkio editorial score (content), and
 /// the private journal (device-only).

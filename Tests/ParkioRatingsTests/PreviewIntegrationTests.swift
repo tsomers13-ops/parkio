@@ -1,5 +1,7 @@
 import XCTest
 
+@testable import Parkio
+
 /// End-to-end lifecycle against a real Parkio Preview deployment.
 ///
 /// Skipped unless PARKIO_PREVIEW_BASE_URL is set, so `swift test` stays

@@ -1,5 +1,7 @@
 import XCTest
 
+@testable import Parkio
+
 /// Credential storage. The real store is Keychain-backed; these exercise the
 /// contract through the in-memory double, so no test touches a device Keychain.
 final class CredentialStoreTests: XCTestCase {

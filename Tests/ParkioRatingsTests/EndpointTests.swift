@@ -1,5 +1,7 @@
 import XCTest
 
+@testable import Parkio
+
 /// The website runs `trailingSlash: true`. Without the slash Next answers 308
 /// and URLSession replays the redirect as a GET, silently dropping a POST body.
 final class EndpointTests: XCTestCase {

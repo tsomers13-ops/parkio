@@ -1,5 +1,7 @@
 import XCTest
 
+@testable import Parkio
+
 /// Rating eligibility for the 31 Magic Kingdom dining pins added to the custom
 /// map canvas (ParkMapPinData.magicKingdomPins). Each stableID below is the
 /// canonical "Park|Land|Name" identity MapPinIdentityResolver resolves a

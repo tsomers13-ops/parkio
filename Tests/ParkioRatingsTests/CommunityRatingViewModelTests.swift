@@ -1,5 +1,7 @@
 import XCTest
 
+@testable import Parkio
+
 /// The Community section's state machine, driven through the fake transport so
 /// every visible state and every submission outcome can be asserted without a
 /// network or a view.

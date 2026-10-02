@@ -1,5 +1,7 @@
 import XCTest
 
+@testable import Parkio
+
 /// Gate 7 — the Community signal on Dining discovery rows.
 ///
 /// Two things are under test and the second matters as much as the first:

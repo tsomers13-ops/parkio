@@ -1,5 +1,7 @@
 import XCTest
 
+@testable import Parkio
+
 /// The service layer, driven through a fake transport so every request header
 /// and every failure path can be asserted without a network.
 final class CommunityRatingServiceTests: XCTestCase {

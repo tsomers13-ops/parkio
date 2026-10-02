@@ -3,6 +3,8 @@
 
 import XCTest
 
+@testable import Parkio
+
 final class ParkMapPinDataTests: XCTestCase {
 
     private var magicKingdomPins: [ParkMapPin] {

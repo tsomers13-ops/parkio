@@ -10,6 +10,8 @@
 
 import XCTest
 
+@testable import Parkio
+
 final class MapPinIdentityResolverTests: XCTestCase {
 
     private let candidates: [StableIDCandidate] = [

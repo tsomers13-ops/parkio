@@ -33,6 +33,16 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A100000000000000000000E4"
+               BuildableName = "ParkioTests.xctest"
+               BlueprintName = "ParkioTests"
+               ReferencedContainer = "container:Parkio.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "A100000000000000000000E3"
                BuildableName = "ParkioUITests.xctest"
                BlueprintName = "ParkioUITests"

@@ -1,5 +1,7 @@
 import XCTest
 
+@testable import Parkio
+
 /// Read-only checks against the live Production backend.
 ///
 /// Skipped unless PARKIO_PRODUCTION_CHECK=1. Deliberately contains no write

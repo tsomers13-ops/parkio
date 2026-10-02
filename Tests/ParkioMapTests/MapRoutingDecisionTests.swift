@@ -4,6 +4,8 @@
 
 import XCTest
 
+@testable import Parkio
+
 final class MapRoutingDecisionTests: XCTestCase {
 
     func testMagicKingdomUsesTheCustomCanvas() {

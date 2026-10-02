@@ -1,5 +1,7 @@
 import XCTest
 
+@testable import Parkio
+
 /// The cross-platform identity mapping.
 ///
 /// The 93/18 boundary against the real iOS venues is verified separately by

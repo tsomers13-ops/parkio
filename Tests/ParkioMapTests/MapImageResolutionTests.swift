@@ -3,6 +3,8 @@
 
 import XCTest
 
+@testable import Parkio
+
 final class MapImageResolutionTests: XCTestCase {
 
     func testProductionArtWinsInDebugEvenWhenMockAlsoExists() {

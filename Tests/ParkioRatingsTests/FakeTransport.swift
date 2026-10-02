@@ -1,6 +1,8 @@
 import Foundation
 import XCTest
 
+@testable import Parkio
+
 /// Records every request and replays scripted responses, so the service can be
 /// exercised without a network and every header can be inspected.
 final class FakeTransport: RatingHTTPTransport, @unchecked Sendable {

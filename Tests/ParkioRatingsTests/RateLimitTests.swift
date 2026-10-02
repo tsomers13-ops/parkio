@@ -1,5 +1,7 @@
 import XCTest
 
+@testable import Parkio
+
 /// HTTP 429 handling for Community Ratings.
 ///
 /// The backend rate-limits the two write paths — minting a native identity and
