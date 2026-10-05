@@ -53,10 +53,11 @@ enum Park: String, CaseIterable, Identifiable {
     /// backward compatibility with its existing resolution logic.
     ///
     /// Source: https://api.themeparks.wiki/v1/destinations (Walt Disney World
-    /// and Disneyland Resort destinations, verified 2024-2025).
+    /// and Disneyland Resort destinations, re-verified 2026-10-05 — Magic
+    /// Kingdom and Animal Kingdom were found stale on that date and corrected).
     var themeparksEntityId: String {
         switch self {
-        case .magicKingdom:        return "75ea578a-adc8-4116-a54d-dccb60765ef0"
+        case .magicKingdom:        return "75ea578a-adc8-4116-a54d-dccb60765ef9"
         case .epcot:               return "47f90d2c-e191-4239-a466-5892ef59a88b"
         case .hollywoodStudios:    return "288747d1-8b4f-4a64-867e-ea7c9b27bad8"
         case .animalKingdom:       return "1c84a229-8862-4648-9c71-378ddd2c7693"

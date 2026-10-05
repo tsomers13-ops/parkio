@@ -25,10 +25,10 @@ final class ParkEntityIdentifierTests: XCTestCase {
     }
 
     /// Verified live against GET https://api.themeparks.wiki/v1/destinations
-    /// on 2026-10-05. Magic Kingdom's value is known-stale as of this date
-    /// (confirmed 404) but intentionally left unchanged here — correcting it
-    /// is out of scope for this change and requires its own Product review.
+    /// on 2026-10-05. Both Magic Kingdom and Animal Kingdom were found stale
+    /// on that date (confirmed 404 on the old value) and corrected.
     func testThemeparksEntityIdsMatchTheLastVerifiedPass() {
+        XCTAssertEqual(Park.magicKingdom.themeparksEntityId, "75ea578a-adc8-4116-a54d-dccb60765ef9")
         XCTAssertEqual(Park.epcot.themeparksEntityId, "47f90d2c-e191-4239-a466-5892ef59a88b")
         XCTAssertEqual(Park.hollywoodStudios.themeparksEntityId, "288747d1-8b4f-4a64-867e-ea7c9b27bad8")
         XCTAssertEqual(Park.animalKingdom.themeparksEntityId, "1c84a229-8862-4648-9c71-378ddd2c7693")
