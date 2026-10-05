@@ -5,8 +5,8 @@
 //   npm run dining:venuekeys:swift -- --output <iOS>/Parkio/Models/DiningVenueKeys.swift \
 //                                      --sidecar <iOS>/Tools/VenueKeys/DiningVenueKeys.json
 //
-// sourceSha256: a7e844bd8b3be46f20ae7e295dc197573c06e4cad9880b3300e7d98c79d29968
-// entries: 93
+// sourceSha256: 6bc20f54578017a88f2badd76b5f1665c879587a7b081d6405beaa0d601136ae
+// entries: 120
 //
 // venueKey is the Website-owned immutable identity a Community Rating is filed
 // against. It is NOT a slug, NOT a stableID and NOT a display name, and it is
@@ -22,6 +22,33 @@ enum DiningVenueKeys {
 
     /// stableID → venueKey, for every venue the ratings backend accepts today.
     static let byStableID: [String: String] = [
+        "Animal Kingdom|Africa|Dawa Bar": "ak-dawa-bar",
+        "Animal Kingdom|Africa|Harambe Fruit Market": "ak-harambe-fruit-market",
+        "Animal Kingdom|Africa|Harambe Market": "ak-harambe-market",
+        "Animal Kingdom|Africa|Kusafiri Coffee Shop & Bakery": "ak-kusafiri",
+        "Animal Kingdom|Africa|Mahindi": "ak-mahindi",
+        "Animal Kingdom|Africa|Tamu Tamu Refreshments": "ak-tamu-tamu",
+        "Animal Kingdom|Africa|Tusker House Restaurant": "ak-tusker-house",
+        "Animal Kingdom|Asia|Anandapur Ice Cream Truck": "ak-anandapur-ice-cream-truck",
+        "Animal Kingdom|Asia|Caravan Road": "ak-caravan-road",
+        "Animal Kingdom|Asia|Drinkwallah": "ak-drinkwallah",
+        "Animal Kingdom|Asia|Thirsty River Bar & Trek Snacks": "ak-thirsty-river",
+        "Animal Kingdom|Asia|Warung Outpost": "ak-warung-outpost",
+        "Animal Kingdom|Asia|Yak & Yeti Local Food Cafes": "ak-yak-and-yeti-local-food-cafes",
+        "Animal Kingdom|Asia|Yak & Yeti Quality Beverages": "ak-yak-and-yeti-quality-beverages",
+        "Animal Kingdom|Asia|Yak & Yeti Restaurant": "ak-yak-and-yeti-restaurant",
+        "Animal Kingdom|Discovery Island|Creature Comforts": "ak-creature-comforts",
+        "Animal Kingdom|Discovery Island|Eight Spoon Café": "ak-eight-spoon-cafe",
+        "Animal Kingdom|Discovery Island|Flame Tree Barbecue": "ak-flame-tree-barbecue",
+        "Animal Kingdom|Discovery Island|Isle of Java": "ak-isle-of-java",
+        "Animal Kingdom|Discovery Island|Nomad Lounge & Cocktail Bar": "ak-nomad-lounge",
+        "Animal Kingdom|Discovery Island|Pizzafari": "ak-pizzafari",
+        "Animal Kingdom|Discovery Island|Terra Treats and Snack Shop": "ak-terra-treats",
+        "Animal Kingdom|Discovery Island|The Smiling Crocodile": "ak-smiling-crocodile",
+        "Animal Kingdom|Discovery Island|Tiffins Restaurant": "ak-tiffins",
+        "Animal Kingdom|Main Entrance|Rainforest Cafe at Disney's Animal Kingdom": "ak-rainforest-cafe",
+        "Animal Kingdom|Pandora|Pongu Pongu": "ak-pongu-pongu",
+        "Animal Kingdom|Pandora|Satu'li Canteen": "ak-satuli-canteen",
         "EPCOT|World Celebration|Connections Eatery": "ep-connections-eatery",
         "EPCOT|World Celebration|GEO-82": "ep-geo-82",
         "EPCOT|World Celebration|GRAB-N-GOOF": "ep-grab-n-goof",
@@ -119,7 +146,7 @@ enum DiningVenueKeys {
 
     /// Number of venues the backend currently accepts. Guards against a
     /// silent partial regeneration.
-    static let expectedCount = 93
+    static let expectedCount = 120
 
     /// The venueKey for a venue, or nil when it is not rateable yet.
     static func venueKey(forStableID stableID: String) -> String? {

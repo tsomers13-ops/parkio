@@ -168,15 +168,15 @@ final class CommunityDiscoveryTests: XCTestCase {
         )
     }
 
-    func testExactlyNinetyThreeEligible() {
-        XCTAssertEqual(DiningVenueKeys.byStableID.count, 93)
+    func testExactlyTheCurrentPilotIsEligible() {
+        XCTAssertEqual(DiningVenueKeys.byStableID.count, 120)
     }
 
     func testIneligibleParksRemainUnsupported() {
         for stableID in [
-            "Animal Kingdom|Discovery Island|Flame Tree Barbecue",
+            "Disneyland|Adventureland|Tropical Hideaway",
             "Disneyland|New Orleans Square|Blue Bayou Restaurant",
-            "California Adventure|Pacific Wharf|Pacific Wharf Cafe",
+            "Disney California Adventure|Avengers Campus|Pym Test Kitchen",
         ] {
             XCTAssertNil(CommunityRatingService.venueKey(forStableID: stableID))
         }

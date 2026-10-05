@@ -675,12 +675,33 @@ extension RideMasterData {
 
 extension RideMasterData {
 
+    // Animal Kingdom parity expansion (2026-10-05): 22 venues added below
+    // alongside the original 5. All new venues are factual-only — no
+    // DiningMetadata, no invented scores/verdicts/signature items — per
+    // Product decision. entityId + map: 3 set only where a coordinate was
+    // verified via the ThemeParks.wiki API (see MapCoordinates.json); venues
+    // without a verified coordinate have map omitted (no pin expected yet),
+    // consistent with the Coverage contract in MapCoordinates.json.
+    //
+    // Excluded by Product decision: Mr. Kamal's, Royal Anandapur Tea Company
+    // (insufficient first-party evidence), Trek Snacks Grab and Go (possible
+    // duplicate of Thirsty River Bar & Trek Snacks), Restaurantosaurus,
+    // Dino-Bite Snacks, Trilo-Bites (DinoLand U.S.A., closed).
+    //
+    // Excluded (2026-10-05, resolved): Zuri's Sweet Shop (Africa) — surfaced
+    // by the ThemeParks.wiki API during implementation (tagged RESTAURANT
+    // there), but Disney's own site lists it under /shops/, not /dining/,
+    // and its own page describes it as a confectionery shop. First-party
+    // classification wins: this is Shopping, not Dining, so it is not part
+    // of this catalog. Resolved by Product review on 2026-10-05 — no
+    // further action pending.
     static let akDining: [MasterAttraction] = [
 
         // ── Discovery Island ──────────────────────────────────────────────────
         MA("Flame Tree Barbecue",
            park: .animalKingdom, land: "Discovery Island",
            type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "6730b8bb-f592-40cd-8e6f-e7788f3f175b",
            dining: DM(price: .moderate, score: 8,
                       verdict: "Beautiful waterfront outdoor seating. Best BBQ in any WDW park.",
                       signature: ["Ribs & Chicken Combo", "Pulled Pork Sandwich", "Baked Beans"],
@@ -690,21 +711,98 @@ extension RideMasterData {
         MA("Tiffins Restaurant",
            park: .animalKingdom, land: "Discovery Island",
            type: .tableService, outdoor: false, map: 3, seed: true,
+           entityId: "e12fb6d6-0985-44e5-bdd3-65ff74433063",
            dining: DM(price: .upscale, score: 9,
                       verdict: "Best theme park restaurant you've never tried. Signature quality, zero pretension.",
                       signature: ["Pan-Seared Grouper", "Braised Short Rib", "Whole-Fried Sustainable Fish"],
                       mobileOrder: false, indoor: true, kids: true,
                       dietary: [.vegetarianFriendly, .glutenFriendly])),
 
+        // factual-only — Product decision 2026-10-05
+        MA("Pizzafari",
+           park: .animalKingdom, land: "Discovery Island",
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "625821c3-5bd2-4c08-b449-257f3c81cbde"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Creature Comforts",
+           park: .animalKingdom, land: "Discovery Island",
+           type: .quickService, outdoor: false, seed: true),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Nomad Lounge & Cocktail Bar",
+           park: .animalKingdom, land: "Discovery Island",
+           type: .lounge, outdoor: false, map: 3, seed: true,
+           entityId: "f210842b-8c9b-4088-9f48-6284e9ce389a"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Isle of Java",
+           park: .animalKingdom, land: "Discovery Island",
+           type: .snackStand, outdoor: true, seed: true),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Eight Spoon Café",
+           park: .animalKingdom, land: "Discovery Island",
+           type: .snackStand, outdoor: true, seed: true),
+
+        // factual-only — Product decision 2026-10-05
+        MA("The Smiling Crocodile",
+           park: .animalKingdom, land: "Discovery Island",
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           entityId: "9a64300c-4861-4bed-9713-b4f49e55e566"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Terra Treats and Snack Shop",
+           park: .animalKingdom, land: "Discovery Island",
+           type: .snackStand, outdoor: true, seed: true),
+
         // ── Africa ────────────────────────────────────────────────────────────
         MA("Harambe Market",
            park: .animalKingdom, land: "Africa",
            type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "665cc4c1-1bcd-4e5e-a44d-adb6a6889abc",
            dining: DM(price: .moderate, score: 7,
                       verdict: "Themed open-air market. Great atmosphere and the grilled corn is addictive.",
                       signature: ["Cheeseburger Kotlet", "Chicken Skewers", "Grilled Corn"],
                       mobileOrder: true, indoor: false, kids: true,
                       dietary: [.vegetarianFriendly, .kidsMenu])),
+        // NOTE (2026-10-05): Harambe Market's menu changed substantially
+        // after an Oct 2025–Feb 2026 refurbishment (shifted away from the
+        // African-inspired items referenced above). This DiningMetadata is
+        // likely stale. Flagged per Product decision 2026-10-05 — NOT
+        // rewritten in this gate; requires separate editorial authorization.
+
+        // factual-only — Product decision 2026-10-05
+        MA("Tusker House Restaurant",
+           park: .animalKingdom, land: "Africa",
+           type: .tableService, outdoor: false, map: 3, seed: true,
+           entityId: "d58db4d0-3bad-4655-937b-1cbc9ed0e880"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Kusafiri Coffee Shop & Bakery",
+           park: .animalKingdom, land: "Africa",
+           type: .quickService, outdoor: true, seed: true),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Dawa Bar",
+           park: .animalKingdom, land: "Africa",
+           type: .lounge, outdoor: true, map: 3, seed: true,
+           entityId: "1286aad3-bdbe-401b-99ef-4097477c556d"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Tamu Tamu Refreshments",
+           park: .animalKingdom, land: "Africa",
+           type: .snackStand, outdoor: true, seed: true),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Harambe Fruit Market",
+           park: .animalKingdom, land: "Africa",
+           type: .snackStand, outdoor: true, seed: true),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Mahindi",
+           park: .animalKingdom, land: "Africa",
+           type: .snackStand, outdoor: true, seed: true),
 
         // ── Asia ──────────────────────────────────────────────────────────────
         MA("Yak & Yeti Local Food Cafes",
@@ -715,16 +813,76 @@ extension RideMasterData {
                       signature: ["Fried Chicken Pot Sticker", "Asian Chicken Sandwich"],
                       mobileOrder: true, indoor: false, kids: true,
                       dietary: [.kidsMenu])),
+        // NOTE: no verified ThemeParks.wiki coordinate found for this venue
+        // specifically (distinct from "Yak & Yeti Restaurant" below) —
+        // existing map: 3 / no-coordinate gap left unchanged, per Product
+        // instruction to leave absent coordinates absent rather than guess.
+
+        // factual-only — Product decision 2026-10-05
+        MA("Yak & Yeti Restaurant",
+           park: .animalKingdom, land: "Asia",
+           type: .tableService, outdoor: false, map: 3, seed: true,
+           entityId: "cea213d9-bf4f-408a-ac61-768e7709ab7d"),
+
+        // factual-only — Product decision 2026-10-05: canonical identity for
+        // the Thirsty River / Trek Snacks ambiguity. "Trek Snacks Grab and
+        // Go" intentionally NOT added as a separate venue.
+        MA("Thirsty River Bar & Trek Snacks",
+           park: .animalKingdom, land: "Asia",
+           type: .lounge, outdoor: true, map: 3, seed: true,
+           entityId: "88d5c6ad-fd4a-4c8b-8ed3-656e3ee3a4eb"),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Yak & Yeti Quality Beverages",
+           park: .animalKingdom, land: "Asia",
+           type: .lounge, outdoor: true, map: 3, seed: true,
+           entityId: "84f51faa-72a3-4491-9449-20a999e5885c"),
+
+        // factual-only — Product decision 2026-10-05 (type: .lounge, per PO)
+        MA("Warung Outpost",
+           park: .animalKingdom, land: "Asia",
+           type: .lounge, outdoor: true, map: 3, seed: true,
+           entityId: "f609fcf6-0aef-44ef-b838-f10ff3b8543b"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Drinkwallah",
+           park: .animalKingdom, land: "Asia",
+           type: .snackStand, outdoor: true, seed: true),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Caravan Road",
+           park: .animalKingdom, land: "Asia",
+           type: .snackStand, outdoor: true, seed: true),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Anandapur Ice Cream Truck",
+           park: .animalKingdom, land: "Asia",
+           type: .snackStand, outdoor: true, seed: true),
 
         // ── Pandora ───────────────────────────────────────────────────────────
         MA("Satu'li Canteen",
            park: .animalKingdom, land: "Pandora",
            type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "7aa4f221-7b52-445e-bc27-f7baac4530ad",
            dining: DM(price: .moderate, score: 9,
                       verdict: "Best quick service in any WDW park. The bowls are fresh, filling, and genuinely good.",
                       signature: ["Cheeseburger Pod", "Vegetable Curry Bowl", "Blue Milk"],
                       mobileOrder: true, indoor: true, kids: true,
                       dietary: [.vegetarianFriendly, .glutenFriendly, .kidsMenu])),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Pongu Pongu",
+           park: .animalKingdom, land: "Pandora",
+           type: .snackStand, outdoor: true, seed: true),
+
+        // ── Main Entrance ─────────────────────────────────────────────────────
+        // factual-only — Product decision 2026-10-05: included as an Animal
+        // Kingdom Dining venue at its truthful location (Main Entrance, not
+        // inside a themed land), per explicit Product instruction.
+        MA("Rainforest Cafe at Disney's Animal Kingdom",
+           park: .animalKingdom, land: "Main Entrance",
+           type: .tableService, outdoor: false, map: 3, seed: true,
+           entityId: "224d803c-cd7a-45d8-bfab-d843f2030983"),
     ]
 }
 
