@@ -169,13 +169,13 @@ final class CommunityDiscoveryTests: XCTestCase {
     }
 
     func testExactlyTheCurrentPilotIsEligible() {
-        XCTAssertEqual(DiningVenueKeys.byStableID.count, 120)
+        XCTAssertEqual(DiningVenueKeys.byStableID.count, 155)
     }
 
     func testIneligibleParksRemainUnsupported() {
         for stableID in [
-            "Disneyland|Adventureland|Tropical Hideaway",
-            "Disneyland|New Orleans Square|Blue Bayou Restaurant",
+            "Disney California Adventure|Cars Land|Flo's V8 Café",
+            "Disney California Adventure|Pixar Pier|Lamplight Lounge",
             "Disney California Adventure|Avengers Campus|Pym Test Kitchen",
         ] {
             XCTAssertNil(CommunityRatingService.venueKey(forStableID: stableID))

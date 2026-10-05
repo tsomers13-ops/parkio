@@ -802,11 +802,11 @@ private extension RideMasterData {
 
         // ── Critter Country ───────────────────────────────────────────────────
         MA("The Many Adventures of Winnie the Pooh",
-           park: .disneyland, land: "Critter Country",
+           park: .disneyland, land: "Bayou Country",
            type: .ride, outdoor: false, map: 2, seed: true),
 
         MA("Tiana's Bayou Adventure",
-           park: .disneyland, land: "Critter Country",
+           park: .disneyland, land: "Bayou Country",
            type: .ride, outdoor: true, map: 2, seed: true),
 
         // ── Frontierland ──────────────────────────────────────────────────────

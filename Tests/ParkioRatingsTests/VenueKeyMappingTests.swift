@@ -4,14 +4,14 @@ import XCTest
 
 /// The cross-platform identity mapping.
 ///
-/// The 120/13 boundary against the real iOS venues is verified separately by
+/// The 155/6 boundary against the real iOS venues is verified separately by
 /// `dining-export --verify-venue-keys`, which owns the Dining models. These
 /// tests cover the mapping's own integrity.
 final class VenueKeyMappingTests: XCTestCase {
 
     func testMapsExactlyTheCurrentPilot() {
-        XCTAssertEqual(DiningVenueKeys.byStableID.count, 120)
-        XCTAssertEqual(DiningVenueKeys.expectedCount, 120)
+        XCTAssertEqual(DiningVenueKeys.byStableID.count, 155)
+        XCTAssertEqual(DiningVenueKeys.expectedCount, 155)
         XCTAssertEqual(DiningVenueKeys.byStableID.count, DiningVenueKeys.expectedCount)
     }
 
@@ -21,7 +21,7 @@ final class VenueKeyMappingTests: XCTestCase {
     }
 
     func testEveryVenueKeyIsWellFormed() {
-        let pattern = try! NSRegularExpression(pattern: "^(ep|hs|mk|ak)-[a-z0-9]+(-[a-z0-9]+)*$")
+        let pattern = try! NSRegularExpression(pattern: "^(ep|hs|mk|ak|dl)-[a-z0-9]+(-[a-z0-9]+)*$")
         for key in DiningVenueKeys.byStableID.values {
             let range = NSRange(key.startIndex..., in: key)
             XCTAssertNotNil(
@@ -40,12 +40,12 @@ final class VenueKeyMappingTests: XCTestCase {
         }
     }
 
-    func testOnlyEpcotHollywoodStudiosMagicKingdomAndAnimalKingdomArePresent() {
-        // The pilot is EPCOT + DHS + Magic Kingdom + Animal Kingdom. Anything
-        // else means the mapping was regenerated against an expanded backend
-        // without an explicit gate.
+    func testOnlyEpcotHollywoodStudiosMagicKingdomAnimalKingdomAndDisneylandArePresent() {
+        // The pilot is EPCOT + DHS + Magic Kingdom + Animal Kingdom +
+        // Disneyland. Anything else means the mapping was regenerated against
+        // an expanded backend without an explicit gate.
         let parks = Set(DiningVenueKeys.byStableID.keys.compactMap { $0.components(separatedBy: "|").first })
-        XCTAssertEqual(parks, ["EPCOT", "Hollywood Studios", "Magic Kingdom", "Animal Kingdom"])
+        XCTAssertEqual(parks, ["EPCOT", "Hollywood Studios", "Magic Kingdom", "Animal Kingdom", "Disneyland"])
     }
 
     func testPrefixMatchesPark() {
@@ -60,6 +60,8 @@ final class VenueKeyMappingTests: XCTestCase {
                 XCTAssertTrue(key.hasPrefix("mk-"), "\(key) is not a Magic Kingdom key")
             case "Animal Kingdom":
                 XCTAssertTrue(key.hasPrefix("ak-"), "\(key) is not an Animal Kingdom key")
+            case "Disneyland":
+                XCTAssertTrue(key.hasPrefix("dl-"), "\(key) is not a Disneyland key")
             default:
                 XCTFail("unexpected park in mapping: \(park ?? "nil")")
             }
@@ -75,11 +77,12 @@ final class VenueKeyMappingTests: XCTestCase {
     }
 
     func testVenueOutsideThePilotIsNotRateable() {
-        // A real Disneyland venue: present in the app, not yet backed by
-        // the ratings service. It must resolve to nil, not be guessed at.
-        let dl = "Disneyland|Adventureland|Tropical Hideaway"
-        XCTAssertNil(DiningVenueKeys.venueKey(forStableID: dl))
-        XCTAssertFalse(DiningVenueKeys.isRateable(stableID: dl))
+        // A real Disney California Adventure venue: present in the app, not
+        // yet backed by the ratings service. It must resolve to nil, not be
+        // guessed at.
+        let dca = "Disney California Adventure|Cars Land|Flo's V8 Café"
+        XCTAssertNil(DiningVenueKeys.venueKey(forStableID: dca))
+        XCTAssertFalse(DiningVenueKeys.isRateable(stableID: dca))
     }
 
     func testNoFuzzyMatching() {
@@ -100,6 +103,6 @@ final class VenueKeyMappingTests: XCTestCase {
             CommunityRatingService.venueKey(forStableID: "EPCOT|World Showcase|Le Cellier Steakhouse"),
             "ep-le-cellier"
         )
-        XCTAssertFalse(CommunityRatingService.isRateable(stableID: "Disneyland|Fantasyland|Nowhere"))
+        XCTAssertFalse(CommunityRatingService.isRateable(stableID: "Disney California Adventure|Nowhere|Nowhere"))
     }
 }

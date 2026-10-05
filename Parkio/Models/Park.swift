@@ -167,7 +167,7 @@ enum Park: String, CaseIterable, Identifiable {
                 "Main Street, U.S.A.",
                 "Adventureland",
                 "New Orleans Square",
-                "Critter Country",
+                "Bayou Country",
                 "Frontierland",
                 "Fantasyland",
                 "Mickey's Toontown",

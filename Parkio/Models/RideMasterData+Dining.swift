@@ -890,57 +890,185 @@ extension RideMasterData {
 
 extension RideMasterData {
 
+    // Disneyland parity expansion (2026-10-05): 28 venues added below alongside
+    // the original 7. All new venues are factual-only — no DiningMetadata, no
+    // invented scores/verdicts/signature items — per Product decision.
+    // entityId + map: 3 set only where a coordinate was verified via the
+    // ThemeParks.wiki API; venues without a verified coordinate have map
+    // omitted (no pin expected yet), consistent with the Coverage contract in
+    // MapCoordinates.json. Alien Pizza Planet and The Tropical Hideaway were
+    // matched via ThemeParks.wiki's "...Express" sub-listing for the same
+    // physical building (a separate mobile-order-counter entity at that
+    // location), not an exact name match — flagged here for future
+    // maintainers.
+    //
+    // Identity corrections approved 2026-10-05:
+    //   Hungry Bear Restaurant (Critter Country) → Hungry Bear Barbecue
+    //     Jamboree (Bayou Country) — name + land, atomic (see Park.swift).
+    //   Tropical Hideaway → The Tropical Hideaway (display-name-only).
+    //   Café Orleans → Cafe Orleans (display-name-only).
+    //
+    // Excluded by Product decision: the six park-wide umbrella cart
+    // categories (Churro/Fruit/Lemonade/Popcorn/Pretzel/Turkey Leg Carts —
+    // span multiple physical locations, don't map to Park|Land|Name),
+    // Fantasmic! Dining Packages and Plaza Inn Dining Package (reservation
+    // products on existing kitchens, not separate physical venues),
+    // Tomorrowland Skyline Terrace (Disney tags it "Dining Events" like the
+    // two packages above, its own page omits a specific land, and it was
+    // confirmed temporarily unavailable as of 2026-10-05), Club 33
+    // (membership-gated, absent from Disney's public dining directory),
+    // Ship to Shore Marketplace and Tropical Imports (absent from Disney's
+    // current directory — stale names; South Seas Traders is the real
+    // current venue).
     static let disneylandDining: [MasterAttraction] = [
 
+        // ── Main Street, U.S.A. ──────────────────────────────────────────────
+        // factual-only — Product decision 2026-10-05
+        MA("Carnation Café",
+           park: .disneyland, land: "Main Street, U.S.A.",
+           type: .tableService, outdoor: false, map: 3, seed: true,
+           entityId: "c7ce633e-1f6b-4699-98c9-6772bb196b16"),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Gibson Girl Ice Cream Parlor",
+           park: .disneyland, land: "Main Street, U.S.A.",
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "2215958d-c6b0-4513-912c-706dbf3e46e9"),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Jolly Holiday Bakery Cafe",
+           park: .disneyland, land: "Main Street, U.S.A.",
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "d295c224-299f-4fda-9d14-1d7780401929"),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Little Red Wagon",
+           park: .disneyland, land: "Main Street, U.S.A.",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "1cdd0f00-de40-4f7f-bf1b-014926d51aca"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Market House",
+           park: .disneyland, land: "Main Street, U.S.A.",
+           type: .quickService, outdoor: false, seed: true),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Refreshment Corner",
+           park: .disneyland, land: "Main Street, U.S.A.",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "27ab9530-4fd5-4e9c-a5b1-d553fed56655"),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Plaza Inn",
+           park: .disneyland, land: "Main Street, U.S.A.",
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "8deb6338-b65f-467c-9dd3-56ed8c02c355"),
+
         // ── Adventureland ─────────────────────────────────────────────────────
-        MA("Tropical Hideaway",
+        MA("The Tropical Hideaway",
            park: .disneyland, land: "Adventureland",
            type: .snackStand, outdoor: true, map: 3, seed: true,
+           entityId: "3c8d7efa-b0a5-4e2d-811e-9da29d65f2f0",
            dining: DM(price: .budget, score: 9,
                       verdict: "More Dole Whip flavors than the Tiki Bar and almost always a shorter line.",
                       signature: ["Dole Whip", "Coconut Soft Serve", "Tropical Float"],
                       mobileOrder: false, indoor: false, kids: true,
                       dietary: [.veganOptions, .vegetarianFriendly, .dairyFree])),
+        // NOTE: renamed from "Tropical Hideaway" — Disney's current official
+        // name is "The Tropical Hideaway." Display-name-only; stableID
+        // changes accordingly (no venueKey existed yet, so no migration cost).
 
         MA("Bengal Barbecue",
            park: .disneyland, land: "Adventureland",
            type: .snackStand, outdoor: true, map: 3, seed: true,
+           entityId: "7bf706cd-0cf5-4640-a079-23a7a46f4f5b",
            dining: DM(price: .moderate, score: 8,
                       verdict: "Best walk-up snack in Disneyland. Grab a beef skewer while waiting for Indiana Jones.",
                       signature: ["Outback Skewer (Beef)", "Pretzel Bread", "Chicken Skewer"],
                       mobileOrder: false, indoor: false, kids: true,
                       dietary: [.kidsMenu])),
 
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("South Seas Traders",
+           park: .disneyland, land: "Adventureland",
+           type: .snackStand, outdoor: true, seed: true),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Tiki Juice Bar",
+           park: .disneyland, land: "Adventureland",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "c48369cc-e341-4066-96b8-3687ccad1e49"),
+
         // ── New Orleans Square ────────────────────────────────────────────────
         MA("Blue Bayou Restaurant",
            park: .disneyland, land: "New Orleans Square",
            type: .tableService, outdoor: false, map: 3, seed: true,
+           entityId: "4784fd0f-9ba3-4a5d-a4b9-ed33b93c4489",
            dining: DM(price: .upscale, score: 9,
                       verdict: "Dine inside Pirates of the Caribbean. The atmosphere alone justifies the ADR.",
                       signature: ["Jambalaya", "Monte Cristo Sandwich", "Bayou Trio"],
                       mobileOrder: false, indoor: true, kids: true,
                       dietary: [.vegetarianFriendly, .kidsMenu])),
 
-        MA("Café Orleans",
+        MA("Cafe Orleans",
            park: .disneyland, land: "New Orleans Square",
            type: .tableService, outdoor: false, map: 3, seed: true,
+           entityId: "3665b38e-3e56-4c84-ad20-3e39672079a1",
            dining: DM(price: .upscale, score: 8,
                       verdict: "Better food than Blue Bayou, lower profile. The Monte Cristo is iconic.",
                       signature: ["Monte Cristo Sandwich", "Pommes Frites", "Beignets"],
                       mobileOrder: false, indoor: true, kids: true,
                       dietary: [.vegetarianFriendly, .kidsMenu])),
+        // NOTE: renamed from "Café Orleans" — Disney's current official
+        // spelling omits the accent ("Cafe Orleans"). Display-name-only.
 
-        // ── Critter Country ───────────────────────────────────────────────────
-        MA("Hungry Bear Restaurant",
-           park: .disneyland, land: "Critter Country",
+        // factual-only — Product decision 2026-10-05
+        MA("Harbour Galley",
+           park: .disneyland, land: "New Orleans Square",
            type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "92f45ae9-5e6d-4923-88d4-7f676c2d10b2"),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Mint Julep Bar",
+           park: .disneyland, land: "New Orleans Square",
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           entityId: "2e0d0726-07c7-42f6-b839-68a56a41e268"),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Royal Street Veranda",
+           park: .disneyland, land: "New Orleans Square",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "d2feb649-41ea-4097-a45b-10cfb48d13aa"),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Tiana's Palace",
+           park: .disneyland, land: "New Orleans Square",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "f0f57b5c-5bc5-49d6-8b7f-34e4aa03c2e8"),
+
+        // ── Bayou Country ─────────────────────────────────────────────────────
+        MA("Hungry Bear Barbecue Jamboree",
+           park: .disneyland, land: "Bayou Country",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "fb686e53-e10d-4cd5-836c-7a4a93207361",
            dining: DM(price: .budget, score: 7,
                       verdict: "Hidden gem. Waterfront outdoor seating, consistently short lines, surprisingly good.",
                       signature: ["Funnel Cake Fries", "Fried Chicken Sandwich"],
                       mobileOrder: true, indoor: false, kids: true,
                       dietary: [.kidsMenu])),
+        // NOTE: renamed and relocated from "Hungry Bear Restaurant" in
+        // "Critter Country" — Disney renamed the land to "Bayou Country" and
+        // the venue to "Hungry Bear Barbecue Jamboree" in Oct/Nov 2024. Name
+        // + land identity migration, approved 2026-10-05 (no venueKey existed
+        // yet, so no cross-repo migration cost). See Park.swift for the
+        // corresponding land rename.
 
         // ── Frontierland ──────────────────────────────────────────────────────
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("The Golden Horseshoe",
+           park: .disneyland, land: "Frontierland",
+           type: .quickService, outdoor: false, seed: true),
+
         MA("Rancho del Zocalo Restaurante",
            park: .disneyland, land: "Frontierland",
            type: .quickService, outdoor: false, map: 3, seed: true,
@@ -949,16 +1077,104 @@ extension RideMasterData {
                       signature: ["Carne Asada Plate", "Fish Tacos", "Cheese Enchiladas"],
                       mobileOrder: true, indoor: true, kids: true,
                       dietary: [.vegetarianFriendly, .kidsMenu])),
+        // NOTE: no verified ThemeParks.wiki coordinate found for this venue
+        // specifically — existing map: 3 / no-coordinate gap left unchanged,
+        // per Product instruction to leave absent coordinates absent.
+
+        // factual-only — Product decision 2026-10-05
+        MA("River Belle Terrace",
+           park: .disneyland, land: "Frontierland",
+           type: .tableService, outdoor: true, map: 3, seed: true,
+           entityId: "057872ed-3f27-496f-80e2-edd3639ba084"),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Stage Door Café",
+           park: .disneyland, land: "Frontierland",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "fae2515c-777b-4f37-b647-06383c1904d3"),
+
+        // ── Fantasyland ───────────────────────────────────────────────────────
+        // factual-only — Product decision 2026-10-05
+        MA("Edelweiss Snacks",
+           park: .disneyland, land: "Fantasyland",
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           entityId: "fbee3a16-4be3-47f3-97a7-70ef09aff088"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Maurice's Treats",
+           park: .disneyland, land: "Fantasyland",
+           type: .quickService, outdoor: true, seed: true),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Red Rose Taverne",
+           park: .disneyland, land: "Fantasyland",
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "1db8443f-624c-4d95-967c-1766a52b24ec"),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Troubadour Tavern",
+           park: .disneyland, land: "Fantasyland",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "3a63d923-413a-4512-b873-c690596fb479"),
+
+        // ── Mickey's Toontown ─────────────────────────────────────────────────
+        // factual-only — Product decision 2026-10-05
+        MA("Café Daisy",
+           park: .disneyland, land: "Mickey's Toontown",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "f8d61baa-dc1a-4e82-ab6b-f24bdd83e6e1"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Good Boy! Grocers",
+           park: .disneyland, land: "Mickey's Toontown",
+           type: .snackStand, outdoor: true, seed: true),
 
         // ── Tomorrowland ──────────────────────────────────────────────────────
         MA("Galactic Grill",
            park: .disneyland, land: "Tomorrowland",
            type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "e88cbd63-e385-423b-9565-fbe5faeb9050",
            dining: DM(price: .budget, score: 6,
                       verdict: "Quick lunch before Space Mountain or Buzz. Nothing special; fast and convenient.",
                       signature: ["Poe's Shakshuka", "Space Tacos", "Cosmic Burger"],
                       mobileOrder: true, indoor: false, kids: true,
                       dietary: [.vegetarianFriendly, .kidsMenu])),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Alien Pizza Planet",
+           park: .disneyland, land: "Tomorrowland",
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "ce05c344-81fc-4b32-8717-cb1c26c65292"),
+
+        // ── Star Wars: Galaxy's Edge ──────────────────────────────────────────
+        // factual-only — Product decision 2026-10-05
+        MA("Docking Bay 7 Food and Cargo",
+           park: .disneyland, land: "Star Wars: Galaxy's Edge",
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "8abfd370-4c29-4154-bb96-41e031b78d29"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-05
+        MA("Kat Saka's Kettle",
+           park: .disneyland, land: "Star Wars: Galaxy's Edge",
+           type: .snackStand, outdoor: true, seed: true),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Milk Stand",
+           park: .disneyland, land: "Star Wars: Galaxy's Edge",
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           entityId: "94453dec-3f16-43a6-94c9-be55144606b8"),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Oga's Cantina at the Disneyland Resort",
+           park: .disneyland, land: "Star Wars: Galaxy's Edge",
+           type: .lounge, outdoor: false, map: 3, seed: true,
+           entityId: "eb29424b-42ed-41a2-891c-d4c9494eab12"),
+
+        // factual-only — Product decision 2026-10-05
+        MA("Ronto Roasters",
+           park: .disneyland, land: "Star Wars: Galaxy's Edge",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "1822fb68-5f64-4329-b7e2-d4065f7159ac"),
     ]
 }
 

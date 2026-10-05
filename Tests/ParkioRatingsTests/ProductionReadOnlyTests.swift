@@ -52,8 +52,8 @@ final class ProductionReadOnlyTests: XCTestCase {
         // nil is what stops the detail screen building the section, so this is
         // the guarantee that an ineligible venue makes no request at all.
         for stableID in [
-            "Disneyland|Adventureland|Tropical Hideaway",
-            "Disneyland|New Orleans Square|Blue Bayou Restaurant",
+            "Disney California Adventure|Cars Land|Flo's V8 Café",
+            "Disney California Adventure|Pixar Pier|Lamplight Lounge",
         ] {
             XCTAssertNil(CommunityRatingService.venueKey(forStableID: stableID))
         }
