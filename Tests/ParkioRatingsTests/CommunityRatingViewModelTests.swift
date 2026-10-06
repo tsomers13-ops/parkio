@@ -1,4 +1,5 @@
 import XCTest
+import SwiftData
 
 @testable import Parkio
 
@@ -355,6 +356,157 @@ final class CommunityRatingViewModelTests: XCTestCase {
         XCTAssertEqual(vm.form, .failure)
 
         await vm.submit()
+        XCTAssertEqual(vm.form, .success(.created))
+    }
+
+    // MARK: - Visit state (Community Rating implies a local visit)
+    //
+    // The Pecos Bill bug: submitting a Community Rating never touched
+    // Ride.isRidden at all, so the detail screen could show the guest's own
+    // rating while still claiming "Haven't tried this yet". onSubmitSucceeded
+    // is the one approved cross-system hook — these tests drive it exactly as
+    // CommunityRatingSection wires it (Ride.logVisitIfNeeded), through the
+    // real submit() state machine, with no SwiftUI involved.
+
+    private func makeRideContext() throws -> (ModelContext, Ride) {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: Ride.self, RideLog.self, configurations: config)
+        let context = ModelContext(container)
+        let ride = Ride(id: "Magic Kingdom|Frontierland|Pecos Bill Tall Tale Inn and Cafe",
+                         name: "Pecos Bill Tall Tale Inn and Cafe", park: "Magic Kingdom",
+                         land: "Frontierland", order: 0)
+        context.insert(ride)
+        return (context, ride)
+    }
+
+    func testFirstSuccessfulCommunityRatingCreatesExactlyOneVisit() async throws {
+        let (context, ride) = try makeRideContext()
+        XCTAssertFalse(ride.isRidden)
+
+        let vm = model(FakeTransport([
+            .init(200, zeroBody),
+            .init(201, #"{"credential":"v1.new.sig"}"#),
+            .init(201, """
+            {"rating":{"overall":4,"taste":null,"value":null,"quality":null},
+             "aggregate":{"venueKey":"ep-le-cellier","ratingCount":1,"overallAverage":4,
+              "tasteAverage":null,"tasteCount":0,"valueAverage":null,"valueCount":0,
+              "qualityAverage":null,"qualityCount":0}}
+            """),
+        ]))
+        vm.onSubmitSucceeded = { ride.logVisitIfNeeded(in: context) }
+        vm.loadIfNeeded()
+        await settle()
+
+        vm.openForm()
+        vm.draftOverall = 4
+        await vm.submit()
+
+        XCTAssertEqual(vm.form, .success(.created))
+        XCTAssertTrue(ride.isRidden)
+        XCTAssertEqual(ride.rideCount, 1)
+    }
+
+    func testCommunityRatingUpdateDoesNotIncrementAnExistingVisit() async throws {
+        let (context, ride) = try makeRideContext()
+        let existingVisit = RideLog(date: Date(), ride: ride)
+        context.insert(existingVisit)
+        ride.logs.append(existingVisit)
+        XCTAssertEqual(ride.rideCount, 1)
+
+        let store = InMemoryRatingCredentialStore(credential: "v1.abc.sig")
+        let personal = #"{"venueKey":"ep-le-cellier","rating":{"overall":4,"taste":null,"value":null,"quality":null}}"#
+        let vm = model(FakeTransport([
+            .init(200, ratedBody),
+            .init(200, personal),
+            .init(200, """
+            {"rating":{"overall":2,"taste":null,"value":null,"quality":null},
+             "aggregate":{"venueKey":"ep-le-cellier","ratingCount":328,"overallAverage":4.6,
+              "tasteAverage":null,"tasteCount":0,"valueAverage":null,"valueCount":0,
+              "qualityAverage":null,"qualityCount":0}}
+            """),
+        ]), credentials: store)
+        vm.onSubmitSucceeded = { ride.logVisitIfNeeded(in: context) }
+        vm.loadIfNeeded()
+        await settle()
+
+        vm.openForm()
+        vm.draftOverall = 2
+        await vm.submit()
+
+        XCTAssertEqual(vm.form, .success(.updated))
+        XCTAssertEqual(ride.rideCount, 1, "updating an existing rating must not add a second visit")
+    }
+
+    func testFirstCommunityRatingOnAnAlreadyVisitedVenueDoesNotDuplicateTheVisit() async throws {
+        // A guest who logged a visit manually, then rates for the first time.
+        let (context, ride) = try makeRideContext()
+        let manualVisit = RideLog(date: Date(), ride: ride)
+        context.insert(manualVisit)
+        ride.logs.append(manualVisit)
+
+        let vm = model(FakeTransport([
+            .init(200, zeroBody),
+            .init(201, #"{"credential":"v1.new.sig"}"#),
+            .init(201, """
+            {"rating":{"overall":5,"taste":null,"value":null,"quality":null},
+             "aggregate":{"venueKey":"ep-le-cellier","ratingCount":1,"overallAverage":5,
+              "tasteAverage":null,"tasteCount":0,"valueAverage":null,"valueCount":0,
+              "qualityAverage":null,"qualityCount":0}}
+            """),
+        ]))
+        vm.onSubmitSucceeded = { ride.logVisitIfNeeded(in: context) }
+        vm.loadIfNeeded()
+        await settle()
+
+        vm.openForm()
+        vm.draftOverall = 5
+        await vm.submit()
+
+        XCTAssertEqual(vm.form, .success(.created))
+        XCTAssertEqual(ride.rideCount, 1, "a first rating on an already-visited venue must not add a second visit")
+    }
+
+    func testFailedCommunityRatingCreatesNoVisit() async throws {
+        let (context, ride) = try makeRideContext()
+        let store = InMemoryRatingCredentialStore(credential: "v1.abc.sig")
+        let vm = model(FakeTransport([
+            .init(200, zeroBody),
+            .init(200, noPersonal),
+            .init(503, #"{"error":"ratings_write_failed"}"#),
+        ]), credentials: store)
+        vm.onSubmitSucceeded = { ride.logVisitIfNeeded(in: context) }
+        vm.loadIfNeeded()
+        await settle()
+
+        vm.openForm()
+        vm.draftOverall = 4
+        await vm.submit()
+
+        XCTAssertEqual(vm.form, .failure)
+        XCTAssertFalse(ride.isRidden, "a failed submission must never create a visit")
+        XCTAssertEqual(ride.rideCount, 0)
+    }
+
+    func testSubmitSucceededHookIsOptionalAndSafeToLeaveUnset() async {
+        // CommunityRatingSection always sets this, but the type itself must
+        // not require it — nothing here is SwiftData, by design.
+        let vm = model(FakeTransport([
+            .init(200, zeroBody),
+            .init(201, #"{"credential":"v1.new.sig"}"#),
+            .init(201, """
+            {"rating":{"overall":4,"taste":null,"value":null,"quality":null},
+             "aggregate":{"venueKey":"ep-le-cellier","ratingCount":1,"overallAverage":4,
+              "tasteAverage":null,"tasteCount":0,"valueAverage":null,"valueCount":0,
+              "qualityAverage":null,"qualityCount":0}}
+            """),
+        ]))
+        vm.loadIfNeeded()
+        await settle()
+
+        vm.openForm()
+        vm.draftOverall = 4
+        await vm.submit()
+
         XCTAssertEqual(vm.form, .success(.created))
     }
 }

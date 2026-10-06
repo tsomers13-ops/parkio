@@ -13,6 +13,9 @@
 //     • Rated ★★★☆☆        → "Decent, worth a try · Visited [date]"
 //     • Rated ★★☆☆☆/★☆☆☆☆ → "Avoid? …" or "Previously rated …" + date
 //     • Unrated            → "Haven't tried this yet · Parkio: N/10"
+//     • Unrated but Ride.isRidden → "Visited — not yet rated · Visited [date]"
+//       (overridden so this section can never contradict the hero header's
+//       "Visited N×", which reads Ride.isRidden directly — see primaryText)
 //
 // DiningRatingSection (existing) — stars, heart, label, notes, date, edit.
 //
@@ -61,7 +64,7 @@ struct DiningRecommendationSection: View {
 
                 // ── Primary + secondary lines ────────────────────────
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(recommendation.label.displayString)
+                    Text(primaryText)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(
                             recommendation.label.isPositive
@@ -83,8 +86,23 @@ struct DiningRecommendationSection: View {
 
     // MARK: - Helpers
 
+    /// `recommendation.label` means "has this been RATED", not "has this been
+    /// VISITED" — those can disagree (e.g. a ride-log visit with no private
+    /// rating yet). Ride.isRidden is the single authoritative visited fact
+    /// shared with the hero header above, so this reconciles the label's own
+    /// copy only for the specific case where they'd otherwise contradict it.
+    private var primaryText: String {
+        recommendation.label.displayString(reconciledWithRideVisited: ride.isRidden)
+    }
+
     private var secondaryLine: String {
         if let r = currentRating, let visited = r.lastVisited {
+            let formatted = visited.formatted(date: .abbreviated, time: .omitted)
+            return "Last visited \(formatted)"
+        }
+        // No private rating, but the venue has been visited some other way
+        // (e.g. the "Log a visit" date picker) — still a visit, not nothing.
+        if ride.isRidden, let visited = ride.mostRecentDate {
             let formatted = visited.formatted(date: .abbreviated, time: .omitted)
             return "Last visited \(formatted)"
         }

@@ -16,12 +16,16 @@
 // down are different facts, and only the first is ever stated.
 
 import SwiftUI
+import SwiftData
 
 struct CommunityRatingSection: View {
 
     let venueKey: String
     let venueName: String
     let accentColor: Color
+    let ride: Ride
+
+    @Environment(\.modelContext) private var context
 
     @State private var model: CommunityRatingViewModel
 
@@ -33,10 +37,11 @@ struct CommunityRatingSection: View {
     /// real dismissal.
     @State private var isPresentingForm = false
 
-    init(venueKey: String, venueName: String, accentColor: Color) {
+    init(venueKey: String, venueName: String, accentColor: Color, ride: Ride) {
         self.venueKey = venueKey
         self.venueName = venueName
         self.accentColor = accentColor
+        self.ride = ride
         _model = State(wrappedValue: CommunityRatingViewModel(
             venueKey: venueKey,
             service: CommunityRatingService()
@@ -72,7 +77,13 @@ struct CommunityRatingSection: View {
                     .listRowBackground(AppColor.card)
             }
         }
-        .task { model.loadIfNeeded() }
+        .task {
+            // The one approved cross-system effect: a successful Community
+            // Rating implies a local visit. logVisitIfNeeded is idempotent,
+            // so re-assigning this on every task re-run is harmless.
+            model.onSubmitSucceeded = { ride.logVisitIfNeeded(in: context) }
+            model.loadIfNeeded()
+        }
         // Pushed onto the stack RideDetailView already owns — never presented
         // as a second sheet over the dining detail sheet. See the note at the
         // top of CommunityRatingForm.swift for why.

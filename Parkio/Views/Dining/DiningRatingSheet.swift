@@ -6,9 +6,9 @@
 //   • Notes         (optional, ≤ 200 chars with live counter)
 //
 // On save:
-//   • If this is the first rating AND the venue has zero logged visits,
-//     automatically inserts a RideLog for today so the venue appears "visited".
-//   • lastVisited is derived from Ride.mostRecentDate after any auto-log.
+//   • Calls Ride.logVisitIfNeeded(in:) so the venue has at least one logged
+//     visit — a no-op if one already exists, so re-saving never double-logs.
+//   • lastVisited is derived from Ride.mostRecentDate after that call.
 //   • Persisted via DiningRatingStore → UserDefaults JSON.
 //
 // Ride recommendation logic is completely unaffected — dining venues are
@@ -134,13 +134,10 @@ struct DiningRatingSheet: View {
     // MARK: - Save
 
     private func saveRating() {
-        // Auto-log today as a visit when saving the first rating for an unvisited venue.
-        if existing == nil && ride.logs.isEmpty {
-            let log = RideLog(date: Date(), ride: ride)
-            context.insert(log)
-            ride.logs.append(log)
-            try? context.save()
-        }
+        // Ensures a visit exists before the rating is saved — a private note
+        // about a venue the guest has never logged otherwise leaves
+        // Ride.isRidden false while a DiningRating exists for it.
+        ride.logVisitIfNeeded(in: context)
 
         let newRating = DiningRating(
             attractionID: ride.id,

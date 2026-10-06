@@ -91,6 +91,23 @@ struct DiningRecommendation: Identifiable, Sendable {
             return false
         }
 
+        // MARK: Presentation reconciliation
+
+        /// `displayString`, reconciled against the authoritative visit fact.
+        ///
+        /// `isUnvisited` means "never rated" — it says nothing about whether
+        /// the venue has actually been visited some other way (a logged ride
+        /// date, "Mark visited", or a Community Rating). When it has, showing
+        /// `displayString` verbatim ("Haven't tried this yet") would
+        /// contradict `Ride.isRidden`, which every other surface on the
+        /// detail screen reads directly. This does not change `isUnvisited`,
+        /// `displayString`, or any ranking/scoring in DiningRecommendationService
+        /// — it is a presentation-only override call sites opt into.
+        func displayString(reconciledWithRideVisited isRidden: Bool) -> String {
+            guard isUnvisited, isRidden else { return displayString }
+            return "Visited — not yet rated"
+        }
+
         // MARK: Private
 
         private func starGlyph(_ filled: Int) -> String {

@@ -8,6 +8,12 @@
 //
 // Two independent state machines rather than a pile of Booleans: what we know
 // about the venue, and what the guest is doing about it.
+//
+// The one approved cross-system effect — a successful Community Rating
+// implies a local visit — is NOT implemented here. `onSubmitSucceeded` is a
+// plain closure the caller supplies; this type never touches SwiftData or
+// the private journal directly, and never fires that closure except after a
+// confirmed server success.
 
 import Foundation
 import Observation
@@ -62,6 +68,14 @@ final class CommunityRatingViewModel {
     private let service: CommunityRatingService
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
+
+    /// Called once after every successful submit — create or update alike —
+    /// so the caller can ensure the venue has a local visit recorded. Never
+    /// called on failure. Deliberately a closure rather than a SwiftData
+    /// dependency here: this type stays free of persistence concerns (see the
+    /// header comment), and the caller (CommunityRatingSection) is where the
+    /// Ride object and ModelContext already live.
+    var onSubmitSucceeded: (() -> Void)?
 
     init(venueKey: String, service: CommunityRatingService) {
         self.venueKey = venueKey
@@ -167,6 +181,10 @@ final class CommunityRatingViewModel {
             // Captured from the response before any state is replaced, so a
             // first rating can never be announced as an update.
             form = .success(result.outcome)
+            // Only on confirmed success — never on a failed or in-flight
+            // submission. logVisitIfNeeded's own idempotent guard (not this
+            // closure) is what keeps an update from inflating the visit count.
+            onSubmitSucceeded?()
         } catch {
             // Selections are deliberately left intact so retry is one tap.
             //
