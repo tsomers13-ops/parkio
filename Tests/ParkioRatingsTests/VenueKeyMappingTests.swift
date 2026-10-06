@@ -4,14 +4,14 @@ import XCTest
 
 /// The cross-platform identity mapping.
 ///
-/// The 155/6 boundary against the real iOS venues is verified separately by
+/// The exact boundary against the real iOS venues is verified separately by
 /// `dining-export --verify-venue-keys`, which owns the Dining models. These
 /// tests cover the mapping's own integrity.
 final class VenueKeyMappingTests: XCTestCase {
 
     func testMapsExactlyTheCurrentPilot() {
-        XCTAssertEqual(DiningVenueKeys.byStableID.count, 155)
-        XCTAssertEqual(DiningVenueKeys.expectedCount, 155)
+        XCTAssertEqual(DiningVenueKeys.byStableID.count, 193)
+        XCTAssertEqual(DiningVenueKeys.expectedCount, 193)
         XCTAssertEqual(DiningVenueKeys.byStableID.count, DiningVenueKeys.expectedCount)
     }
 
@@ -21,7 +21,7 @@ final class VenueKeyMappingTests: XCTestCase {
     }
 
     func testEveryVenueKeyIsWellFormed() {
-        let pattern = try! NSRegularExpression(pattern: "^(ep|hs|mk|ak|dl)-[a-z0-9]+(-[a-z0-9]+)*$")
+        let pattern = try! NSRegularExpression(pattern: "^(ep|hs|mk|ak|dl|dca)-[a-z0-9]+(-[a-z0-9]+)*$")
         for key in DiningVenueKeys.byStableID.values {
             let range = NSRange(key.startIndex..., in: key)
             XCTAssertNotNil(
@@ -40,12 +40,13 @@ final class VenueKeyMappingTests: XCTestCase {
         }
     }
 
-    func testOnlyEpcotHollywoodStudiosMagicKingdomAnimalKingdomAndDisneylandArePresent() {
-        // The pilot is EPCOT + DHS + Magic Kingdom + Animal Kingdom +
-        // Disneyland. Anything else means the mapping was regenerated against
+    func testOnlyTheSixSupportedDiningParksArePresent() {
+        // All six Dining parks are now eligible — EPCOT, Hollywood Studios,
+        // Magic Kingdom, Animal Kingdom, Disneyland, and Disney California
+        // Adventure. Anything else means the mapping was regenerated against
         // an expanded backend without an explicit gate.
         let parks = Set(DiningVenueKeys.byStableID.keys.compactMap { $0.components(separatedBy: "|").first })
-        XCTAssertEqual(parks, ["EPCOT", "Hollywood Studios", "Magic Kingdom", "Animal Kingdom", "Disneyland"])
+        XCTAssertEqual(parks, ["EPCOT", "Hollywood Studios", "Magic Kingdom", "Animal Kingdom", "Disneyland", "Disney California Adventure"])
     }
 
     func testPrefixMatchesPark() {
@@ -62,6 +63,8 @@ final class VenueKeyMappingTests: XCTestCase {
                 XCTAssertTrue(key.hasPrefix("ak-"), "\(key) is not an Animal Kingdom key")
             case "Disneyland":
                 XCTAssertTrue(key.hasPrefix("dl-"), "\(key) is not a Disneyland key")
+            case "Disney California Adventure":
+                XCTAssertTrue(key.hasPrefix("dca-"), "\(key) is not a Disney California Adventure key")
             default:
                 XCTFail("unexpected park in mapping: \(park ?? "nil")")
             }
@@ -76,13 +79,15 @@ final class VenueKeyMappingTests: XCTestCase {
         XCTAssertTrue(DiningVenueKeys.isRateable(stableID: "EPCOT|World Showcase|Le Cellier Steakhouse"))
     }
 
-    func testVenueOutsideThePilotIsNotRateable() {
-        // A real Disney California Adventure venue: present in the app, not
-        // yet backed by the ratings service. It must resolve to nil, not be
-        // guessed at.
-        let dca = "Disney California Adventure|Cars Land|Flo's V8 Café"
-        XCTAssertNil(DiningVenueKeys.venueKey(forStableID: dca))
-        XCTAssertFalse(DiningVenueKeys.isRateable(stableID: dca))
+    func testUnsupportedVenueIsNotRateable() {
+        // A synthetic, unsupported identity: no real Dining park in Parkio
+        // is modeled but Community-Ratings-ineligible anymore (all six are
+        // eligible), so this exercises the generic unknown-identity path
+        // rather than a park-eligibility boundary. It must resolve to nil,
+        // not be guessed at.
+        let unsupported = "Unsupported Park|Unknown Land|Unknown Venue"
+        XCTAssertNil(DiningVenueKeys.venueKey(forStableID: unsupported))
+        XCTAssertFalse(DiningVenueKeys.isRateable(stableID: unsupported))
     }
 
     func testNoFuzzyMatching() {

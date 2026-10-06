@@ -45,15 +45,17 @@ final class ProductionReadOnlyTests: XCTestCase {
         XCTAssertNil(try store.load(), "reading Production must not mint a credential")
     }
 
-    func testIneligibleVenueHasNoRatingIdentityAtAll() throws {
+    func testUnsupportedVenueHasNoRatingIdentityAtAll() throws {
         guard ProcessInfo.processInfo.environment["PARKIO_PRODUCTION_CHECK"] == "1" else {
             throw XCTSkip("PARKIO_PRODUCTION_CHECK not set")
         }
         // nil is what stops the detail screen building the section, so this is
-        // the guarantee that an ineligible venue makes no request at all.
+        // the guarantee that an unsupported identity makes no request at all.
+        // Synthetic — no real Dining park in Parkio is modeled but
+        // Community-Ratings-ineligible anymore (all six are eligible).
         for stableID in [
-            "Disney California Adventure|Cars Land|Flo's V8 Café",
-            "Disney California Adventure|Pixar Pier|Lamplight Lounge",
+            "Unsupported Park|Unknown Land|Unknown Venue",
+            "EPCOT|Nowhere|Nowhere",
         ] {
             XCTAssertNil(CommunityRatingService.venueKey(forStableID: stableID))
         }

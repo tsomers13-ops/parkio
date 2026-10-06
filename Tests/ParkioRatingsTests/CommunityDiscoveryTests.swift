@@ -169,14 +169,16 @@ final class CommunityDiscoveryTests: XCTestCase {
     }
 
     func testExactlyTheCurrentPilotIsEligible() {
-        XCTAssertEqual(DiningVenueKeys.byStableID.count, 155)
+        XCTAssertEqual(DiningVenueKeys.byStableID.count, 193)
     }
 
-    func testIneligibleParksRemainUnsupported() {
+    func testUnsupportedVenuesRemainUnsupported() {
+        // Synthetic unsupported identities — no real Dining park in Parkio
+        // is modeled but Community-Ratings-ineligible anymore (all six are
+        // eligible).
         for stableID in [
-            "Disney California Adventure|Cars Land|Flo's V8 Café",
-            "Disney California Adventure|Pixar Pier|Lamplight Lounge",
-            "Disney California Adventure|Avengers Campus|Pym Test Kitchen",
+            "Unsupported Park|Unknown Land|Unknown Venue",
+            "EPCOT|Nowhere|Nowhere",
         ] {
             XCTAssertNil(CommunityRatingService.venueKey(forStableID: stableID))
         }

@@ -175,6 +175,8 @@ enum Park: String, CaseIterable, Identifiable {
                 "Star Wars: Galaxy's Edge"
             ]
         case .californiaAdventure:
+            // San Fransokyo Square and Performance Corridor added 2026-10-06
+            // for the DCA Dining expansion — pure additions, no rename/removal.
             return [
                 "Buena Vista Street",
                 "Hollywood Land",
@@ -182,7 +184,9 @@ enum Park: String, CaseIterable, Identifiable {
                 "Cars Land",
                 "Pixar Pier",
                 "Paradise Gardens Park",
-                "Grizzly Peak"
+                "Grizzly Peak",
+                "San Fransokyo Square",
+                "Performance Corridor"
             ]
         }
     }

@@ -41,29 +41,31 @@ final class CommunityIsolationTests: XCTestCase {
     // MARK: - Eligibility
 
     func testExactlyTheCurrentPilotIsEligible() {
-        XCTAssertEqual(DiningVenueKeys.byStableID.count, 155)
+        XCTAssertEqual(DiningVenueKeys.byStableID.count, 193)
     }
 
-    func testIneligibleParksResolveToNoVenueKey() {
-        // One real venue from each park the backend does not cover yet.
-        let ineligible = [
-            "Disney California Adventure|Cars Land|Flo's V8 Café",
-            "Disney California Adventure|Pixar Pier|Lamplight Lounge",
-            "Disney California Adventure|Avengers Campus|Pym Test Kitchen",
+    func testUnsupportedIdentitiesResolveToNoVenueKey() {
+        // Synthetic unsupported identities — no real Dining park in Parkio
+        // is modeled but Community-Ratings-ineligible anymore (all six are
+        // eligible), so there is no real "ineligible park" fixture to use
+        // here; these exercise the generic unknown-identity path instead.
+        let unsupported = [
+            "Unsupported Park|Unknown Land|Unknown Venue",
+            "EPCOT|Nowhere|Nowhere",
         ]
-        for stableID in ineligible {
+        for stableID in unsupported {
             XCTAssertNil(
                 DiningVenueKeys.venueKey(forStableID: stableID),
-                "\(stableID) must not be rateable yet"
+                "\(stableID) must not be rateable"
             )
             XCTAssertFalse(DiningVenueKeys.isRateable(stableID: stableID))
         }
     }
 
-    func testIneligibleVenueYieldsNoServiceIdentityAtAll() {
+    func testUnsupportedVenueYieldsNoServiceIdentityAtAll() {
         // The detail screen builds the Community section only when this is
         // non-nil, so nil is what guarantees no UI and no network call.
-        XCTAssertNil(CommunityRatingService.venueKey(forStableID: "Disney California Adventure|Cars Land|Flo's V8 Café"))
+        XCTAssertNil(CommunityRatingService.venueKey(forStableID: "Unsupported Park|Unknown Land|Unknown Venue"))
     }
 
     func testEligibleVenueYieldsAVenueKey() {

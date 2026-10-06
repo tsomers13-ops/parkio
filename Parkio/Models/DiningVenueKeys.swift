@@ -5,8 +5,8 @@
 //   npm run dining:venuekeys:swift -- --output <iOS>/Parkio/Models/DiningVenueKeys.swift \
 //                                      --sidecar <iOS>/Tools/VenueKeys/DiningVenueKeys.json
 //
-// sourceSha256: 810bba891dc91d3c94428c1bb302469a505e3f3e8cef55ed82fd9976f53de234
-// entries: 155
+// sourceSha256: d5713912571b9814038e8c85acee46fae5dfd0e851f0e58b9f0018be02a35f12
+// entries: 193
 //
 // venueKey is the Website-owned immutable identity a Community Rating is filed
 // against. It is NOT a slug, NOT a stableID and NOT a display name, and it is
@@ -49,6 +49,44 @@ enum DiningVenueKeys {
         "Animal Kingdom|Main Entrance|Rainforest Cafe at Disney's Animal Kingdom": "ak-rainforest-cafe",
         "Animal Kingdom|Pandora|Pongu Pongu": "ak-pongu-pongu",
         "Animal Kingdom|Pandora|Satu'li Canteen": "ak-satuli-canteen",
+        "Disney California Adventure|Avengers Campus|Pym Tasting Lab": "dca-pym-tasting-lab",
+        "Disney California Adventure|Avengers Campus|Pym Test Kitchen": "dca-pym-test-kitchen",
+        "Disney California Adventure|Avengers Campus|Shawarma Palace": "dca-shawarma-palace",
+        "Disney California Adventure|Avengers Campus|Terran Treats": "dca-terran-treats",
+        "Disney California Adventure|Buena Vista Street|Carthay Circle Lounge": "dca-carthay-circle-lounge",
+        "Disney California Adventure|Buena Vista Street|Carthay Circle Restaurant": "dca-carthay-circle-restaurant",
+        "Disney California Adventure|Buena Vista Street|Clarabelle's Hand-Scooped Ice Cream": "dca-clarabelles-ice-cream",
+        "Disney California Adventure|Buena Vista Street|Fiddler, Fifer & Practical Cafe": "dca-fiddler-fifer-and-practical-cafe",
+        "Disney California Adventure|Cars Land|Cozy Cone Motel": "dca-cozy-cone-motel",
+        "Disney California Adventure|Cars Land|Fillmore's Taste-In": "dca-fillmores-taste-in",
+        "Disney California Adventure|Cars Land|Flo's V8 Café": "dca-flos-v8-cafe",
+        "Disney California Adventure|Grizzly Peak|Smokejumpers Grill": "dca-smokejumpers-grill",
+        "Disney California Adventure|Hollywood Land|Award Wieners": "dca-award-wieners",
+        "Disney California Adventure|Hollywood Land|Fairfax Market": "dca-fairfax-market",
+        "Disney California Adventure|Hollywood Land|Hollywood Lounge": "dca-hollywood-lounge",
+        "Disney California Adventure|Hollywood Land|Schmoozies!": "dca-schmoozies",
+        "Disney California Adventure|Hollywood Land|Studio Catering Co.": "dca-studio-catering-co",
+        "Disney California Adventure|Paradise Gardens Park|Bayside Brews": "dca-bayside-brews",
+        "Disney California Adventure|Paradise Gardens Park|Boardwalk Pizza & Pasta": "dca-boardwalk-pizza-and-pasta",
+        "Disney California Adventure|Paradise Gardens Park|Corn Dog Castle": "dca-corn-dog-castle",
+        "Disney California Adventure|Paradise Gardens Park|Paradise Garden Grill": "dca-paradise-garden-grill",
+        "Disney California Adventure|Performance Corridor|Magic Key Terrace - Magic Key Holder Dining": "dca-magic-key-terrace",
+        "Disney California Adventure|Performance Corridor|Mendocino Terrace": "dca-mendocino-terrace",
+        "Disney California Adventure|Performance Corridor|Sonoma Terrace": "dca-sonoma-terrace",
+        "Disney California Adventure|Performance Corridor|Wine Country Trattoria": "dca-wine-country-trattoria",
+        "Disney California Adventure|Pixar Pier|Adorable Snowman Frosted Treats": "dca-adorable-snowman",
+        "Disney California Adventure|Pixar Pier|Angry Dogs": "dca-angry-dogs",
+        "Disney California Adventure|Pixar Pier|Jack-Jack Cookie Num Nums": "dca-jack-jack-cookie-num-nums",
+        "Disney California Adventure|Pixar Pier|Lamplight Lounge": "dca-lamplight-lounge",
+        "Disney California Adventure|Pixar Pier|Poultry Palace": "dca-poultry-palace",
+        "Disney California Adventure|Pixar Pier|Señor Buzz Churros": "dca-senor-buzz-churros",
+        "Disney California Adventure|San Fransokyo Square|Aunt Cass Café": "dca-aunt-cass-cafe",
+        "Disney California Adventure|San Fransokyo Square|Cappuccino Cart": "dca-cappuccino-cart",
+        "Disney California Adventure|San Fransokyo Square|Cocina Cucamonga Mexican Grill": "dca-cocina-cucamonga",
+        "Disney California Adventure|San Fransokyo Square|Ghirardelli® Soda Fountain and Chocolate Shop": "dca-ghirardelli",
+        "Disney California Adventure|San Fransokyo Square|Lucky Fortune Cookery": "dca-lucky-fortune-cookery",
+        "Disney California Adventure|San Fransokyo Square|Port of San Fransokyo Cervecería": "dca-port-of-san-fransokyo",
+        "Disney California Adventure|San Fransokyo Square|Rita's Turbine Blenders": "dca-ritas-turbine-blenders",
         "Disneyland|Adventureland|Bengal Barbecue": "dl-bengal-barbecue",
         "Disneyland|Adventureland|South Seas Traders": "dl-south-seas-traders",
         "Disneyland|Adventureland|The Tropical Hideaway": "dl-tropical-hideaway",
@@ -181,7 +219,7 @@ enum DiningVenueKeys {
 
     /// Number of venues the backend currently accepts. Guards against a
     /// silent partial regeneration.
-    static let expectedCount = 155
+    static let expectedCount = 193
 
     /// The venueKey for a venue, or nil when it is not rateable yet.
     static func venueKey(forStableID stableID: String) -> String? {

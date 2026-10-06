@@ -1182,32 +1182,106 @@ extension RideMasterData {
 
 extension RideMasterData {
 
+    // DCA six-park-completion expansion (2026-10-06): 32 venues added alongside
+    // the original 6, bringing DCA to its approved target of 38. All 32 new
+    // venues are factual-only — no DiningMetadata, no invented scores/verdicts
+    // — per Product decision, same discipline as the Disneyland expansion.
+    // entityId + map: 3 set only where a coordinate was verified via the
+    // ThemeParks.wiki API (28 of 38 total, including all 6 pre-existing
+    // venues, which previously had none); venues without a verified
+    // coordinate have map omitted, per the Coverage contract in
+    // MapCoordinates.json. Cozy Cone Motel's entityId references the first of
+    // five identically-coordinated ThemeParks.wiki sub-entities ("Cozy Cone
+    // Motel 1 - Churros" through "5 - Popcone") — one physical stand exposed
+    // as five menu-window entities; treated as a single Parkio identity, not
+    // five, matching the Alien Pizza Planet / Tropical Hideaway alias
+    // precedent from the Disneyland expansion.
+    //
+    // Land taxonomy: Park.swift's .californiaAdventure.lands gained exactly
+    // two additions this gate — San Fransokyo Square and Performance
+    // Corridor — both pure additions (no rename, no removal); see Park.swift.
+    //
+    // Product decisions approved 2026-10-06:
+    //   Magic Key Terrace - Magic Key Holder Dining — INCLUDE. Real permanent
+    //     physical venue (Performance Corridor), first-party verified; the
+    //     Magic Key access restriction does not make the physical venue
+    //     cease to exist. Modeled with its exact current Disney name; the
+    //     access restriction itself is not modeled as metadata this gate.
+    //   Lamplight Lounge - Boardwalk Dining — EXCLUDED as a separate
+    //     identity. Same building as Lamplight Lounge (confirmed via
+    //     identical ThemeParks.wiki coordinates); represented entirely
+    //     through the single existing Lamplight Lounge identity below.
+    //
+    // Excluded by Product decision: Boudin Bread Cart (no retrievable
+    // first-party page, land not first-party verifiable, cart-class
+    // identity); the six park-wide umbrella cart categories (Churro/Fruit/
+    // Lemonade/Popcorn/Pretzel/Turkey Leg Carts — span multiple physical
+    // locations, don't map to Park|Land|Name); three seasonal marketplaces
+    // (Festive Food Marketplace, Food & Wine Festival Marketplaces, Lunar
+    // New Year Marketplaces — temporary/multi-location, not permanent fixed
+    // venues); four reservation/dining products (Oogie Boogie Bash Dessert
+    // Party, Sip and Savor Pass, World of Color Dessert Party, World of
+    // Color Dining Package — ticketed experiences/packages layered on
+    // existing kitchens, not separate physical venues).
     static let dcaDining: [MasterAttraction] = [
 
         // ── Avengers Campus ───────────────────────────────────────────────────
         MA("Pym Test Kitchen",
            park: .californiaAdventure, land: "Avengers Campus",
            type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "bbfe672e-075a-477a-b066-1117cf80030c",
            dining: DM(price: .moderate, score: 8,
                       verdict: "Best themed QS in DCA. The Pym-ini is a solid sandwich with great presentation.",
                       signature: ["Pym-ini Sandwich", "Not So Little Chicken Sandwich", "Cosmic Cream Orange Cake"],
                       mobileOrder: true, indoor: true, kids: true,
                       dietary: [.vegetarianFriendly, .kidsMenu])),
 
+        // factual-only — Product decision 2026-10-06
+        MA("Pym Tasting Lab",
+           park: .californiaAdventure, land: "Avengers Campus",
+           type: .lounge, outdoor: true, map: 3, seed: true,
+           entityId: "ca4b4068-02a7-4d98-92a6-f781ad5711d3"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-06
+        MA("Shawarma Palace",
+           park: .californiaAdventure, land: "Avengers Campus",
+           type: .quickService, outdoor: true, seed: true),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-06
+        MA("Terran Treats",
+           park: .californiaAdventure, land: "Avengers Campus",
+           type: .quickService, outdoor: true, seed: true),
+
         // ── Cars Land ─────────────────────────────────────────────────────────
         MA("Flo's V8 Café",
            park: .californiaAdventure, land: "Cars Land",
            type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "85201274-b743-41ca-95a1-d575a07811d0",
            dining: DM(price: .moderate, score: 7,
                       verdict: "Solid QS with great Cars Land theming. Best seat is outside near the fountain.",
                       signature: ["Radiator Springs Rotisserie Chicken", "Chili Mac", "Flo's Float"],
                       mobileOrder: true, indoor: false, kids: true,
                       dietary: [.vegetarianFriendly, .kidsMenu])),
 
+        // factual-only — Product decision 2026-10-06; entityId references the
+        // first of five identically-coordinated ThemeParks.wiki sub-entities
+        // ("Cozy Cone Motel 1 - Churros" .. "5 - Popcone") — one physical
+        // stand, five menu windows, treated as a single identity.
+        MA("Cozy Cone Motel",
+           park: .californiaAdventure, land: "Cars Land",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "7025ea53-9d7f-4e7f-a0ad-0ea9523c3c01"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-06
+        MA("Fillmore's Taste-In",
+           park: .californiaAdventure, land: "Cars Land",
+           type: .snackStand, outdoor: true, seed: true),
+
         // ── Pixar Pier ────────────────────────────────────────────────────────
         MA("Lamplight Lounge",
            park: .californiaAdventure, land: "Pixar Pier",
            type: .lounge, outdoor: false, map: 3, seed: true,
+           entityId: "1214912c-de6d-4493-9344-c245357f7af6",
            dining: DM(price: .upscale, score: 9,
                       verdict: "Best restaurant in DCA. Walk-up bar menu rivals the full reservation experience.",
                       signature: ["Lobster Nachos", "Pixar Short Rib Toast", "Passion Fruit Old Fashioned"],
@@ -1217,31 +1291,198 @@ extension RideMasterData {
         MA("Adorable Snowman Frosted Treats",
            park: .californiaAdventure, land: "Pixar Pier",
            type: .snackStand, outdoor: true, map: 3, seed: true,
+           entityId: "e8d7db35-0bc1-42e4-9e6b-a0bc7edbafb1",
            dining: DM(price: .budget, score: 8,
                       verdict: "Best soft serve in DCA. The lemon flavor is bright and weirdly refreshing.",
                       signature: ["Lemon Soft Serve", "Citrus Float"],
                       mobileOrder: false, indoor: false, kids: true,
                       dietary: [.vegetarianFriendly, .veganOptions])),
 
+        // factual-only; no verified coordinate — Product decision 2026-10-06
+        MA("Angry Dogs",
+           park: .californiaAdventure, land: "Pixar Pier",
+           type: .snackStand, outdoor: true, seed: true),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-06
+        MA("Jack-Jack Cookie Num Nums",
+           park: .californiaAdventure, land: "Pixar Pier",
+           type: .snackStand, outdoor: true, seed: true),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-06
+        MA("Poultry Palace",
+           park: .californiaAdventure, land: "Pixar Pier",
+           type: .quickService, outdoor: true, seed: true),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-06
+        MA("Señor Buzz Churros",
+           park: .californiaAdventure, land: "Pixar Pier",
+           type: .snackStand, outdoor: true, seed: true),
+
         // ── Paradise Gardens Park ─────────────────────────────────────────────
         MA("Corn Dog Castle",
            park: .californiaAdventure, land: "Paradise Gardens Park",
            type: .snackStand, outdoor: true, map: 3, seed: true,
+           entityId: "c4034870-5e87-4514-832f-9da5506f9cf9",
            dining: DM(price: .budget, score: 9,
                       verdict: "One of the best corn dogs on the West Coast. The Monte Cristo version is spectacular.",
                       signature: ["Classic Hand-Dipped Corn Dog", "Monte Cristo Corn Dog"],
                       mobileOrder: false, indoor: false, kids: true,
                       dietary: [.kidsMenu])),
 
+        // factual-only — Product decision 2026-10-06
+        MA("Boardwalk Pizza & Pasta",
+           park: .californiaAdventure, land: "Paradise Gardens Park",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "0ccdca1c-2e60-4f7c-8395-2adce67e34ba"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Paradise Garden Grill",
+           park: .californiaAdventure, land: "Paradise Gardens Park",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "f7ff4406-5bd6-4067-9ed1-92ea1efdcc63"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Bayside Brews",
+           park: .californiaAdventure, land: "Paradise Gardens Park",
+           type: .lounge, outdoor: true, map: 3, seed: true,
+           entityId: "2f9b48bb-ad41-44e6-be57-82e62d154b0e"),
+
         // ── Grizzly Peak ──────────────────────────────────────────────────────
         MA("Smokejumpers Grill",
            park: .californiaAdventure, land: "Grizzly Peak",
            type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "5cd413b8-09da-4860-bdea-a88df9fe6c0d",
            dining: DM(price: .budget, score: 6,
                       verdict: "Reliable burgers near Grizzly River Run. Good spot to eat while your clothes dry.",
                       signature: ["Smokejumper Burger", "Pulled Pork Sandwich"],
                       mobileOrder: true, indoor: true, kids: true,
                       dietary: [.kidsMenu])),
+
+        // ── Buena Vista Street ────────────────────────────────────────────────
+        // factual-only — Product decision 2026-10-06
+        MA("Carthay Circle Restaurant",
+           park: .californiaAdventure, land: "Buena Vista Street",
+           type: .tableService, outdoor: false, map: 3, seed: true,
+           entityId: "753b558a-ff18-4ed9-a3c2-70e76b421618"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Carthay Circle Lounge",
+           park: .californiaAdventure, land: "Buena Vista Street",
+           type: .lounge, outdoor: false, map: 3, seed: true,
+           entityId: "1bef32e2-73b4-4de3-bb07-f71c3f301f22"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Clarabelle's Hand-Scooped Ice Cream",
+           park: .californiaAdventure, land: "Buena Vista Street",
+           type: .snackStand, outdoor: false, map: 3, seed: true,
+           entityId: "40217671-2e04-467b-b462-10d97fbca69d"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-06
+        MA("Fiddler, Fifer & Practical Cafe",
+           park: .californiaAdventure, land: "Buena Vista Street",
+           type: .quickService, outdoor: false, seed: true),
+
+        // ── Hollywood Land ────────────────────────────────────────────────────
+        // factual-only — Product decision 2026-10-06
+        MA("Award Wieners",
+           park: .californiaAdventure, land: "Hollywood Land",
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           entityId: "13dbf6c5-2118-4e2a-8609-a3600bf17d1f"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Studio Catering Co.",
+           park: .californiaAdventure, land: "Hollywood Land",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "ceb71f40-b730-4209-80be-ef89c114dfdf"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Hollywood Lounge",
+           park: .californiaAdventure, land: "Hollywood Land",
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "8c153230-8203-4351-bc5a-485a67527b55"),
+
+        // factual-only; no verified coordinate — Product decision 2026-10-06
+        MA("Fairfax Market",
+           park: .californiaAdventure, land: "Hollywood Land",
+           type: .snackStand, outdoor: true, seed: true),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Schmoozies!",
+           park: .californiaAdventure, land: "Hollywood Land",
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           entityId: "167199e4-933e-4647-9154-75b13975eea3"),
+
+        // ── San Fransokyo Square ──────────────────────────────────────────────
+        // factual-only — Product decision 2026-10-06
+        MA("Ghirardelli® Soda Fountain and Chocolate Shop",
+           park: .californiaAdventure, land: "San Fransokyo Square",
+           type: .quickService, outdoor: false, seed: true),
+        // NOTE: no verified ThemeParks.wiki coordinate found for this venue —
+        // left without a pin, per Product instruction to leave absent
+        // coordinates absent rather than approximate.
+
+        // factual-only — Product decision 2026-10-06
+        MA("Cocina Cucamonga Mexican Grill",
+           park: .californiaAdventure, land: "San Fransokyo Square",
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "33be9d07-5da1-42b4-a8bb-2486209693bc"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Lucky Fortune Cookery",
+           park: .californiaAdventure, land: "San Fransokyo Square",
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "38df151c-f563-406f-8dbc-7e824c7afc75"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Aunt Cass Café",
+           park: .californiaAdventure, land: "San Fransokyo Square",
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           entityId: "778f814e-7113-4599-adce-b598a39d6cd9"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Port of San Fransokyo Cervecería",
+           park: .californiaAdventure, land: "San Fransokyo Square",
+           type: .lounge, outdoor: false, map: 3, seed: true,
+           entityId: "884a2e75-ef8a-4676-b65c-67320e732bb1"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Rita's Turbine Blenders",
+           park: .californiaAdventure, land: "San Fransokyo Square",
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           entityId: "431e008b-505c-42fd-9db1-a2e4d5feae78"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Cappuccino Cart",
+           park: .californiaAdventure, land: "San Fransokyo Square",
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           entityId: "0eefcad3-0b3f-4cb9-b91a-9d493af7222a"),
+
+        // ── Performance Corridor ──────────────────────────────────────────────
+        // factual-only — Product decision 2026-10-06
+        MA("Wine Country Trattoria",
+           park: .californiaAdventure, land: "Performance Corridor",
+           type: .tableService, outdoor: false, map: 3, seed: true,
+           entityId: "048f854a-97d8-4295-8b7f-2575605259c6"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Sonoma Terrace",
+           park: .californiaAdventure, land: "Performance Corridor",
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           entityId: "13bc1b70-3a42-41eb-9cb5-7fa8615af2ca"),
+
+        // factual-only — Product decision 2026-10-06
+        MA("Mendocino Terrace",
+           park: .californiaAdventure, land: "Performance Corridor",
+           type: .lounge, outdoor: true, map: 3, seed: true,
+           entityId: "4ff553fa-008a-4d99-b6b0-30dd69d3453f"),
+
+        // factual-only — Product decision 2026-10-06; Magic Key access
+        // restriction is a real-world constraint, not modeled as metadata
+        // this gate — see Product decision note above.
+        MA("Magic Key Terrace - Magic Key Holder Dining",
+           park: .californiaAdventure, land: "Performance Corridor",
+           type: .lounge, outdoor: true, map: 3, seed: true,
+           entityId: "a098bd7c-f1a9-4ffb-97db-e85925509f19"),
     ]
 }
 

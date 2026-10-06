@@ -106,8 +106,8 @@ final class PreviewIntegrationTests: XCTestCase {
         let otherRating = try await other.myRating(venueKey: venue)
         XCTAssertNil(otherRating, "a different identity must not see this rating")
 
-        // 11. A venue outside the pilot is refused before any request is sent.
-        XCTAssertNil(DiningVenueKeys.venueKey(forStableID: "Disney California Adventure|Cars Land|Flo's V8 Café"))
+        // 11. An unsupported identity is refused before any request is sent.
+        XCTAssertNil(DiningVenueKeys.venueKey(forStableID: "Unsupported Park|Unknown Land|Unknown Venue"))
 
         // Emit exactly what must be cleaned up, and nothing secret.
         let raterId = credential.split(separator: ".")[1]
@@ -207,8 +207,8 @@ final class PreviewViewModelLifecycleTests: XCTestCase {
         // Identity reused, not replaced.
         XCTAssertEqual(try store.load(), credential)
 
-        // 23. An ineligible venue is refused before any request is possible.
-        XCTAssertNil(CommunityRatingService.venueKey(forStableID: "Disney California Adventure|Cars Land|Flo's V8 Café"))
+        // 23. An unsupported identity is refused before any request is possible.
+        XCTAssertNil(CommunityRatingService.venueKey(forStableID: "Unsupported Park|Unknown Land|Unknown Venue"))
 
         let raterId = credential.split(separator: ".")[1]
         print("PREVIEW_SYNTHETIC_ROW venue_key=\(venue) rater_id=\(raterId)")
