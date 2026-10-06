@@ -95,17 +95,23 @@ struct DiningRecommendation: Identifiable, Sendable {
 
         /// `displayString`, reconciled against the authoritative visit fact.
         ///
-        /// `isUnvisited` means "never rated" — it says nothing about whether
-        /// the venue has actually been visited some other way (a logged ride
-        /// date, "Mark visited", or a Community Rating). When it has, showing
-        /// `displayString` verbatim ("Haven't tried this yet") would
-        /// contradict `Ride.isRidden`, which every other surface on the
-        /// detail screen reads directly. This does not change `isUnvisited`,
+        /// `isUnvisited` means "no PRIVATE rating in DiningRatingStore" — it
+        /// says nothing about whether the venue has actually been visited
+        /// some other way (a logged ride date, "Mark visited", or a
+        /// Community Rating), and nothing about whether the guest has rated
+        /// it in Parkio Community, which this type has no visibility into at
+        /// all. When the venue has been visited, showing `displayString`
+        /// verbatim ("Haven't tried this yet") would contradict
+        /// `Ride.isRidden`, which every other surface on the detail screen
+        /// reads directly — and appending any "not yet rated" claim would be
+        /// equally wrong whenever a Community Rating exists. So this string
+        /// states only the visit fact and makes no claim about rating status
+        /// in either system. This does not change `isUnvisited`,
         /// `displayString`, or any ranking/scoring in DiningRecommendationService
         /// — it is a presentation-only override call sites opt into.
         func displayString(reconciledWithRideVisited isRidden: Bool) -> String {
             guard isUnvisited, isRidden else { return displayString }
-            return "Visited — not yet rated"
+            return "Visited"
         }
 
         // MARK: Private

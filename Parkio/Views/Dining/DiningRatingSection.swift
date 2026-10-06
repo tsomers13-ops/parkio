@@ -13,9 +13,11 @@
 //     • Rated ★★★☆☆        → "Decent, worth a try · Visited [date]"
 //     • Rated ★★☆☆☆/★☆☆☆☆ → "Avoid? …" or "Previously rated …" + date
 //     • Unrated            → "Haven't tried this yet · Parkio: N/10"
-//     • Unrated but Ride.isRidden → "Visited — not yet rated · Visited [date]"
+//     • Unrated but Ride.isRidden → "Visited · Last visited [date]"
 //       (overridden so this section can never contradict the hero header's
-//       "Visited N×", which reads Ride.isRidden directly — see primaryText)
+//       "Visited N×", which reads Ride.isRidden directly — see primaryText.
+//       Makes no claim about rating status in either system: a Community
+//       Rating may exist even though DiningRatingStore has no private one.)
 //
 // DiningRatingSection (existing) — stars, heart, label, notes, date, edit.
 //
