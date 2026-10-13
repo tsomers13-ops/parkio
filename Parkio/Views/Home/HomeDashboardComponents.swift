@@ -761,7 +761,7 @@ struct HomeQuickFilterRow: View {
             )
             .frame(maxWidth: .infinity)
             HomeFilterChip(
-                title: "Open Now",
+                title: "Rides Open Now",
                 value: "\(openNowCount)/\(totalRideCount)",
                 icon: "checkmark.circle.fill",
                 color: AppColor.brandPrimary,

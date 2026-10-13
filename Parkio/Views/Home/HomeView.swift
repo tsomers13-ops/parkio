@@ -442,6 +442,16 @@ struct HomeView: View {
 
     private var openRideCount: Int   { rideableCandidates.count }
 
+    /// Denominator for the "Rides Open Now" chip. Must use the same ride
+    /// eligibility rule as `rideableCandidates`'s numerator — restaurants,
+    /// shows, character meets, and other non-ride entities were previously
+    /// counted here (via the unfiltered `parkRides.count`), inflating the
+    /// denominator (e.g. Magic Kingdom's 22 rides became "21/60" once its
+    /// 31 dining venues and 7 shows/meets/transport entries were included).
+    private var totalRideOnlyCount: Int {
+        parkRides.filter { RideMasterData.typeByStableID[$0.id] == .ride }.count
+    }
+
     /// Subtitle for the "Best Food Nearby" home section header.
     /// Reflects whether the ranking is personalised (user has rated ≥1 venue)
     /// or editorial-only (no ratings yet).
@@ -562,7 +572,7 @@ struct HomeView: View {
                         HomeQuickFilterRow(
                             openNowCount: openRideCount,
                             plannedCount: myDayStore.remainingCount,
-                            totalRideCount: parkRides.count,
+                            totalRideCount: totalRideOnlyCount,
                             onNearby: { coordinator.selectedTab = 1 },
                             onOpenNow: { showAttractionsList = true },
                             onMyPlan: { coordinator.selectedTab = 2 }

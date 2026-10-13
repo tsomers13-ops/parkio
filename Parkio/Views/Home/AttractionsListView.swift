@@ -102,6 +102,11 @@ private struct LandSection: Identifiable {
     let land:       String
     let rides:      [Ride]
     let openCount:  Int
+    /// Ride-only count for this land, matching openCount's eligibility rule.
+    /// Deliberately distinct from `rides.count`, which may include dining
+    /// venues/shows/character meets when the category filter is "All" — the
+    /// rows themselves are unaffected, only this header-summary figure.
+    let rideTotal:  Int
     var id: String  { land }
 }
 
@@ -115,6 +120,7 @@ private struct RenderSnapshot {
     let plannedIds:          Set<String>               // planned ride IDs
     let favoriteIds:         Set<String>               // favorited ride IDs
     let openCount:           Int
+    let totalRideCount:      Int                       // ride-only denominator, matches openCount's eligibility rule
     let rides:               [Ride]                    // non-favorite, pre-sorted; empty when byLand
     let sections:            [LandSection]             // pre-grouped, non-favorite; empty when not byLand
     let favoriteRides:       [Ride]                    // favorited rides, name-sorted
@@ -215,10 +221,18 @@ struct AttractionsListView: View {
         // Planned-ID set — O(MyDayItems) once per render
         let plannedIds = Set(myDayStore.items.compactMap(\.rideId))
 
-        // Park-wide open count (unfiltered — matches chip-strip semantics)
-        let openCount = rides.filter {
+        // Park-wide open count — rides only. Both sides of the ratio must use
+        // the same eligibility rule (RideMasterData.typeByStableID == .ride);
+        // the previous unfiltered version counted dining venues, shows, and
+        // character meets in the denominator (and, since they almost never
+        // post a live "open" status, effectively never in the numerator),
+        // which is exactly how a 60-entity Magic Kingdom park list with only
+        // 22 real rides produced "21/60" instead of "21/22".
+        let rideOnlyEntities = rides.filter { RideMasterData.typeByStableID[$0.id] == .ride }
+        let openCount = rideOnlyEntities.filter {
             liveMap[$0.id]?.status.isRideable == true
         }.count
+        let totalRideCount = rideOnlyEntities.count
 
         // Search filter — pure text match, no ViewModel access
         let trimmed = searchText.trimmingCharacters(in: .whitespaces)
@@ -265,8 +279,13 @@ struct AttractionsListView: View {
         // so a ride you just tapped always appears even if it's currently closed.
         // Suppressed during search to avoid confusing results context.
         // Favorites are excluded here to prevent duplication.
+        // Hidden outside the Dining filter — Recently Viewed is preserved only
+        // for the dedicated dining experience, per the approved UX change.
+        // Gated here (the single source RenderSnapshot.recentlyViewedRides),
+        // not at each render call site, so visibility always stays in sync
+        // with categoryFilter with no risk of missing a call site.
         let recentRides: [Ride]
-        if !isSearching {
+        if !isSearching && categoryFilter == .dining {
             recentRides = recentlyViewedIds
                 .compactMap { id in rides.first { $0.id == id } }
                 .filter { !favSet.contains($0.id) }
@@ -312,6 +331,7 @@ struct AttractionsListView: View {
             plannedIds:          plannedIds,
             favoriteIds:         favSet,
             openCount:           openCount,
+            totalRideCount:      totalRideCount,
             rides:               currentRides,
             sections:            currentSections,
             favoriteRides:       resolvedFavRides,
@@ -432,10 +452,11 @@ struct AttractionsListView: View {
                     }
                     return lhs.name < rhs.name
                 }
-                let sectionOpen = landRides.filter {
+                let sectionRideOnly = landRides.filter { RideMasterData.typeByStableID[$0.id] == .ride }
+                let sectionOpen = sectionRideOnly.filter {
                     liveMap[$0.id]?.status.isRideable == true
                 }.count
-                return LandSection(land: land, rides: sorted, openCount: sectionOpen)
+                return LandSection(land: land, rides: sorted, openCount: sectionOpen, rideTotal: sectionRideOnly.count)
             }
             .sorted { lhs, rhs in
                 if lhs.land == "Other" { return false }
@@ -539,7 +560,7 @@ struct AttractionsListView: View {
             VStack(spacing: 0) {
                 searchBar
 
-                filterChipStrip(openCount: snap.openCount)
+                filterChipStrip(openCount: snap.openCount, totalRideCount: snap.totalRideCount)
                     .padding(.horizontal, AppSpacing.screenEdge)
                     .padding(.vertical, AppSpacing.sm)
 
@@ -623,12 +644,12 @@ struct AttractionsListView: View {
 
     // MARK: - Filter chip strip
 
-    private func filterChipStrip(openCount: Int) -> some View {
+    private func filterChipStrip(openCount: Int, totalRideCount: Int) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
 
             // Row 1: open count + open-only toggle
             HStack(spacing: AppSpacing.sm) {
-                Text("\(openCount) of \(rides.count) open")
+                Text("\(openCount) of \(totalRideCount) rides open")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()
@@ -932,7 +953,7 @@ struct AttractionsListView: View {
                         LandSectionHeaderView(
                             land:       section.land,
                             openCount:  section.openCount,
-                            totalCount: section.rides.count
+                            totalCount: section.rideTotal
                         )
                         .padding(.horizontal, AppSpacing.screenEdge)
                         .padding(.vertical, AppSpacing.sm)
