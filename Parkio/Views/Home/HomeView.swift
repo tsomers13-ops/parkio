@@ -702,6 +702,10 @@ struct HomeView: View {
                     selectedPark = .magicKingdom
                     coordinator.selectedTab = 1
                 }
+                if UITestConfiguration.opensEpcotMap {
+                    selectedPark = .epcot
+                    coordinator.selectedTab = 1
+                }
             }
             .navigationDestination(isPresented: $showAttractionsList) {
                 AttractionsListView(park: selectedPark, rides: parkRides)

@@ -119,7 +119,25 @@ enum ParkMapPinData {
     ]
 
     // MARK: EPCOT
-
+    //
+    // World Showcase dining is laid out along the ep-ws-south composition arc
+    // (ParkCompositions.swift) in real-world clockwise pavilion order starting
+    // from the entrance: Mexico, Norway, China, Germany, Italy, America, Japan,
+    // Morocco, France, United Kingdom, Canada — 11 evenly-spaced pavilion
+    // anchors (x: 0.08...0.90), each venue clustered around its pavilion's x
+    // with a small y/x stagger so multi-venue pavilions (France ×6, Mexico ×5)
+    // don't stack pins directly on top of one another. "Frozen Ever After" and
+    // "Remy's Ratatouille" (Norway/France attractions) were nudged from their
+    // original starter-estimate x to sit with their own pavilion's dining
+    // cluster — the only change to previously-embedded EPCOT attraction pins.
+    //
+    // Only venues flagged map: 3 in RideMasterData+Dining.swift get a pin.
+    // "Space 220 Lounge" is map: nil there (identical coordinate to Space 220
+    // Restaurant, same building) and is deliberately not duplicated here.
+    //
+    // Starter calibration against the authored composition's zone layout, same
+    // methodology as every non-Magic-Kingdom park in this file — refinable
+    // in-app via CalibrationViewModel if closer precision is wanted later.
     static let epcotPins: [ParkMapPin] = [
         // World Discovery (northeast)
         pin("ep|guardians",     "epcot", "Guardians: Cosmic Rewind",  x: 0.63, y: 0.20, priority: 1),
@@ -129,11 +147,83 @@ enum ParkMapPinData {
         pin("ep|soarin",        "epcot", "Soarin'",                   x: 0.27, y: 0.35, priority: 1),
         pin("ep|living-land",   "epcot", "Living with the Land",      x: 0.23, y: 0.40, priority: 2),
         pin("ep|nemo",          "epcot", "The Seas with Nemo",        x: 0.19, y: 0.35, priority: 2),
-        // World Showcase (south loop)
-        pin("ep|frozen",        "epcot", "Frozen Ever After",         x: 0.30, y: 0.76, priority: 1),
-        pin("ep|ratatouille",   "epcot", "Remy's Ratatouille",        x: 0.56, y: 0.82, priority: 1),
+        // World Showcase (south loop) — nudged to sit with their own pavilion's
+        // dining cluster (Norway x≈0.162, France x≈0.736); see header note.
+        pin("ep|frozen",        "epcot", "Frozen Ever After",         x: 0.162, y: 0.76, priority: 1),
+        pin("ep|ratatouille",   "epcot", "Remy's Ratatouille",        x: 0.736, y: 0.76, priority: 1),
         // World Celebration (center)
         pin("ep|figment",       "epcot", "Journey Into Imagination",  x: 0.35, y: 0.32, priority: 2),
+
+        // ── Dining — World Celebration ────────────────────────────────────
+        pin("ep|dining|connections-eatery", "epcot", "Connections Eatery", x: 0.50, y: 0.36, priority: 2),
+        pin("ep|dining|geo-82",             "epcot", "GEO-82",             x: 0.44, y: 0.38, priority: 3),
+        pin("ep|dining|grab-n-goof",        "epcot", "GRAB-N-GOOF",        x: 0.56, y: 0.38, priority: 3),
+
+        // ── Dining — World Discovery ───────────────────────────────────────
+        pin("ep|dining|space-220",          "epcot", "Space 220 Restaurant", x: 0.74, y: 0.24, priority: 2),
+
+        // ── Dining — World Nature (The Land pavilion) ─────────────────────
+        pin("ep|dining|sunshine-seasons",   "epcot", "Sunshine Seasons",     x: 0.23, y: 0.33, priority: 1),
+        pin("ep|dining|garden-grill",       "epcot", "Garden Grill Restaurant", x: 0.21, y: 0.37, priority: 2),
+
+        // ── Dining — World Showcase: Mexico pavilion (x ≈ 0.08) ───────────
+        pin("ep|dining|la-cantina-de-san-angel", "epcot", "La Cantina de San Angel", x: 0.075, y: 0.80, priority: 2),
+        pin("ep|dining|san-angel-inn",            "epcot", "San Angel Inn Restaurante", x: 0.085, y: 0.84, priority: 2),
+        pin("ep|dining|la-hacienda-de-san-angel",  "epcot", "La Hacienda de San Angel", x: 0.065, y: 0.84, priority: 2),
+        pin("ep|dining|la-cava-del-tequila",       "epcot", "La Cava del Tequila", x: 0.09, y: 0.88, priority: 3),
+        pin("ep|dining|choza-de-margarita",        "epcot", "Choza de Margarita", x: 0.07, y: 0.88, priority: 3),
+
+        // ── Dining — World Showcase: Norway pavilion (x ≈ 0.162) ──────────
+        pin("ep|dining|akershus",           "epcot", "Akershus Royal Banquet Hall", x: 0.162, y: 0.82, priority: 2),
+
+        // ── Dining — World Showcase: China pavilion (x ≈ 0.244) ───────────
+        pin("ep|dining|nine-dragons",       "epcot", "Nine Dragons Restaurant", x: 0.244, y: 0.82, priority: 2),
+
+        // ── Dining — World Showcase: between Germany and China ───────────
+        pin("ep|dining|refreshment-outpost", "epcot", "Refreshment Outpost", x: 0.285, y: 0.78, priority: 3),
+
+        // ── Dining — World Showcase: Germany pavilion (x ≈ 0.326) ─────────
+        pin("ep|dining|biergarten",         "epcot", "Biergarten Restaurant", x: 0.316, y: 0.80, priority: 2),
+        pin("ep|dining|sommerfest",         "epcot", "Sommerfest", x: 0.336, y: 0.84, priority: 3),
+        pin("ep|dining|karamell-kuche",     "epcot", "Karamell-K\u{00FC}che", x: 0.326, y: 0.88, priority: 3),
+
+        // ── Dining — World Showcase: Italy pavilion (x ≈ 0.408) ───────────
+        pin("ep|dining|tutto-italia",       "epcot", "Tutto Italia Ristorante", x: 0.398, y: 0.80, priority: 2),
+        pin("ep|dining|via-napoli",         "epcot", "Via Napoli Ristorante e Pizzeria", x: 0.418, y: 0.84, priority: 2),
+        pin("ep|dining|tutto-gusto",        "epcot", "Tutto Gusto Wine Cellar", x: 0.408, y: 0.88, priority: 3),
+
+        // ── Dining — World Showcase: The American Adventure (x ≈ 0.49) ───
+        pin("ep|dining|regal-eagle",        "epcot", "Regal Eagle Smokehouse", x: 0.48, y: 0.80, priority: 2),
+        pin("ep|dining|fife-and-drum",      "epcot", "Fife & Drum Tavern", x: 0.50, y: 0.84, priority: 3),
+        pin("ep|dining|block-and-hans",     "epcot", "Block & Hans", x: 0.49, y: 0.88, priority: 3),
+
+        // ── Dining — World Showcase: Japan pavilion (x ≈ 0.572) ───────────
+        pin("ep|dining|katsura-grill",      "epcot", "Katsura Grill", x: 0.562, y: 0.80, priority: 2),
+        pin("ep|dining|teppan-edo",         "epcot", "Teppan Edo", x: 0.582, y: 0.82, priority: 2),
+        pin("ep|dining|takumi-tei",         "epcot", "Takumi-Tei", x: 0.572, y: 0.86, priority: 3),
+        pin("ep|dining|shiki-sai",          "epcot", "Shiki-Sai: Sushi Izakaya", x: 0.552, y: 0.88, priority: 3),
+
+        // ── Dining — World Showcase: Morocco pavilion (x ≈ 0.654) ─────────
+        pin("ep|dining|tangierine-cafe",    "epcot", "Tangierine Café", x: 0.644, y: 0.80, priority: 2),
+        pin("ep|dining|spice-road-table",   "epcot", "Spice Road Table", x: 0.664, y: 0.84, priority: 2),
+
+        // ── Dining — World Showcase: France pavilion (x ≈ 0.736) ──────────
+        pin("ep|dining|les-halles",         "epcot", "Les Halles Boulangerie-Patisserie", x: 0.716, y: 0.78, priority: 2),
+        pin("ep|dining|artisan-des-glaces", "epcot", "L'Artisan des Glaces", x: 0.736, y: 0.80, priority: 2),
+        pin("ep|dining|monsieur-paul",      "epcot", "Monsieur Paul", x: 0.756, y: 0.82, priority: 3),
+        pin("ep|dining|chefs-de-france",    "epcot", "Chefs de France", x: 0.726, y: 0.84, priority: 2),
+        pin("ep|dining|les-vins",           "epcot", "Les Vins des Chefs de France", x: 0.746, y: 0.86, priority: 3),
+        pin("ep|dining|la-creperie-de-paris", "epcot", "La Cr\u{00EA}perie de Paris", x: 0.736, y: 0.88, priority: 3),
+
+        // ── Dining — World Showcase: United Kingdom pavilion (x ≈ 0.818) ──
+        pin("ep|dining|rose-and-crown-dining", "epcot", "Rose & Crown Dining Room", x: 0.80, y: 0.80, priority: 2),
+        pin("ep|dining|rose-and-crown-pub",     "epcot", "Rose & Crown Pub", x: 0.818, y: 0.82, priority: 2),
+        pin("ep|dining|uk-beer-cart",            "epcot", "UK Beer Cart", x: 0.838, y: 0.84, priority: 3),
+        pin("ep|dining|yorkshire-fish-shop",     "epcot", "Yorkshire County Fish Shop", x: 0.80, y: 0.86, priority: 3),
+
+        // ── Dining — World Showcase: Canada pavilion (x ≈ 0.90) ───────────
+        pin("ep|dining|le-cellier",         "epcot", "Le Cellier Steakhouse", x: 0.878, y: 0.80, priority: 2),
+        pin("ep|dining|la-poutinerie",      "epcot", "La Poutinerie", x: 0.86, y: 0.84, priority: 3),
     ]
 
     // MARK: Hollywood Studios

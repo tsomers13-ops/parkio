@@ -62,4 +62,35 @@ final class ParkMapPinDataTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - EPCOT (Explore Map)
+
+    private var epcotPins: [ParkMapPin] {
+        ParkMapPinData.embeddedPins["epcot"] ?? []
+    }
+
+    private var epcotDiningPins: [ParkMapPin] {
+        epcotPins.filter { $0.internalRideId.hasPrefix("ep|dining|") }
+    }
+
+    func testExactlyFortyOneEpcotDiningPins() {
+        // 42 EPCOT dining venues are map-eligible minus "Space 220 Lounge"
+        // (map: nil in RideMasterData+Dining.swift — identical coordinate to
+        // Space 220 Restaurant, deliberately not duplicated as a pin).
+        XCTAssertEqual(epcotDiningPins.count, 41)
+    }
+
+    func testEpcotDiningPinsAreUniquelyIdentified() {
+        let ids = epcotDiningPins.map(\.internalRideId)
+        XCTAssertEqual(Set(ids).count, ids.count, "two EPCOT dining pins share an internalRideId")
+    }
+
+    func testNoEpcotPinIsOutOfTheNormalizedMapBounds() {
+        for pin in epcotPins {
+            XCTAssertFalse(
+                pin.isOutOfBounds,
+                "\(pin.displayName) has mapX/mapY outside 0...1 — not a valid normalized map position"
+            )
+        }
+    }
 }

@@ -44,4 +44,11 @@ enum UITestConfiguration {
         isRunningUITests
             && ProcessInfo.processInfo.arguments.contains("-parkio-open-mk-map")
     }
+
+    /// Land on the Map tab with EPCOT selected — the surface the Explore/Live
+    /// toggle and EPCOT pin navigation regression tests start from.
+    static var opensEpcotMap: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-open-epcot-map")
+    }
 }

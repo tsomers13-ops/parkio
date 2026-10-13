@@ -1,9 +1,14 @@
 // MapOverlayFilterBar.swift — Floating filter chip bar for the park map.
 //
-// Three toggle chips in one row:
+// Shared by both map surfaces — RealMapScreen (live MapKit) and
+// ParkMapCanvasView (original illustrated Explore Map) — so filtering behaves
+// identically regardless of which mode a guest is looking at.
+//
+// Four toggle chips in one row, one per MapFilterState dimension:
 //   "Show Ridden"   → mapVM.filters.showRidden   (false = hide ridden rides)
 //   "Hide Closed"   → mapVM.filters.hideClosed   (true  = hide non-rideable rides)
 //   "My Plan Only"  → mapVM.filters.planOnly     (true  = show only planned rides)
+//   "< 30 Min"      → mapVM.filters.onlyLowWait  (true  = hide rides ≥ 30 min wait)
 //
 // Design:
 //   • .regularMaterial pill on a fully-rounded RoundedRectangle.
@@ -34,6 +39,7 @@ struct MapOverlayFilterBar: View {
             FilterChip(label: "Show Ridden",  isOn: $vm.filters.showRidden)
             FilterChip(label: "Hide Closed",  isOn: $vm.filters.hideClosed)
             FilterChip(label: "My Plan Only", isOn: $vm.filters.planOnly)
+            FilterChip(label: "< 30 Min",     isOn: $vm.filters.onlyLowWait)
 
             // Guest Services (Priority 6) — deliberately NOT a 5th FilterChip
             // toggling one master "Show Guest Services" boolean. Per the brief:

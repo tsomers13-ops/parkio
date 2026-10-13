@@ -6,15 +6,21 @@
 //   at creation time.
 //
 // Map layer:
-//   MapRoutingDecision.renderMode(forParkId:) picks the renderer per park:
-//     • Magic Kingdom  → ParkMapCanvasView, the supplied production map artwork
-//                        as an interactive pan/zoom image canvas.
-//     • Every other park → RealMapScreen, the full MapKit tile surface, user
-//                        location puck, ride annotations, follow mode, bearing
-//                        polyline, HUD (filter bar + glance bar), and the
-//                        location / compass buttons.
-//   Both renderers share the same MapViewModel, so ride selection and the
-//   bottom sheet (RideMapBottomSheetView) behave identically either way.
+//   Two renderers, both sharing the same MapViewModel so ride selection and
+//   the bottom sheet (RideMapBottomSheetView) behave identically either way:
+//     • ParkMapCanvasView — the Explore Map: an original illustrated map as
+//       an interactive pan/zoom canvas (see ParkCompositions.swift / docs/
+//       *-MAP-PROVENANCE.md for each park's artwork provenance).
+//     • RealMapScreen — the Live Map: the full MapKit tile surface, user
+//       location puck, ride annotations, follow mode, bearing polyline, HUD
+//       (filter bar + glance bar), and the location / compass buttons.
+//   MapModeAvailability.isExploreMapAvailable(forParkId:) decides whether a
+//   park offers the Explore/Live toggle at all (MapContentView.topChrome) —
+//   a park with no calibrated Explore Map yet stays on the Live Map with no
+//   toggle shown, a safe fallback. MapContentView.mapMode (local @State,
+//   reset to that park's default whenever selectedPark changes) picks which
+//   one actually renders. MapRoutingDecision still exists and is still
+//   tested, but is no longer consulted here — see its header comment.
 //
 // Park switching (single source of truth):
 //   switchPark(to:) updates mapVM.parkId and parkMapVM.parkId. MapViewModel's
@@ -98,7 +104,25 @@ private struct MapContentView: View {
     let parkMapVM:    ParkMapViewModel
     @Binding var selectedPark: Park
 
+    /// Which surface is on screen for the current park. Seeded to that park's
+    /// default (Explore if available, else Live) at creation, and reset to
+    /// the new park's default by .onChange(of: selectedPark) below — switching
+    /// parks always lands somewhere safe even if the guest had manually
+    /// toggled to Live for a park that does have an Explore Map.
+    @State private var mapMode: MapRenderMode
+
     @Environment(WaitTimeViewModel.self) private var waitTimeVM
+
+    init(mapVM: MapViewModel, parkMapVM: ParkMapViewModel, selectedPark: Binding<Park>) {
+        self.mapVM = mapVM
+        self.parkMapVM = parkMapVM
+        self._selectedPark = selectedPark
+        _mapMode = State(initialValue: Self.defaultMode(forParkId: selectedPark.wrappedValue.backendId))
+    }
+
+    private static func defaultMode(forParkId parkId: String) -> MapRenderMode {
+        MapModeAvailability.isExploreMapAvailable(forParkId: parkId) ? .customCanvas : .liveMap
+    }
 
     var body: some View {
         NavigationStack {
@@ -121,18 +145,20 @@ private struct MapContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { mapToolbar }
             .refreshable { await waitTimeVM.refresh() }
+            .onChange(of: selectedPark) { _, newPark in
+                mapMode = Self.defaultMode(forParkId: newPark.backendId)
+            }
         }
     }
 
     // MARK: Map surface
 
-    /// Magic Kingdom renders the supplied production map artwork as an
-    /// interactive pan/zoom canvas; every other park keeps the live MapKit
-    /// experience. Both share `mapVM`, so ride selection and the bottom sheet
-    /// behave identically regardless of which surface is on screen.
+    /// Explore Map (original illustrated canvas) or Live Map (MapKit),
+    /// per the current mapMode. Both share `mapVM`, so ride selection and the
+    /// bottom sheet behave identically regardless of which surface is on screen.
     @ViewBuilder
     private var mapSurface: some View {
-        switch MapRoutingDecision.renderMode(forParkId: selectedPark.backendId) {
+        switch mapMode {
         case .customCanvas:
             ParkMapCanvasView()
                 .environment(mapVM)
@@ -154,6 +180,14 @@ private struct MapContentView: View {
     private var topChrome: some View {
         VStack(spacing: 0) {
             MapParkSelectorStrip(selectedPark: $selectedPark)
+            if MapModeAvailability.isExploreMapAvailable(forParkId: selectedPark.backendId) {
+                HStack {
+                    Spacer()
+                    MapModeToggle(mode: $mapMode)
+                    Spacer()
+                }
+                .padding(.vertical, AppSpacing.xs)
+            }
             MapWaitTimeBanner(waitTimeVM: waitTimeVM, park: selectedPark)
             Spacer(minLength: 0)
         }
@@ -232,6 +266,45 @@ private struct ShowFullParkButton: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Map Reset")
         .accessibilityHint("Resets the map to the full park view")
+    }
+}
+
+// MARK: - Explore / Live mode toggle
+
+/// Two-segment pill, shown only for parks where
+/// MapModeAvailability.isExploreMapAvailable is true. Matches the visual
+/// language of MapParkPill (capsule, filled-when-selected) rather than a
+/// native segmented control, for consistency with the rest of the Maps tab.
+private struct MapModeToggle: View {
+    @Binding var mode: MapRenderMode
+
+    var body: some View {
+        HStack(spacing: 2) {
+            segment(title: "Explore", isSelected: mode == .customCanvas) { mode = .customCanvas }
+            segment(title: "Live",    isSelected: mode == .liveMap)      { mode = .liveMap }
+        }
+        .padding(3)
+        .background(.regularMaterial, in: Capsule())
+        .overlay {
+            Capsule().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+        }
+    }
+
+    private func segment(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button {
+            withAnimation(AppMotion.quick) { action() }
+            AppHaptic.selection()
+        } label: {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(isSelected ? .white : AppColor.textSecondary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(isSelected ? AppColor.textPrimary : Color.clear, in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title) Map")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
 

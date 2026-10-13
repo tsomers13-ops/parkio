@@ -74,6 +74,17 @@ struct ParkMapCanvasView: View {
                     // Re-fit: if the user hasn't zoomed in, stay at the new fitScale.
                     if !mapVM.isZoomed { resetZoom() }
                 }
+                .overlay(alignment: .bottomTrailing) {
+                    MapZoomControls(
+                        onZoomIn:  { zoomStep(by: 1.4,   viewport: geo.size) },
+                        onZoomOut: { zoomStep(by: 1/1.4, viewport: geo.size) }
+                    )
+                    .padding(.trailing, AppSpacing.screenEdge)
+                    .padding(.bottom, geo.safeAreaInsets.bottom + 180)
+                }
+                .overlay {
+                    MapCanvasHUD(mapVM: mapVM, geo: geo)
+                }
         }
         .clipped()
         .ignoresSafeArea(edges: .all)
@@ -131,6 +142,21 @@ struct ParkMapCanvasView: View {
 
     private func minScale(for viewport: CGSize) -> CGFloat { fitScale(for: viewport) * 0.90 }
     private func maxScale(for viewport: CGSize) -> CGFloat { fitScale(for: viewport) * 6.00 }
+
+    /// Discrete zoom step for MapZoomControls — the accessible alternative to
+    /// MagnifyGesture. Same clamping as the pinch gesture's .onChanged/.onEnded,
+    /// just applied once instead of continuously.
+    private func zoomStep(by factor: CGFloat, viewport: CGSize) {
+        withAnimation(AppMotion.standard) {
+            scale = min(max(scale * factor, minScale(for: viewport)), maxScale(for: viewport))
+            baseScale = scale
+            offset = clampedOffset(offset, viewport: viewport)
+            baseOffset = offset
+            if scale > fitScale(for: viewport) + 0.02 || offset != .zero {
+                mapVM.isZoomed = true
+            }
+        }
+    }
 
     // MARK: - Pan clamping
 
@@ -274,8 +300,19 @@ private struct PinsLayerView: View {
         )
     }
 
+    /// Applies the same MapFilterState predicate RealMapScreen's annotation
+    /// pipeline uses (MapViewModel.passes(marker:)), so toggling a filter chip
+    /// in MapOverlayFilterBar has identical effect on both map surfaces. A pin
+    /// with no enriched marker yet (wait-time fetch still in flight) is kept,
+    /// matching runPipeline's Stage 4 semantics.
     private var sortedPins: [ParkMapPin] {
-        parkMapVM.pins.sorted { $0.priority < $1.priority }
+        let lkp = lookup
+        return parkMapVM.pins
+            .filter { pin in
+                guard let stableID = pin.stableID, let enriched = lkp[stableID] else { return true }
+                return mapVM.passes(marker: enriched.base)
+            }
+            .sorted { $0.priority < $1.priority }
     }
 
     var body: some View {
@@ -446,53 +483,60 @@ struct MapResetButton: View {
     }
 }
 
-// MARK: - Filter chip strip
+// MARK: - HUD layer (filter bar, bottom-floating)
+//
+// Mirrors RealMapScreen.hudLayer's bottom-padding formula so the same filter
+// bar lands in the same visual position regardless of which map surface is
+// on screen. MapOverlayFilterBar is the single shared component — toggling a
+// chip here affects sortedPins (above) via the identical mapVM.passes(marker:)
+// predicate RealMapScreen's annotation pipeline uses.
 
-struct MapFilterStrip: View {
-    @Environment(MapViewModel.self) private var mapVM
+private struct MapCanvasHUD: View {
+    let mapVM: MapViewModel
+    let geo: GeometryProxy
+
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: AppSpacing.sm) {
-                FilterChip(label: "Unridden only", isActive: !mapVM.filters.showRidden) {
-                    mapVM.toggleFilter(\.showRidden)
-                }
-                FilterChip(label: "< 30 min", isActive: mapVM.filters.onlyLowWait) {
-                    mapVM.toggleFilter(\.onlyLowWait)
-                }
-                FilterChip(label: "Open only", isActive: mapVM.filters.hideClosed) {
-                    mapVM.toggleFilter(\.hideClosed)
-                }
+        if verticalSizeClass != .compact {
+            VStack {
+                Spacer()
+                MapOverlayFilterBar(mapVM: mapVM)
+                    .padding(.horizontal, AppSpacing.screenEdge)
+                    .padding(.bottom, geo.safeAreaInsets.bottom + 100)
             }
-            .padding(.horizontal, AppSpacing.screenEdge)
         }
     }
 }
 
-private struct FilterChip: View {
-    let label: String
-    let isActive: Bool
-    let action: () -> Void
+// MARK: - Accessible zoom controls
+//
+// Pinch-to-zoom (MagnifyGesture, in canvasStack) has no VoiceOver equivalent —
+// these two buttons give VoiceOver users a discrete way to zoom in or out by
+// one step, matching the existing pattern of RealMapScreen's compass/location
+// buttons (discrete controls alongside a gesture-driven surface).
+struct MapZoomControls: View {
+    let onZoomIn:  () -> Void
+    let onZoomOut: () -> Void
 
     var body: some View {
+        VStack(spacing: 8) {
+            zoomButton(systemImage: "plus.magnifyingglass", label: "Zoom In", action: onZoomIn)
+            zoomButton(systemImage: "minus.magnifyingglass", label: "Zoom Out", action: onZoomOut)
+        }
+    }
+
+    private func zoomButton(systemImage: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(label)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(isActive ? .white : AppColor.textPrimary)
-                .padding(.horizontal, AppSpacing.md)
-                .padding(.vertical, AppSpacing.xs)
-                .background(
-                    isActive ? AppColor.textPrimary : Color(.systemBackground).opacity(0.88),
-                    in: Capsule()
-                )
-                .overlay(
-                    Capsule()
-                        .strokeBorder(isActive ? Color.clear : AppColor.skeleton, lineWidth: 1)
-                )
+            Image(systemName: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppColor.textPrimary)
+                .padding(10)
+                .background(.regularMaterial, in: Circle())
+                .shadow(color: .black.opacity(0.12), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(.plain)
-        .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
-        .animation(AppMotion.quick, value: isActive)
+        .accessibilityLabel(label)
     }
 }
 

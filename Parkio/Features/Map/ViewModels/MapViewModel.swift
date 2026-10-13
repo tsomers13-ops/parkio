@@ -1156,7 +1156,12 @@ final class MapViewModel {
         return keys
     }
 
-    private func passes(marker: EnrichedMarker) -> Bool {
+    /// Pure MapFilterState predicate — shared by the live-map pipeline
+    /// (runPipeline Stage 4) and ParkMapCanvasView's Explore Map pin list, so
+    /// the two map surfaces always filter identically. Not `private` for that
+    /// reason: ParkMapCanvasView calls this directly rather than duplicating
+    /// the four-dimension check.
+    func passes(marker: EnrichedMarker) -> Bool {
         if !filters.showRidden  && marker.isRidden { return false }
         if filters.hideClosed,
            let live = marker.liveState,

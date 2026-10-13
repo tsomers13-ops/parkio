@@ -70,6 +70,17 @@ final class ParkMapViewModel {
         UIImage(named: mapImageName) != nil
     }
 
+    /// True only when a real PRODUCTION map asset exists — a DEBUG-only mock
+    /// never counts. ParkMapBackgroundView uses this (not hasMapImage) to pick
+    /// between real artwork and the composition canvas: a park's Explore Map
+    /// is either its calibrated original illustration (ParkCompositions) or
+    /// supplied production art, never a leftover scaffold placeholder that
+    /// would otherwise only shadow real work in DEBUG builds.
+    var hasProductionMapImage: Bool {
+        let base = parkId.replacingOccurrences(of: "-", with: "_") + "_map"
+        return UIImage(named: base) != nil
+    }
+
     // MARK: - Init
 
     init(parkId: String) {
