@@ -136,7 +136,24 @@ enum MKComposition {
 }
 
 // MARK: - EPCOT  (1000 × 1200)
-
+//
+// Visual refinement pass (2026-10-13): the original layout below had land
+// masses, the promenade ring, and the hub plaza all heavily overlapping one
+// another (e.g. ep-celebration overlapped both ep-discovery and ep-nature;
+// ep-promenade's single giant ellipse covered roughly half the canvas on top
+// of everything else). Redesigned as two clean, non-overlapping bands:
+//   • North band — three side-by-side pavilions (Nature | Celebration |
+//     Discovery), matching the real park's "Future World" campus layout,
+//     with Spaceship Earth as a small landmark just above Celebration.
+//   • South band — a horseshoe around the lagoon (west arc, south arc, east
+//     arc), matching World Showcase's real horseshoe-shaped promenade, which
+//     is why no separate "promenade" shape is needed: the walkway reads as
+//     the gap between the lagoon and the pavilion land.
+// The standalone hub and promenade shapes were removed rather than
+// repositioned — both were redundant once the bands don't overlap (Celebration
+// already reads as Future World's hub; the gaps already read as the path).
+// ParkMapPinData.epcotPins was recalibrated against these new bounds — see
+// its header comment.
 enum EPCOTComposition {
     static func make() -> ParkComposition {
         ParkComposition(
@@ -150,108 +167,76 @@ enum EPCOTComposition {
                     geometry: .rect(CGRect(x: 0, y: 0, width: 1, height: 1)),
                     fillColor: MapTokens.canvasBase, fillOpacity: 1.0, drawOrder: 0),
 
-                // World Showcase Lagoon — large central water body
+                // World Showcase Lagoon — single clean water body, entirely
+                // clear of the pavilion land bands around it.
                 MapBackgroundShape(
                     id: "ep-lagoon", type: .water,
-                    geometry: .ellipse(CGRect(x: 0.16, y: 0.43, width: 0.68, height: 0.36)),
-                    fillColor: MapTokens.waterBlue, fillOpacity: 0.66, drawOrder: 1),
+                    geometry: .ellipse(CGRect(x: 0.20, y: 0.50, width: 0.60, height: 0.32)),
+                    fillColor: MapTokens.waterBlue, fillOpacity: 0.68, drawOrder: 1),
 
-                MapBackgroundShape(
-                    id: "ep-lagoon-s", type: .water,
-                    geometry: .ellipse(CGRect(x: 0.28, y: 0.72, width: 0.44, height: 0.12)),
-                    fillColor: MapTokens.waterBlue, fillOpacity: 0.38, drawOrder: 2),
-
-                // World Discovery — northeast
-                MapBackgroundShape(
-                    id: "ep-discovery", type: .landMass,
-                    geometry: .roundedRect(CGRect(x: 0.56, y: 0.12, width: 0.40, height: 0.28), 20),
-                    fillColor: MapTokens.landCool, fillOpacity: 0.80, drawOrder: 5),
-
-                // World Nature — northwest
+                // World Nature — north band, west third
                 MapBackgroundShape(
                     id: "ep-nature", type: .landMass,
-                    geometry: .roundedRect(CGRect(x: 0.04, y: 0.12, width: 0.40, height: 0.28), 20),
-                    fillColor: MapTokens.landMuted, fillOpacity: 0.80, drawOrder: 6),
+                    geometry: .roundedRect(CGRect(x: 0.02, y: 0.16, width: 0.29, height: 0.24), 20),
+                    fillColor: MapTokens.landMuted, fillOpacity: 0.82, drawOrder: 5),
 
-                // World Celebration — center-north bridge
+                // World Celebration — north band, center third (Future World's hub)
                 MapBackgroundShape(
                     id: "ep-celebration", type: .landMass,
-                    geometry: .roundedRect(CGRect(x: 0.30, y: 0.26, width: 0.40, height: 0.18), 16),
-                    fillColor: MapTokens.landVibrant, fillOpacity: 0.76, drawOrder: 7),
+                    geometry: .roundedRect(CGRect(x: 0.33, y: 0.16, width: 0.34, height: 0.24), 18),
+                    fillColor: MapTokens.landVibrant, fillOpacity: 0.82, drawOrder: 6),
 
-                // World Showcase west arc countries
+                // World Discovery — north band, east third
+                MapBackgroundShape(
+                    id: "ep-discovery", type: .landMass,
+                    geometry: .roundedRect(CGRect(x: 0.69, y: 0.16, width: 0.29, height: 0.24), 20),
+                    fillColor: MapTokens.landCool, fillOpacity: 0.82, drawOrder: 7),
+
+                // World Showcase — west arc (Mexico / Canada-style end pavilion)
                 MapBackgroundShape(
                     id: "ep-ws-west", type: .landMass,
-                    geometry: .polygon([
-                        CGPoint(x: 0.04, y: 0.44),
-                        CGPoint(x: 0.18, y: 0.44),
-                        CGPoint(x: 0.16, y: 0.62),
-                        CGPoint(x: 0.08, y: 0.72),
-                        CGPoint(x: 0.02, y: 0.66),
-                        CGPoint(x: 0.02, y: 0.50),
-                    ]),
-                    fillColor: MapTokens.landWarm, fillOpacity: 0.78, drawOrder: 8),
+                    geometry: .roundedRect(CGRect(x: 0.03, y: 0.50, width: 0.15, height: 0.34), 16),
+                    fillColor: MapTokens.landWarm, fillOpacity: 0.80, drawOrder: 8),
 
-                // World Showcase east arc countries
+                // World Showcase — east arc (end pavilion)
                 MapBackgroundShape(
                     id: "ep-ws-east", type: .landMass,
-                    geometry: .polygon([
-                        CGPoint(x: 0.82, y: 0.44),
-                        CGPoint(x: 0.96, y: 0.44),
-                        CGPoint(x: 0.98, y: 0.66),
-                        CGPoint(x: 0.92, y: 0.72),
-                        CGPoint(x: 0.84, y: 0.62),
-                        CGPoint(x: 0.82, y: 0.48),
-                    ]),
-                    fillColor: MapTokens.landVibrant, fillOpacity: 0.78, drawOrder: 8),
+                    geometry: .roundedRect(CGRect(x: 0.82, y: 0.50, width: 0.15, height: 0.34), 16),
+                    fillColor: MapTokens.landWarm, fillOpacity: 0.80, drawOrder: 8),
 
-                // World Showcase south arc countries
+                // World Showcase — south arc (the 9 pavilions between the two ends)
                 MapBackgroundShape(
                     id: "ep-ws-south", type: .landMass,
-                    geometry: .polygon([
-                        CGPoint(x: 0.10, y: 0.74),
-                        CGPoint(x: 0.42, y: 0.80),
-                        CGPoint(x: 0.58, y: 0.80),
-                        CGPoint(x: 0.90, y: 0.74),
-                        CGPoint(x: 0.86, y: 0.88),
-                        CGPoint(x: 0.50, y: 0.94),
-                        CGPoint(x: 0.14, y: 0.88),
-                    ]),
-                    fillColor: MapTokens.landMuted, fillOpacity: 0.76, drawOrder: 9),
+                    geometry: .roundedRect(CGRect(x: 0.10, y: 0.83, width: 0.80, height: 0.13), 20),
+                    fillColor: MapTokens.landWarm, fillOpacity: 0.80, drawOrder: 9),
 
-                // Entry plaza south
+                // Entry plaza — south, touching the showcase arc (the natural
+                // connection point, not an overlap with any other district)
                 MapBackgroundShape(
                     id: "ep-entry", type: .entry,
-                    geometry: .roundedRect(CGRect(x: 0.36, y: 0.88, width: 0.28, height: 0.10), 12),
-                    fillColor: MapTokens.entryWarm, fillOpacity: 0.84, drawOrder: 10),
+                    geometry: .roundedRect(CGRect(x: 0.40, y: 0.94, width: 0.20, height: 0.05), 10),
+                    fillColor: MapTokens.entryWarm, fillOpacity: 0.86, drawOrder: 10),
 
-                // Promenade ring — World Showcase walkway
-                MapBackgroundShape(
-                    id: "ep-promenade", type: .promenade,
-                    geometry: .ellipse(CGRect(x: 0.10, y: 0.39, width: 0.80, height: 0.46)),
-                    fillColor: MapTokens.promenadeStone, fillOpacity: 0.35, drawOrder: 12),
-
-                // Hub — Future World central plaza
-                MapBackgroundShape(
-                    id: "ep-hub", type: .hub,
-                    geometry: .ellipse(CGRect(x: 0.41, y: 0.32, width: 0.18, height: 0.12)),
-                    fillColor: MapTokens.hubNeutral, fillOpacity: 0.82, drawOrder: 13),
-
-                // Spaceship Earth
+                // Spaceship Earth — small landmark just above World Celebration
                 MapBackgroundShape(
                     id: "ep-sse", type: .landmark,
-                    geometry: .ellipse(CGRect(x: 0.44, y: 0.06, width: 0.12, height: 0.12)),
+                    geometry: .ellipse(CGRect(x: 0.44, y: 0.05, width: 0.12, height: 0.10)),
                     fillColor: MapTokens.landmarkGold, fillOpacity: 0.92, drawOrder: 15),
 
                 MapBackgroundShape(
-                    id: "ep-deco-n", type: .decorative,
-                    geometry: .roundedRect(CGRect(x: 0.28, y: 0.00, width: 0.44, height: 0.06), 4),
-                    fillColor: MapTokens.decorativeLight, fillOpacity: 0.20, drawOrder: 16),
+                    id: "ep-deco-top", type: .decorative,
+                    geometry: .roundedRect(CGRect(x: 0.30, y: 0.00, width: 0.40, height: 0.04), 4),
+                    fillColor: MapTokens.decorativeLight, fillOpacity: 0.18, drawOrder: 16),
 
                 MapBackgroundShape(
-                    id: "ep-deco-w", type: .decorative,
-                    geometry: .ellipse(CGRect(x: 0.00, y: 0.78, width: 0.14, height: 0.20)),
-                    fillColor: MapTokens.decorativeLight, fillOpacity: 0.16, drawOrder: 17),
+                    id: "ep-deco-sw", type: .decorative,
+                    geometry: .ellipse(CGRect(x: 0.00, y: 0.86, width: 0.12, height: 0.12)),
+                    fillColor: MapTokens.decorativeLight, fillOpacity: 0.14, drawOrder: 17),
+
+                MapBackgroundShape(
+                    id: "ep-deco-se", type: .decorative,
+                    geometry: .ellipse(CGRect(x: 0.88, y: 0.86, width: 0.12, height: 0.12)),
+                    fillColor: MapTokens.decorativeLight, fillOpacity: 0.14, drawOrder: 17),
             ]
         )
     }
