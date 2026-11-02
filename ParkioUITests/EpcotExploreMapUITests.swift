@@ -92,6 +92,29 @@ final class EpcotExploreMapUITests: XCTestCase {
         )
     }
 
+    /// Without a usable device fix, the shared sheet must state that routed
+    /// walking data is unavailable. It must not relabel the pin's straight-line
+    /// distance as a walking route, and the state must survive renderer changes.
+    func testWalkingRouteUnavailableStateIsSharedAcrossExploreAndLiveMaps() {
+        let pin = buttonNamed(startingWith: "Soarin")
+        XCTAssertTrue(pin.waitForExistence(timeout: timeout), "EPCOT attraction pin never appeared")
+        pin.tap()
+
+        let unavailable = element("walking-route-unavailable")
+        XCTAssertTrue(
+            unavailable.waitForExistence(timeout: timeout),
+            "the ride sheet did not expose an explicit unavailable walking-route state"
+        )
+        XCTAssertFalse(element("walking-route-available").exists)
+
+        app.buttons["Live Map"].tap()
+        XCTAssertTrue(
+            unavailable.waitForExistence(timeout: timeout),
+            "switching map renderers lost the shared walking-route state"
+        )
+        XCTAssertFalse(element("walking-route-available").exists)
+    }
+
     /// Sunshine Seasons — a World Nature dining pin, calibrated priority 1.
     /// Does NOT assert on the Community rating CTA — same backend-rollout-timing
     /// caveat as MagicKingdomMapDiningNavigationUITests; the venueKey mapping
@@ -108,6 +131,37 @@ final class EpcotExploreMapUITests: XCTestCase {
             app.staticTexts["Sunshine Seasons"].waitForExistence(timeout: timeout),
             "dining detail opened but is not showing the tapped venue"
         )
+    }
+
+    /// Live Map uses MapKit annotations rather than the illustrated canvas, but
+    /// dining pins must still open the same canonical dining detail. This is
+    /// the regression path that previously showed ride history and Log Ride.
+    func testTappingAnEpcotLiveMapDiningPinOpensDiningDetailNotRideHistory() {
+        let liveButton = app.buttons["Live Map"]
+        XCTAssertTrue(liveButton.waitForExistence(timeout: timeout), "Explore/Live toggle never appeared")
+        liveButton.tap()
+
+        // The default park overview intentionally declutters to hero rides.
+        // Zoom to the central EPCOT area so its priority-2 dining pins enter
+        // the accessibility tree before targeting the regression venue.
+        let map = app.maps.firstMatch
+        XCTAssertTrue(map.waitForExistence(timeout: timeout), "Live MapKit surface never appeared")
+        map.pinch(withScale: 2.5, velocity: 1)
+        map.pinch(withScale: 2.0, velocity: 1)
+
+        let pin = buttonNamed(startingWith: "Connections Eatery")
+        XCTAssertTrue(pin.waitForExistence(timeout: timeout), "Connections Eatery never appeared on the Live Map")
+        pin.tap()
+
+        let detail = element("parkio.dining.detail")
+        XCTAssertTrue(detail.waitForExistence(timeout: timeout), "Live Map dining pin did not open dining detail")
+        XCTAssertTrue(app.staticTexts["Connections Eatery"].waitForExistence(timeout: timeout))
+        XCTAssertTrue(
+            element("parkio.dining.consumption-picker").waitForExistence(timeout: timeout),
+            "dining visit consumption picker is missing from the canonical detail"
+        )
+        XCTAssertFalse(app.staticTexts["RIDE HISTORY"].exists)
+        XCTAssertFalse(app.buttons["Log Ride"].exists)
     }
 
     // MARK: - Filter bar (shared MapOverlayFilterBar)

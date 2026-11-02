@@ -1,17 +1,13 @@
-// DistanceChip.swift — Compact pill showing walk distance to the selected ride.
+// DistanceChip.swift — Compact pill showing routed walk distance and ETA.
 //
-// Format: "<Ride Name> · <distance>"
-//   "Space Mountain · 340m"    "Haunted Mansion · 1.2 km"
+// Format: "<Ride Name> · <distance> · ~<minutes> min"
 //
 // Icon rules (via RideProximity):
 //   .nearby / .moderate → "figure.walk"
 //   .far                → "figure.walk.motion"
-//   nil (no GPS yet)    → "figure.walk" (safe fallback)
-//
 // Shown when:
 //   • A ride is selected
-//   • LocationService has a valid userLocation
-//   • mapVM.distanceToSelectedRide is non-nil
+//   • WalkingRouteModel has a successful pedestrian route
 
 import SwiftUI
 import CoreLocation
@@ -21,8 +17,8 @@ import CoreLocation
 struct DistanceChip: View {
 
     let rideName:  String
-    let distance:  CLLocationDistance
-    let proximity: RideProximity?       // nil before first GPS fix
+    let route: WalkingRoute
+    let proximity: RideProximity
 
     // MARK: - Body
 
@@ -50,11 +46,11 @@ struct DistanceChip: View {
     // MARK: - Helpers
 
     private var walkIcon: String {
-        proximity?.walkIcon ?? "figure.walk"
+        proximity.walkIcon
     }
 
     private var label: String {
-        "\(rideName) · \(RideAnnotation.formattedDistance(distance))"
+        "\(rideName) · \(route.formattedDistance) · ~\(route.estimatedMinutes) min"
     }
 }
 
@@ -65,15 +61,15 @@ struct DistanceChip: View {
 struct DistanceChipIfNeeded: View {
 
     @Environment(MapViewModel.self)    private var mapVM
-    @Environment(LocationService.self) private var locationService
+    @Environment(WalkingRouteModel.self) private var walkingRouteModel
 
     var body: some View {
         if let selectedMarker = mapVM.selectedEnrichedMarker,
-           let dist = mapVM.distanceToSelectedRide {
+           let route = walkingRouteModel.route {
             DistanceChip(
                 rideName:  selectedMarker.annotation.rideName,
-                distance:  dist,
-                proximity: mapVM.selectedRideProximity
+                route: route,
+                proximity: RideProximity(distance: route.distance)
             )
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }
@@ -84,11 +80,16 @@ struct DistanceChipIfNeeded: View {
 
 #Preview("DistanceChip") {
     VStack(spacing: 16) {
-        DistanceChip(rideName: "Space Mountain",       distance: 85,    proximity: .nearby)
-        DistanceChip(rideName: "Haunted Mansion",      distance: 240,   proximity: .moderate)
-        DistanceChip(rideName: "Tiana's Bayou Adv.",   distance: 1_240, proximity: .far)
-        DistanceChip(rideName: "Big Thunder Mountain", distance: 340,   proximity: nil)
+        DistanceChip(rideName: "Space Mountain", route: .chipPreview(distance: 85), proximity: .nearby)
+        DistanceChip(rideName: "Haunted Mansion", route: .chipPreview(distance: 240), proximity: .moderate)
+        DistanceChip(rideName: "Tiana's Bayou Adv.", route: .chipPreview(distance: 1_240), proximity: .far)
     }
     .padding(32)
     .background(AppColor.background)
+}
+
+private extension WalkingRoute {
+    static func chipPreview(distance: CLLocationDistance) -> WalkingRoute {
+        WalkingRoute(distance: distance, expectedTravelTime: max(60, distance / 1.2), coordinates: [])
+    }
 }

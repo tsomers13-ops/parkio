@@ -49,6 +49,7 @@ struct MapTabView: View {
     // sync in one place instead of lazily standing it up mid-switch.
     @State private var parkMapVM: ParkMapViewModel?
     @State private var calibrationVM = CalibrationViewModel()
+    @State private var walkingRouteModel = WalkingRouteModel()
 
     // SwiftData source of truth for ridden/logged state.
     @Query private var allRides: [Ride]
@@ -59,6 +60,7 @@ struct MapTabView: View {
                 MapContentView(
                     mapVM:        mapVM,
                     parkMapVM:    parkMapVM,
+                    walkingRouteModel: walkingRouteModel,
                     selectedPark: $selectedPark
                 )
                 .environment(calibrationVM)
@@ -102,6 +104,7 @@ struct MapTabView: View {
 private struct MapContentView: View {
     let mapVM:        MapViewModel
     let parkMapVM:    ParkMapViewModel
+    let walkingRouteModel: WalkingRouteModel
     @Binding var selectedPark: Park
 
     /// Which surface is on screen for the current park. Seeded to that park's
@@ -112,10 +115,17 @@ private struct MapContentView: View {
     @State private var mapMode: MapRenderMode
 
     @Environment(WaitTimeViewModel.self) private var waitTimeVM
+    @Environment(LocationService.self) private var locationService
 
-    init(mapVM: MapViewModel, parkMapVM: ParkMapViewModel, selectedPark: Binding<Park>) {
+    init(
+        mapVM: MapViewModel,
+        parkMapVM: ParkMapViewModel,
+        walkingRouteModel: WalkingRouteModel,
+        selectedPark: Binding<Park>
+    ) {
         self.mapVM = mapVM
         self.parkMapVM = parkMapVM
+        self.walkingRouteModel = walkingRouteModel
         self._selectedPark = selectedPark
         _mapMode = State(initialValue: Self.defaultMode(forParkId: selectedPark.wrappedValue.backendId))
     }
@@ -139,6 +149,7 @@ private struct MapContentView: View {
                 RideMapBottomSheetView()
                     .environment(mapVM)
                     .environment(waitTimeVM)
+                    .environment(walkingRouteModel)
             }
             .ignoresSafeArea(edges: .bottom)
             .navigationTitle("Map")
@@ -148,7 +159,44 @@ private struct MapContentView: View {
             .onChange(of: selectedPark) { _, newPark in
                 mapMode = Self.defaultMode(forParkId: newPark.backendId)
             }
+            .onAppear {
+                // Location and routing belong to the map experience, not to one
+                // renderer. This keeps estimates alive in both Explore and Live.
+                mapVM.locationService = locationService
+                if locationService.isAuthorized {
+                    locationService.startUpdating()
+                }
+                refreshWalkingRoute()
+            }
+            .onDisappear {
+                locationService.stopUpdating()
+                walkingRouteModel.cancel()
+            }
+            .onChange(of: mapVM.selectedRideId) { _, _ in
+                refreshWalkingRoute()
+            }
+            // A fresh Core Location fix can have identical coordinates when the
+            // guest is stationary. Observe its timestamp so re-entry and offline
+            // recovery do not remain stuck after an old retained fix is rejected.
+            .onChange(of: locationService.userLocation?.timestamp) { _, _ in
+                refreshWalkingRoute()
+            }
+            .onChange(of: locationService.authorizationStatus.rawValue) { _, _ in
+                if locationService.isAuthorized {
+                    locationService.startUpdating()
+                }
+                refreshWalkingRoute()
+            }
         }
+    }
+
+    private func refreshWalkingRoute() {
+        walkingRouteModel.update(
+            source: locationService.userLocation,
+            destination: mapVM.selectedRideCoordinate,
+            destinationID: mapVM.selectedRideId,
+            authorizationStatus: locationService.authorizationStatus
+        )
     }
 
     // MARK: Map surface
@@ -171,6 +219,7 @@ private struct MapContentView: View {
             // LocationService is already in the environment from ParkioApp.
             RealMapScreen()
                 .environment(mapVM)
+                .environment(walkingRouteModel)
                 .ignoresSafeArea(edges: .bottom)
         }
     }

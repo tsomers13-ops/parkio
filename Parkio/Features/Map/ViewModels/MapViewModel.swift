@@ -535,13 +535,6 @@ final class MapViewModel {
         )
     }
 
-    // MARK: - Phase 3: Proximity
-
-    var selectedRideProximity: RideProximity? {
-        guard let dist = distanceToSelectedRide else { return nil }
-        return RideProximity(distance: dist)
-    }
-
     // MARK: - Phase 3: Declutter
 
     /// Density-based suppression with four interlocking mechanisms:
@@ -954,14 +947,6 @@ final class MapViewModel {
     func enrichedMarker(for id: String) -> EnrichedMarkerWithSelection? {
         guard let ann = annotations.first(where: { $0.id == id }) else { return nil }
         return enrich(annotation: ann)
-    }
-
-    var distanceToSelectedRide: CLLocationDistance? {
-        guard let userLoc = locationService?.userLocation,
-              let id = selectedRideId,
-              let ann = annotations.first(where: { $0.id == id })
-        else { return nil }
-        return userLoc.distance(from: CLLocation(latitude: ann.latitude, longitude: ann.longitude))
     }
 
     // MARK: - State update hooks
