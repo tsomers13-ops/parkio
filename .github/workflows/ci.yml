@@ -1,0 +1,89 @@
+# GitHub-hosted macos-26 arm64 image.
+# Xcode and simulator pins are taken from the image software list:
+# https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md
+# (image 20261102.0473.1): Xcode 26.6 at /Applications/Xcode_26.6.app,
+# and an installed iPhone 17 simulator on iOS 26.5.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  xcode-tests:
+    name: Xcode tests
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.6
+        run: |
+          set -euo pipefail
+          xcode_path="/Applications/Xcode_26.6.app"
+          if [ ! -d "$xcode_path" ]; then
+            echo "Xcode 26.6 is not installed at $xcode_path"
+            ls -d /Applications/Xcode*.app || true
+            exit 1
+          fi
+          sudo xcode-select -s "$xcode_path"
+          xcodebuild -version
+          xcode-select -p
+          echo "Available iPhone simulators:"
+          xcrun simctl list devices available | grep -E 'iPhone' || true
+
+      - name: Run Xcode tests
+        run: |
+          set -euo pipefail
+          destination="platform=iOS Simulator,name=iPhone 17,OS=26.5"
+          echo "Destination: $destination"
+          xcodebuild test \
+            -project Parkio.xcodeproj \
+            -scheme Parkio \
+            -destination "$destination" \
+            -resultBundlePath "${RUNNER_TEMP}/Parkio.xcresult" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Summarize Xcode test results
+        if: always()
+        run: |
+          set +e
+          bundle="${RUNNER_TEMP}/Parkio.xcresult"
+          if [ ! -d "$bundle" ]; then
+            echo "No result bundle at $bundle"
+            exit 0
+          fi
+          xcrun xcresulttool get test-results summary --path "$bundle"
+          echo "----- failing tests -----"
+          xcrun xcresulttool get test-results tests --path "$bundle"
+
+  package-tests:
+    name: Package tests
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.6
+        run: |
+          set -euo pipefail
+          xcode_path="/Applications/Xcode_26.6.app"
+          if [ ! -d "$xcode_path" ]; then
+            echo "Xcode 26.6 is not installed at $xcode_path"
+            ls -d /Applications/Xcode*.app || true
+            exit 1
+          fi
+          sudo xcode-select -s "$xcode_path"
+          xcodebuild -version
+          swift --version
+
+      - name: Run Swift package tests
+        run: swift test --package-path .
