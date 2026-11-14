@@ -15,6 +15,10 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# `swift test` is not run. ParkioTools' Package.swift has no `Parkio` target,
+# while Tests/ParkioMapTests and Tests/ParkioRatingsTests use `@testable import Parkio`,
+# so `swift test` does not compile. Those tests still run under the Xcode job.
+
 jobs:
   xcode-tests:
     name: Xcode tests
@@ -64,27 +68,3 @@ jobs:
           echo "----- test results -----"
           xcrun xcresulttool get test-results tests --path "$bundle"
           exit 0
-
-  package-tests:
-    name: Package tests
-    runs-on: macos-26
-    timeout-minutes: 30
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Select Xcode 26.6
-        run: |
-          set -euo pipefail
-          xcode_path="/Applications/Xcode_26.6.app"
-          if [ ! -d "$xcode_path" ]; then
-            echo "Xcode 26.6 is not installed at $xcode_path"
-            ls -d /Applications/Xcode*.app || true
-            exit 1
-          fi
-          sudo xcode-select -s "$xcode_path"
-          xcodebuild -version
-          swift --version
-
-      - name: Run Swift package tests
-        run: swift test --package-path .
