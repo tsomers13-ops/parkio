@@ -2,120 +2,66 @@
 //
 //  Package.swift — Parkio developer tooling.
 //
-//  This manifest exists ONLY to build content-export tools that run on macOS.
-//  It is not part of the iOS app build: Xcode builds Parkio.xcodeproj, which
-//  compiles the `Parkio/` folder via a PBXFileSystemSynchronizedRootGroup and
-//  is entirely unaware of this file.
+//  This manifest is not part of the iOS app build. Xcode builds
+//  Parkio.xcodeproj, which compiles the `Parkio/` folder via a
+//  PBXFileSystemSynchronizedRootGroup and is unaware of this file.
 //
-//  The exporter reuses the app's real Swift models by listing them explicitly
-//  in `sources` — there is no parsing of Swift source and no duplicated data.
-//  Exporter code lives in `Tools/`, outside the synchronized `Parkio/` folder,
-//  so it is never compiled into the shipping app.
+//  The `Parkio` library is a macOS slice of the app sources that
+//  `swift test` and `dining-export` need. Each app file belongs to
+//  exactly one SwiftPM target. UIKit and SwiftUI views stay out.
 //
 import PackageDescription
-
-// App sources the exporter must NOT compile. Listed so the manifest stays a
-// truthful description of the tool's inputs.
-let sourcesNotInExporter: [String] = [
-                "AppStoreInfo.plist",
-                "PARKIO_ACTIVE_CONTEXT.md",
-                "README.md",
-                "Parkio/Assets.xcassets",
-                "Parkio/Preview Content",
-                "Parkio/PrivacyInfo.xcprivacy",
-                "Parkio/ParkioApp.swift",
-                "Parkio/Features",
-                "Parkio/Services",
-                "Parkio/Tokens",
-                "Parkio/ViewModels",
-                "Parkio/Views",
-                "Parkio/Models/DTOs",
-                "Parkio/Models/AppNavigationCoordinator.swift",
-                "Parkio/Models/DiningRating.swift",
-                "Parkio/Models/DiningVenueKeys.swift",
-                "Parkio/Models/DiningRatingStore.swift",
-                "Parkio/Models/DiningRecommendation.swift",
-                "Parkio/Models/DiningReview.swift",
-                "Parkio/Models/GuestServicePOI.swift",
-                "Parkio/Models/MyDayItem.swift",
-                "Parkio/Models/Park+Appearance.swift",
-                "Parkio/Models/ParkVisit.swift",
-                "Parkio/Models/Ride.swift",
-                "Parkio/Models/RideLog.swift",
-                "Parkio/Models/RideSeeder.swift",
-                "Parkio/Models/ShopMasterData.swift",
-                "Parkio/Models/WaitTimeCache.swift",
-]
 
 let package = Package(
     name: "ParkioTools",
     platforms: [.macOS(.v14)],
     targets: [
+        .target(
+            name: "Parkio",
+            path: "Parkio",
+            sources: [
+                "Services/Ratings",
+                "Services/DiningRecommendationService.swift",
+                "Models/DiningVenueKeys.swift",
+                "Models/Park.swift",
+                "Models/DiningMetadata.swift",
+                "Models/RideMasterData.swift",
+                "Models/RideMasterData+Dining.swift",
+                "Models/Ride.swift",
+                "Models/RideLog.swift",
+                "Models/DiningRating.swift",
+                "Models/DiningRecommendation.swift",
+                "Models/DiningRatingStore.swift",
+                "Views/Dining/Community/CommunityRatingViewModel.swift",
+                "Features/Map/MapImageResolution.swift",
+                "Features/Map/MapRoutingDecision.swift",
+                "Features/Map/MapPinIdentityResolver.swift",
+                "Features/Map/Models/ParkMapPin.swift",
+                "Features/Map/Models/ParkMapPinData.swift",
+            ],
+            // App types stay internal. dining-export is an executable, so the
+            // library is built for testing and main.swift uses @testable import.
+            swiftSettings: [.unsafeFlags(["-enable-testing"])]
+        ),
+
         .executableTarget(
             name: "dining-export",
-            path: ".",
-            // App sources the exporter must NOT compile. Listed so the
-            // manifest stays a truthful description of the tool's inputs.
-            exclude: sourcesNotInExporter,
-            sources: [
-                "Tools/DiningExporter",
-                // Real app models — single source of truth for Dining content.
-                "Parkio/Models/Park.swift",
-                "Parkio/Models/DiningMetadata.swift",
-                "Parkio/Models/RideMasterData.swift",
-                "Parkio/Models/RideMasterData+Dining.swift",
-            ]
+            dependencies: ["Parkio"],
+            path: "Tools/DiningExporter"
         ),
 
-        // The Community Ratings foundation, tested here because the Xcode
-        // project has no test target and adding one would mean editing
-        // project.pbxproj by hand. These files are deliberately Foundation-only
-        // (no SwiftUI, no SwiftData) so they compile and run under `swift test`
-        // exactly as they do in the app.
         .testTarget(
             name: "ParkioRatingsTests",
-            path: ".",
-            // Everything the exporter skips, minus the two things these tests
-            // exist to exercise: the Ratings service layer and the generated
-            // venueKey mapping.
-            exclude: sourcesNotInExporter.filter {
-                $0 != "Parkio/Services"
-                    && $0 != "Parkio/Models/DiningVenueKeys.swift"
-                    && $0 != "Parkio/Views"
-            } + ["Tools/DiningExporter"],
-            sources: [
-                "Tests/ParkioRatingsTests",
-                // Real app sources under test — compiled in, not duplicated.
-                "Parkio/Services/Ratings",
-                "Parkio/Models/DiningVenueKeys.swift",
-                // The view model is deliberately SwiftUI-free — Foundation and
-                // Observation only — so the whole Community state machine is
-                // testable without dragging the view layer into SPM.
-                "Parkio/Views/Dining/Community/CommunityRatingViewModel.swift",
-                // The real Dining content deliberately is NOT compiled here:
-                // SPM forbids two targets sharing sources, and those files
-                // belong to the exporter. The 62/24 eligibility boundary is
-                // asserted against the real 86 venues by
-                // `dining-export --verify-venue-keys`, which already owns them.
-            ]
+            dependencies: ["Parkio"],
+            path: "Tests/ParkioRatingsTests"
         ),
 
-        // The custom Magic Kingdom map canvas's routing/lookup logic — kept
-        // Foundation-only (no SwiftUI, no UIKit, no SwiftData, no RideMasterData/
-        // Park — see ParkMapPinResolution.swift for that wiring, app-only) so
-        // it is testable here, the same reasoning as ParkioRatingsTests above.
+        // Map routing and pin lookup. ParkioAttractionsTests stays in the
+        // Xcode test bundle only; it is not a SwiftPM target.
         .testTarget(
             name: "ParkioMapTests",
-            path: ".",
-            sources: [
-                "Tests/ParkioMapTests",
-                // Real app sources under test — compiled in, not duplicated.
-                "Parkio/Features/Map/Models/ParkMapPin.swift",
-                "Parkio/Features/Map/Models/ParkMapPinData.swift",
-                "Parkio/Features/Map/MapPinIdentityResolver.swift",
-                "Parkio/Features/Map/MapRoutingDecision.swift",
-                "Parkio/Features/Map/MapImageResolution.swift",
-            ]
-        )
+            dependencies: ["Parkio"],
+            path: "Tests/ParkioMapTests"
+        ),
     ]
 )

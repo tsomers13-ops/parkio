@@ -10,6 +10,7 @@
 //
 
 import Foundation
+@testable import Parkio
 
 // MARK: - Arguments
 
