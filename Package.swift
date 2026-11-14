@@ -19,9 +19,6 @@ let package = Package(
         .target(
             name: "Parkio",
             path: "Parkio",
-            // App types stay internal. dining-export is an executable, so the
-            // library is built for testing and main.swift uses @testable import.
-            swiftSettings: [.unsafeFlags(["-enable-testing"])],
             sources: [
                 "Services/Ratings",
                 "Services/DiningRecommendationService.swift",
@@ -41,7 +38,10 @@ let package = Package(
                 "Features/Map/MapPinIdentityResolver.swift",
                 "Features/Map/Models/ParkMapPin.swift",
                 "Features/Map/Models/ParkMapPinData.swift",
-            ]
+            ],
+            // App types stay internal. dining-export is an executable, so the
+            // library is built for testing and main.swift uses @testable import.
+            swiftSettings: [.unsafeFlags(["-enable-testing"])]
         ),
 
         .executableTarget(
