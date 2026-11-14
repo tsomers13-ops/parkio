@@ -1,0 +1,86 @@
+# GitHub-hosted macos-26 arm64 image.
+# Xcode and simulator pins are taken from the image software list:
+# https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md
+# (image 20261102.0473.1): Xcode 26.6 at /Applications/Xcode_26.6.app,
+# and an installed iPhone 17 simulator on iOS 26.5.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# `swift test` is not run. ParkioTools' Package.swift has no `Parkio` target,
+# while Tests/ParkioMapTests and Tests/ParkioRatingsTests use `@testable import Parkio`,
+# so `swift test` does not compile. Those tests still run under the Xcode job.
+
+jobs:
+  xcode-tests:
+    name: Xcode tests
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      RESULT_BUNDLE: ${{ github.workspace }}/test-results/Parkio.xcresult
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 26.6
+        run: |
+          set -euo pipefail
+          xcode_path="/Applications/Xcode_26.6.app"
+          if [ ! -d "$xcode_path" ]; then
+            echo "Xcode 26.6 is not installed at $xcode_path"
+            ls -d /Applications/Xcode*.app || true
+            exit 1
+          fi
+          sudo xcode-select -s "$xcode_path"
+          xcodebuild -version
+          xcode-select -p
+          echo "Available iPhone simulators:"
+          xcrun simctl list devices available | grep -E 'iPhone' || true
+
+      - name: Run Xcode tests
+        run: |
+          set -euo pipefail
+          destination="platform=iOS Simulator,name=iPhone 17,OS=26.5"
+          echo "Destination: $destination"
+          echo "Result bundle: $RESULT_BUNDLE"
+          mkdir -p "$(dirname "$RESULT_BUNDLE")"
+          xcodebuild test \
+            -project Parkio.xcodeproj \
+            -scheme Parkio \
+            -destination "$destination" \
+            -resultBundlePath "$RESULT_BUNDLE" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Summarize Xcode test results
+        if: always()
+        run: |
+          set +e
+          if [ ! -d "$RESULT_BUNDLE" ]; then
+            echo "No result bundle at $RESULT_BUNDLE"
+            exit 0
+          fi
+          xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE"
+          echo "----- test results -----"
+          xcrun xcresulttool get test-results tests --path "$RESULT_BUNDLE"
+          exit 0
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Parkio.xcresult
+          path: test-results/Parkio.xcresult
+          if-no-files-found: ignore
