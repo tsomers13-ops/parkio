@@ -11,6 +11,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  actions: write
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -24,9 +28,13 @@ jobs:
     name: Xcode tests
     runs-on: macos-26
     timeout-minutes: 60
+    env:
+      RESULT_BUNDLE: ${{ github.workspace }}/test-results/Parkio.xcresult
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Select Xcode 26.6
         run: |
@@ -48,23 +56,32 @@ jobs:
           set -euo pipefail
           destination="platform=iOS Simulator,name=iPhone 17,OS=26.5"
           echo "Destination: $destination"
+          echo "Result bundle: $RESULT_BUNDLE"
+          mkdir -p "$(dirname "$RESULT_BUNDLE")"
           xcodebuild test \
             -project Parkio.xcodeproj \
             -scheme Parkio \
             -destination "$destination" \
-            -resultBundlePath "${RUNNER_TEMP}/Parkio.xcresult" \
+            -resultBundlePath "$RESULT_BUNDLE" \
             CODE_SIGNING_ALLOWED=NO
 
       - name: Summarize Xcode test results
         if: always()
         run: |
           set +e
-          bundle="${RUNNER_TEMP}/Parkio.xcresult"
-          if [ ! -d "$bundle" ]; then
-            echo "No result bundle at $bundle"
+          if [ ! -d "$RESULT_BUNDLE" ]; then
+            echo "No result bundle at $RESULT_BUNDLE"
             exit 0
           fi
-          xcrun xcresulttool get test-results summary --path "$bundle"
+          xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE"
           echo "----- test results -----"
-          xcrun xcresulttool get test-results tests --path "$bundle"
+          xcrun xcresulttool get test-results tests --path "$RESULT_BUNDLE"
           exit 0
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Parkio.xcresult
+          path: test-results/Parkio.xcresult
+          if-no-files-found: ignore
