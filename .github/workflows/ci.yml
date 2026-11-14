@@ -61,8 +61,9 @@ jobs:
             exit 0
           fi
           xcrun xcresulttool get test-results summary --path "$bundle"
-          echo "----- failing tests -----"
+          echo "----- test results -----"
           xcrun xcresulttool get test-results tests --path "$bundle"
+          exit 0
 
   package-tests:
     name: Package tests
