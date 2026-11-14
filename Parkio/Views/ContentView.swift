@@ -14,6 +14,9 @@ struct ContentView: View {
 
     // Active park filter — initialized from the VM's last-active backend ID.
     @State private var selectedPark: Park = {
+        if UITestConfiguration.opensMap && UITestConfiguration.selectsEpcotOnHome {
+            return .epcot
+        }
         let backendId = UserDefaults.standard.string(
             forKey: UserDefaultsKey.lastActiveParkId
         ) ?? "magic-kingdom"
@@ -68,6 +71,11 @@ struct ContentView: View {
         // Propagate park changes into the view model so it fetches the right park.
         .onChange(of: selectedPark) { _, newPark in
             waitTimeVM.activeParkId = newPark.backendId
+        }
+        .onAppear {
+            if UITestConfiguration.opensMap {
+                coordinator.selectedTab = 1
+            }
         }
     }
 }

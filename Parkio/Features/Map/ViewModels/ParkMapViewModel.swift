@@ -80,7 +80,41 @@ final class ParkMapViewModel {
     // MARK: - Actions
 
     func loadPins() {
-        pins = ParkMapPinData.embeddedPins[parkId] ?? []
+        if parkId == "epcot" {
+            pins = Self.epcotPinsFromCoordinates()
+        } else {
+            pins = ParkMapPinData.embeddedPins[parkId] ?? []
+        }
+    }
+
+    /// One canvas pin per EPCOT coordinate already stored in MapCoordinates.json.
+    /// Positions are the GPS projection, not the eight starter estimates.
+    static func epcotPinsFromCoordinates() -> [ParkMapPin] {
+        let layout = EpcotSchematicLayout.make(from: epcotSamples())
+        return layout.pins.map { pin in
+            ParkMapPinData.pin(
+                pin.id,
+                "epcot",
+                pin.name,
+                x: pin.x,
+                y: pin.y,
+                anchor: .center,
+                priority: pin.priority
+            )
+        }
+    }
+
+    private static func epcotSamples() -> [EpcotAttractionSample] {
+        MapCoordinateService.shared.annotations(for: "epcot").map { annotation in
+            EpcotAttractionSample(
+                id: annotation.id,
+                name: annotation.rideName,
+                land: annotation.land,
+                latitude: annotation.latitude,
+                longitude: annotation.longitude,
+                priority: RideMasterData.all.first { $0.stableID == annotation.id }?.mapPriority ?? 3
+            )
+        }
     }
 
     func pin(forRideId rideId: String) -> ParkMapPin? {

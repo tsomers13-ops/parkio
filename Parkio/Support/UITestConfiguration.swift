@@ -44,4 +44,11 @@ enum UITestConfiguration {
         isRunningUITests
             && ProcessInfo.processInfo.arguments.contains("-parkio-open-mk-map")
     }
+
+    /// Open the Map tab on launch. Combine with `-parkio-select-epcot` to
+    /// open EPCOT; otherwise the map stays on Magic Kingdom.
+    static var opensMap: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-open-map")
+    }
 }

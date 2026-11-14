@@ -84,3 +84,24 @@ jobs:
           name: Parkio.xcresult
           path: test-results/Parkio.xcresult
           if-no-files-found: ignore
+
+      # Removable: exports the MapScreenshotUITests attachments. Uses the
+      # runner artifact token, so the workflow stays at contents: read.
+      - name: Export map screenshots
+        if: always()
+        continue-on-error: true
+        run: |
+          set -u
+          mkdir -p map-screenshots
+          xcrun xcresulttool export attachments \
+            --path "$RESULT_BUNDLE" \
+            --output-path map-screenshots
+          find map-screenshots -type f -print
+
+      - name: Upload map screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: map-screenshots
+          path: map-screenshots
+          if-no-files-found: warn
