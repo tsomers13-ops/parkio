@@ -23,7 +23,7 @@ final class BestFoodNearbyNavigationUITests: XCTestCase {
         app = XCUIApplication()
         // EPCOT only — its venues carry Parkio editorial scores, so Best Food
         // Nearby is populated. Recommendation selection and order are untouched.
-        app.launchArguments += ["-parkio-uitests", "-parkio-select-epcot"]
+        app.launchArguments += ["-parkio-uitests", "-parkio-select-epcot", "-parkio-suppress-location"]
         app.launch()
     }
 

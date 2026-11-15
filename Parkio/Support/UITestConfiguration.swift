@@ -65,4 +65,11 @@ enum UITestConfiguration {
         isRunningUITests
             && ProcessInfo.processInfo.arguments.contains("-parkio-hide-user-dot")
     }
+
+    /// Dining UI tests were written without a GPS fix. CI now grants location
+    /// to the simulator, and a live fix refreshes Home while those tests tap.
+    static var suppressesLocationHold: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-suppress-location")
+    }
 }

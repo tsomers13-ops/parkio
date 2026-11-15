@@ -137,6 +137,13 @@ struct ParkioApp: App {
     /// including `.inactive`. The hold drops only in `.background`.
     /// There is no location background mode.
     private func syncForegroundLocation(for phase: ScenePhase) {
+        if UITestConfiguration.suppressesLocationHold {
+            if let hold = foregroundLocationHold {
+                locationService.releaseLocationUpdates(hold)
+                foregroundLocationHold = nil
+            }
+            return
+        }
         let shouldHold = ForegroundLocationPolicy.holdsLocation(phase)
         if shouldHold && foregroundLocationHold == nil {
             foregroundLocationHold = locationService.acquireLocationUpdates(

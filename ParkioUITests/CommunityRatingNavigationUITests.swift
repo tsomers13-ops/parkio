@@ -30,7 +30,7 @@ final class CommunityRatingNavigationUITests: XCTestCase {
         app = XCUIApplication()
         // Deterministic entry: EPCOT dining list, not whatever park was last
         // used. See UITestConfiguration — inert outside DEBUG.
-        app.launchArguments += ["-parkio-uitests", "-parkio-open-epcot-dining"]
+        app.launchArguments += ["-parkio-uitests", "-parkio-open-epcot-dining", "-parkio-suppress-location"]
         app.launch()
     }
 
