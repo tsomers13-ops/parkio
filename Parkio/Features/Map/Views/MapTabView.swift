@@ -345,4 +345,5 @@ private struct MapWaitTimeBanner: View {
     return MapTabView(selectedPark: .constant(.magicKingdom))
         .modelContainer(container)
         .environment(waitVM)
+        .environment(LocationService())
 }

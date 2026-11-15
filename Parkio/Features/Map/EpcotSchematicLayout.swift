@@ -53,12 +53,12 @@ struct EpcotSchematicLayout: Equatable {
         from samples: [EpcotAttractionSample],
         bounds: GeoBounds = MapSchematicProjection.epcotBounds
     ) -> EpcotSchematicLayout {
-        let projected: [(EpcotAttractionSample, CGPoint)] = samples.map { sample in
-            let point = MapSchematicProjection.normalize(
+        let projected: [(EpcotAttractionSample, CGPoint)] = samples.compactMap { sample in
+            guard let point = MapSchematicProjection.normalize(
                 latitude: sample.latitude,
                 longitude: sample.longitude,
                 bounds: bounds
-            )
+            ) else { return nil }
             return (sample, point)
         }
 

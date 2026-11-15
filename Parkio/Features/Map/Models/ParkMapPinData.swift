@@ -119,21 +119,69 @@ enum ParkMapPinData {
     ]
 
     // MARK: EPCOT
+    //
+    // Fractions are the drawn building or label on epcot_map, measured from
+    // the 3x artwork (1170×1152) with a top-left origin. Several venues share
+    // one pavilion, so extra pins are spread inside that building's box.
+    // Refreshment Outpost, GRAB-N-GOOF, and Disney Character Spot have no
+    // dedicated building on this art and are not pinned.
 
     static let epcotPins: [ParkMapPin] = [
-        // World Discovery (northeast)
-        pin("ep|guardians",     "epcot", "Guardians: Cosmic Rewind",  x: 0.63, y: 0.20, priority: 1),
-        pin("ep|test-track",    "epcot", "Test Track",                x: 0.71, y: 0.27, priority: 1),
-        pin("ep|mission-space", "epcot", "Mission: SPACE",            x: 0.67, y: 0.28, priority: 2),
-        // World Nature (northwest)
-        pin("ep|soarin",        "epcot", "Soarin'",                   x: 0.27, y: 0.35, priority: 1),
-        pin("ep|living-land",   "epcot", "Living with the Land",      x: 0.23, y: 0.40, priority: 2),
-        pin("ep|nemo",          "epcot", "The Seas with Nemo",        x: 0.19, y: 0.35, priority: 2),
-        // World Showcase (south loop)
-        pin("ep|frozen",        "epcot", "Frozen Ever After",         x: 0.30, y: 0.76, priority: 1),
-        pin("ep|ratatouille",   "epcot", "Remy's Ratatouille",        x: 0.56, y: 0.82, priority: 1),
-        // World Celebration (center)
-        pin("ep|figment",       "epcot", "Journey Into Imagination",  x: 0.35, y: 0.32, priority: 2),
+        pin("ep|spaceship-earth", "epcot", "Spaceship Earth", x: 0.4641, y: 0.8056, anchor: .center, priority: 2),
+        pin("ep|geo-82", "epcot", "GEO-82", x: 0.5188, y: 0.8056, anchor: .center, priority: 3),
+        pin("ep|journey-into-imagination-with-figment", "epcot", "Journey Into Imagination With Figment", x: 0.6545, y: 0.5951, anchor: .center, priority: 2),
+        pin("ep|figment-at-imageworks", "epcot", "Figment at ImageWorks", x: 0.7207, y: 0.5951, anchor: .center, priority: 3),
+        pin("ep|guardians-of-the-galaxy-cosmic-rewind", "epcot", "Guardians of the Galaxy: Cosmic Rewind", x: 0.3462, y: 0.7925, anchor: .center, priority: 1),
+        pin("ep|mission-space", "epcot", "Mission: SPACE", x: 0.2232, y: 0.6910, anchor: .center, priority: 2),
+        pin("ep|space-220-restaurant", "epcot", "Space 220 Restaurant", x: 0.2691, y: 0.6910, anchor: .center, priority: 3),
+        pin("ep|test-track", "epcot", "Test Track", x: 0.2333, y: 0.6098, anchor: .center, priority: 1),
+        pin("ep|soarin-around-the-world", "epcot", "Soarin' Around the World", x: 0.7511, y: 0.6414, anchor: .center, priority: 1),
+        pin("ep|living-with-the-land", "epcot", "Living with the Land", x: 0.8506, y: 0.6414, anchor: .center, priority: 2),
+        pin("ep|sunshine-seasons", "epcot", "Sunshine Seasons", x: 0.7511, y: 0.7180, anchor: .center, priority: 3),
+        pin("ep|garden-grill-restaurant", "epcot", "Garden Grill Restaurant", x: 0.8506, y: 0.7180, anchor: .center, priority: 3),
+        pin("ep|the-seas-with-nemo-friends", "epcot", "The Seas with Nemo & Friends", x: 0.6157, y: 0.8121, anchor: .center, priority: 2),
+        pin("ep|turtle-talk-with-crush", "epcot", "Turtle Talk with Crush", x: 0.6835, y: 0.8121, anchor: .center, priority: 3),
+        pin("ep|journey-of-water-inspired-by-moana", "epcot", "Journey of Water, Inspired by Moana", x: 0.5897, y: 0.7587, anchor: .center, priority: 2),
+        pin("ep|frozen-ever-after", "epcot", "Frozen Ever After", x: 0.1770, y: 0.4108, anchor: .center, priority: 1),
+        pin("ep|akershus-royal-banquet-hall", "epcot", "Akershus Royal Banquet Hall", x: 0.2308, y: 0.4108, anchor: .center, priority: 3),
+        pin("ep|gran-fiesta-tour", "epcot", "Gran Fiesta Tour", x: 0.2442, y: 0.4786, anchor: .center, priority: 3),
+        pin("ep|san-angel-inn-restaurante", "epcot", "San Angel Inn Restaurante", x: 0.3190, y: 0.4786, anchor: .center, priority: 3),
+        pin("ep|la-hacienda-de-san-angel", "epcot", "La Hacienda de San Angel", x: 0.2442, y: 0.5035, anchor: .center, priority: 3),
+        pin("ep|la-cava-del-tequila", "epcot", "La Cava del Tequila", x: 0.3190, y: 0.5035, anchor: .center, priority: 3),
+        pin("ep|choza-de-margarita", "epcot", "Choza de Margarita", x: 0.2442, y: 0.5283, anchor: .center, priority: 3),
+        pin("ep|la-cantina-de-san-angel", "epcot", "La Cantina de San Angel", x: 0.3190, y: 0.5283, anchor: .center, priority: 3),
+        pin("ep|nine-dragons-restaurant", "epcot", "Nine Dragons Restaurant", x: 0.1630, y: 0.3518, anchor: .center, priority: 2),
+        pin("ep|biergarten-restaurant", "epcot", "Biergarten Restaurant", x: 0.2046, y: 0.1319, anchor: .center, priority: 2),
+        pin("ep|sommerfest", "epcot", "Sommerfest", x: 0.2696, y: 0.1319, anchor: .center, priority: 3),
+        pin("ep|karamell-kuche", "epcot", "Karamell-Küche", x: 0.2046, y: 0.1850, anchor: .center, priority: 3),
+        pin("ep|tutto-italia-ristorante", "epcot", "Tutto Italia Ristorante", x: 0.3599, y: 0.1042, anchor: .center, priority: 2),
+        pin("ep|via-napoli-ristorante-e-pizzeria", "epcot", "Via Napoli Ristorante e Pizzeria", x: 0.4236, y: 0.1042, anchor: .center, priority: 3),
+        pin("ep|tutto-gusto-wine-cellar", "epcot", "Tutto Gusto Wine Cellar", x: 0.3599, y: 0.1555, anchor: .center, priority: 3),
+        pin("ep|the-american-adventure", "epcot", "The American Adventure", x: 0.4625, y: 0.0935, anchor: .center, priority: 2),
+        pin("ep|regal-eagle-smokehouse", "epcot", "Regal Eagle Smokehouse", x: 0.5242, y: 0.0935, anchor: .center, priority: 3),
+        pin("ep|fife-drum-tavern", "epcot", "Fife & Drum Tavern", x: 0.4625, y: 0.1479, anchor: .center, priority: 3),
+        pin("ep|block-hans", "epcot", "Block & Hans", x: 0.5242, y: 0.1479, anchor: .center, priority: 3),
+        pin("ep|teppan-edo", "epcot", "Teppan Edo", x: 0.5816, y: 0.0945, anchor: .center, priority: 2),
+        pin("ep|takumi-tei", "epcot", "Takumi-Tei", x: 0.6400, y: 0.0945, anchor: .center, priority: 3),
+        pin("ep|shiki-sai-sushi-izakaya", "epcot", "Shiki-Sai: Sushi Izakaya", x: 0.5816, y: 0.1430, anchor: .center, priority: 3),
+        pin("ep|katsura-grill", "epcot", "Katsura Grill", x: 0.6400, y: 0.1430, anchor: .center, priority: 3),
+        pin("ep|tangierine-cafe", "epcot", "Tangierine Café", x: 0.7189, y: 0.1592, anchor: .center, priority: 2),
+        pin("ep|spice-road-table", "epcot", "Spice Road Table", x: 0.7708, y: 0.1592, anchor: .center, priority: 3),
+        pin("ep|remy-s-ratatouille-adventure", "epcot", "Remy's Ratatouille Adventure", x: 0.7721, y: 0.1898, anchor: .center, priority: 2),
+        pin("ep|monsieur-paul", "epcot", "Monsieur Paul", x: 0.8279, y: 0.1898, anchor: .center, priority: 3),
+        pin("ep|chefs-de-france", "epcot", "Chefs de France", x: 0.7721, y: 0.2068, anchor: .center, priority: 3),
+        pin("ep|les-vins-des-chefs-de-france", "epcot", "Les Vins des Chefs de France", x: 0.8279, y: 0.2068, anchor: .center, priority: 3),
+        pin("ep|la-creperie-de-paris", "epcot", "La Crêperie de Paris", x: 0.7721, y: 0.2238, anchor: .center, priority: 3),
+        pin("ep|les-halles-boulangerie-patisserie", "epcot", "Les Halles Boulangerie-Patisserie", x: 0.8279, y: 0.2238, anchor: .center, priority: 3),
+        pin("ep|l-artisan-des-glaces", "epcot", "L'Artisan des Glaces", x: 0.7721, y: 0.2409, anchor: .center, priority: 3),
+        pin("ep|rose-crown-dining-room", "epcot", "Rose & Crown Dining Room", x: 0.7796, y: 0.3883, anchor: .center, priority: 2),
+        pin("ep|rose-crown-pub", "epcot", "Rose & Crown Pub", x: 0.8223, y: 0.3883, anchor: .center, priority: 3),
+        pin("ep|uk-beer-cart", "epcot", "UK Beer Cart", x: 0.7796, y: 0.4595, anchor: .center, priority: 3),
+        pin("ep|yorkshire-county-fish-shop", "epcot", "Yorkshire County Fish Shop", x: 0.8223, y: 0.4595, anchor: .center, priority: 3),
+        pin("ep|le-cellier-steakhouse", "epcot", "Le Cellier Steakhouse", x: 0.7062, y: 0.5254, anchor: .center, priority: 2),
+        pin("ep|la-poutinerie", "epcot", "La Poutinerie", x: 0.7699, y: 0.5254, anchor: .center, priority: 3),
+        pin("ep|connections-eatery", "epcot", "Connections Eatery", x: 0.4291, y: 0.6715, anchor: .center, priority: 2),
+        pin("ep|luminous", "epcot", "Luminous The Symphony of Us", x: 0.5067, y: 0.3177, anchor: .center, priority: 1),
     ]
 
     // MARK: Hollywood Studios

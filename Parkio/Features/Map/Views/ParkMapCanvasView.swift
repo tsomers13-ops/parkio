@@ -38,6 +38,7 @@ struct ParkMapCanvasView: View {
     @Environment(MapViewModel.self)         private var mapVM
     @Environment(ParkMapViewModel.self)     private var parkMapVM
     @Environment(CalibrationViewModel.self) private var calibrationVM
+    @Environment(LocationService.self)      private var locationService
 
     // Dining pins have no GPS annotation (see MapPinIdentityResolver / docs/
     // MK-MAP-PROVENANCE.md) — they resolve straight to a SwiftData Ride record
@@ -56,6 +57,8 @@ struct ParkMapCanvasView: View {
     /// Captured by GeometryReader so resetZoom() can compute fitScale without
     /// needing a size parameter at the call site (onChange has no size in scope).
     @State private var viewportSize: CGSize  = .zero
+    /// True only while this canvas started EPCOT location updates itself.
+    @State private var epcotLocationStarted = false
 
     var body: some View {
         GeometryReader { geo in
@@ -67,7 +70,11 @@ struct ParkMapCanvasView: View {
                     let fs = mapVM.fitScale(for: geo.size)
                     scale     = fs
                     baseScale = fs
+                    syncEpcotLocation()
                 }
+                .onChange(of: parkMapVM.parkId) { _, _ in syncEpcotLocation() }
+                .onChange(of: locationService.authorizationStatus) { _, _ in syncEpcotLocation() }
+                .onDisappear { syncEpcotLocation(stopping: true) }
                 // Keep viewportSize current on device rotation / split-screen resize.
                 .onChange(of: geo.size) { _, newSize in
                     viewportSize = newSize
@@ -191,6 +198,7 @@ struct ParkMapCanvasView: View {
                         // Pins use pin.canvasPoint(in: cs) → CGPoint(x: cs.width * mapX, y: cs.height * mapY)
                         // A pin at mapX=0.5, mapY=0.5 lands at (cs.width/2, cs.height/2) = canvas center. ✓
                         PinsLayerView(size: cs, mapVM: mapVM, parkMapVM: parkMapVM, onTap: handlePinTap)
+                        epcotUserLocation(canvasSize: cs)
                     }
                 }
                 // Explicit frame pins the ZStack at contentSize so .overlay doesn't
@@ -237,6 +245,53 @@ struct ParkMapCanvasView: View {
                         }
                     }
             )
+    }
+
+    // MARK: - EPCOT location
+
+    /// Draws the user on the EPCOT illustration. North is down, so the GPS
+    /// window is rotated 180° before it is placed. A missing fix, a fix
+    /// outside the park window, or a degenerate window draws nothing.
+    @ViewBuilder
+    private func epcotUserLocation(canvasSize: CGSize) -> some View {
+        if parkMapVM.parkId == "epcot",
+           let location = locationService.userLocation,
+           let bounds = MapSchematicProjection.parkBounds["epcot"],
+           let point = MapSchematicProjection.normalize(
+                latitude: location.coordinate.latitude,
+                longitude: location.coordinate.longitude,
+                bounds: bounds,
+                inset: 0.05,
+                orientation: .northDown
+           ) {
+            Circle()
+                .fill(Color(red: 0.20, green: 0.48, blue: 0.96))
+                .frame(width: 14, height: 14)
+                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+                .position(
+                    x: point.x * canvasSize.width,
+                    y: point.y * canvasSize.height
+                )
+                .allowsHitTesting(false)
+                .accessibilityLabel("Your location")
+        }
+    }
+
+    /// Starts location updates only for the EPCOT canvas, and only when
+    /// authorization is already granted. Stops them again when this view
+    /// started them and the user leaves EPCOT or the map.
+    private func syncEpcotLocation(stopping: Bool = false) {
+        let shouldTrack = !stopping
+            && parkMapVM.parkId == "epcot"
+            && locationService.isAuthorized
+        if shouldTrack && !epcotLocationStarted {
+            locationService.startUpdating()
+            epcotLocationStarted = true
+        } else if !shouldTrack && epcotLocationStarted {
+            locationService.stopUpdating()
+            epcotLocationStarted = false
+        }
     }
 
     // MARK: - Reset
@@ -514,6 +569,7 @@ private struct FilterChip: View {
         .environment(mapVM)
         .environment(parkMapVM)
         .environment(calVM)
+        .environment(LocationService())
         .modelContainer(container)
         .environment(waitVM)
 }
@@ -533,6 +589,7 @@ private struct FilterChip: View {
         .environment(mapVM)
         .environment(parkMapVM)
         .environment(calVM)
+        .environment(LocationService())
         .modelContainer(container)
         .environment(waitVM)
 }

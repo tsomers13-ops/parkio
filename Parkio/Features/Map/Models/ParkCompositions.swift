@@ -135,25 +135,26 @@ enum MKComposition {
     }
 }
 
-// MARK: - EPCOT  (1000 × 1200)
+// MARK: - EPCOT  (390 × 384)
 
 enum EPCOTComposition {
-    /// Full canvas is the default view. The GPS projection already insets
-    /// every point, so a 0.90 viewport would clip nothing useful and a
-    /// tighter one would cut the outer pavilions.
+    /// Illustrated art is 390×384. The default viewport matches Magic Kingdom
+    /// so fit and zoom use the same 0.90 frame and the same scale limits.
     static func make() -> ParkComposition {
-        let samples = MapCoordinateService.shared.annotations(for: "epcot").map { annotation in
-            EpcotAttractionSample(
-                id: annotation.id,
-                name: annotation.rideName,
-                land: annotation.land,
-                latitude: annotation.latitude,
-                longitude: annotation.longitude,
-                priority: RideMasterData.all.first { $0.stableID == annotation.id }?.mapPriority ?? 3
-            )
-        }
-        return make(layout: EpcotSchematicLayout.make(from: samples))
+        ParkComposition(
+            parkId: "epcot",
+            contentSize: CGSize(width: 390, height: 384),
+            defaultViewport: CGRect(x: 0.05, y: 0.05, width: 0.90, height: 0.90),
+            shapes: [
+                MapBackgroundShape(
+                    id: "ep-base", type: .landMass,
+                    geometry: .rect(CGRect(x: 0, y: 0, width: 1, height: 1)),
+                    fillColor: MapTokens.canvasBase, fillOpacity: 1.0, drawOrder: 0),
+            ]
+        )
     }
+
+    /// Schematic used by layout tests. The map screen does not call this.
 
     static func make(layout: EpcotSchematicLayout) -> ParkComposition {
         var shapes: [MapBackgroundShape] = [

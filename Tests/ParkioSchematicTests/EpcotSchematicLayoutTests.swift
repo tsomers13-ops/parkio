@@ -73,11 +73,11 @@ final class EpcotSchematicLayoutTests: XCTestCase {
     }
 
     func testProjectedPointsStayInsideTheCanvasMargin() {
-        let point = MapSchematicProjection.normalize(
+        let point = try XCTUnwrap(MapSchematicProjection.normalize(
             latitude: spaceshipEarth.latitude,
             longitude: spaceshipEarth.longitude,
             bounds: MapSchematicProjection.epcotBounds
-        )
+        ))
         XCTAssertGreaterThanOrEqual(point.x, MapSchematicProjection.canvasInset)
         XCTAssertLessThanOrEqual(point.x, 1 - MapSchematicProjection.canvasInset)
         XCTAssertGreaterThanOrEqual(point.y, MapSchematicProjection.canvasInset)
@@ -144,6 +144,55 @@ final class EpcotSchematicLayoutTests: XCTestCase {
             XCTAssertLessThanOrEqual(frame.maxX, viewport.maxX + 0.001, shape.id)
             XCTAssertLessThanOrEqual(frame.maxY, viewport.maxY + 0.001, shape.id)
         }
+    }
+
+    func testIllustratedEpcotCanvasMatchesTheArtAndMagicKingdomFit() {
+        let composition = EPCOTComposition.make()
+        XCTAssertEqual(composition.contentSize, CGSize(width: 390, height: 384))
+        XCTAssertEqual(
+            composition.defaultViewport,
+            CGRect(x: 0.05, y: 0.05, width: 0.90, height: 0.90)
+        )
+    }
+
+    func testDegenerateOrOutsideBoundsDoNotFallBackToTheCenter() {
+        let degenerate = GeoBounds(
+            latitudeMin: 28.37, latitudeMax: 28.37,
+            longitudeMin: -81.55, longitudeMax: -81.54
+        )
+        XCTAssertNil(MapSchematicProjection.normalize(
+            latitude: 28.37, longitude: -81.545, bounds: degenerate
+        ))
+        XCTAssertNil(MapSchematicProjection.normalize(
+            latitude: 0, longitude: 0, bounds: MapSchematicProjection.epcotBounds
+        ))
+    }
+
+    func testNorthDownIsTheIllustratedEpcotOrientation() {
+        let bounds = MapSchematicProjection.epcotBounds
+        let latitude = 28.3740
+        let longitude = -81.5470
+        let northUp = try XCTUnwrap(MapSchematicProjection.normalize(
+            latitude: latitude, longitude: longitude, bounds: bounds
+        ))
+        let northDown = try XCTUnwrap(MapSchematicProjection.normalize(
+            latitude: latitude,
+            longitude: longitude,
+            bounds: bounds,
+            orientation: .northDown
+        ))
+        XCTAssertEqual(northDown.x, 1 - northUp.x, accuracy: 0.000_001)
+        XCTAssertEqual(northDown.y, 1 - northUp.y, accuracy: 0.000_001)
+        // World Discovery is the east side of the park. On the art it is left.
+        let discovery = try XCTUnwrap(MapSchematicProjection.normalize(
+            latitude: 28.3739, longitude: -81.5467,
+            bounds: bounds, orientation: .northDown
+        ))
+        let nature = try XCTUnwrap(MapSchematicProjection.normalize(
+            latitude: 28.3729, longitude: -81.5527,
+            bounds: bounds, orientation: .northDown
+        ))
+        XCTAssertLessThan(discovery.x, nature.x)
     }
 
     func testSpaceshipEarthShapeCarriesALabel() {

@@ -46,10 +46,7 @@ struct ParkMapBackgroundView: View {
     let composition: ParkComposition
 
     var body: some View {
-        // EPCOT's mock image is not registered to the GPS coordinates, so
-        // the schematic (shapes and pins from the same projection) is the
-        // background. Magic Kingdom keeps its production artwork.
-        if parkMapVM.hasMapImage && parkMapVM.parkId != "epcot" {
+        if parkMapVM.hasMapImage {
             realMapImage
         } else {
             CompositionMapCanvas(composition: composition)

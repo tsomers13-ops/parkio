@@ -92,4 +92,5 @@ struct ContentView: View {
         .environment(WaitTimeViewModel(container: container))
         .environment(AppNavigationCoordinator())
         .environment(MyDayStore())
+        .environment(LocationService())
 }
