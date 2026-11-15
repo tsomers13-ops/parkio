@@ -81,8 +81,9 @@ private struct CompositionMapCanvas: View {
             MapTokens.canvasBase
 
             // ── Layer 2: authored park shapes ──────────────────────────────
-            // No dot grid here. On the schematic those dots read as pins.
-            // Magic Kingdom covers this canvas with the map image instead.
+            // Fallback under the artwork. Magic Kingdom and EPCOT cover this
+            // canvas with their map images. No dot grid: a field of dots
+            // reads as pins.
             Canvas { context, size in
                 for shape in composition.orderedShapes {
                     renderShape(shape, in: context, canvasSize: size)

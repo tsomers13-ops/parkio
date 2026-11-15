@@ -2,6 +2,7 @@
 // and a MapKit park must not drop the location stream while either still
 // holds it.
 
+import CoreLocation
 import XCTest
 
 @testable import Parkio
@@ -10,7 +11,7 @@ import XCTest
 final class LocationServiceBalanceTests: XCTestCase {
 
     func testLastReleaseStopsAndAnOverlappingClientDoesNot() async {
-        let service = LocationService()
+        let service = makeService(.authorizedWhenInUse)
         service.acquireLocationUpdates()
         service.acquireLocationUpdates()
         XCTAssertEqual(service.locationClientCount, 2)
@@ -29,7 +30,7 @@ final class LocationServiceBalanceTests: XCTestCase {
     }
 
     func testReleaseThenAcquireInTheSameTurnKeepsStreaming() async {
-        let service = LocationService()
+        let service = makeService(.authorizedWhenInUse)
         service.acquireLocationUpdates()
         service.releaseLocationUpdates()
         service.acquireLocationUpdates()
@@ -43,7 +44,7 @@ final class LocationServiceBalanceTests: XCTestCase {
     }
 
     func testExtraReleaseAndUnpairedStartDoNotUnbalanceTheCount() async {
-        let service = LocationService()
+        let service = makeService(.authorizedWhenInUse)
         service.releaseLocationUpdates()
         XCTAssertEqual(service.locationClientCount, 0)
         XCTAssertFalse(service.isStreamingLocation)
@@ -56,6 +57,40 @@ final class LocationServiceBalanceTests: XCTestCase {
         await waitForStream(service, streaming: false)
         XCTAssertEqual(service.locationClientCount, 0)
         XCTAssertFalse(service.isStreamingLocation)
+    }
+
+    func testHoldWhileNotDeterminedOrDeniedStartsStreamingOnGrant() {
+        let service = makeService(.notDetermined)
+        service.acquireLocationUpdates()
+        service.startUpdating()
+        XCTAssertEqual(service.locationClientCount, 1)
+        XCTAssertFalse(service.isStreamingLocation)
+
+        service.noteAuthorizationStatus(.denied)
+        XCTAssertEqual(service.locationClientCount, 1)
+        XCTAssertFalse(service.isStreamingLocation)
+
+        service.noteAuthorizationStatus(.authorizedWhenInUse)
+        XCTAssertEqual(service.locationClientCount, 1)
+        XCTAssertTrue(service.isStreamingLocation)
+    }
+
+    func testGrantWithNoHoldDoesNotStreamBeyondTheButton() {
+        let service = makeService(.notDetermined)
+        service.noteAuthorizationStatus(.authorizedAlways)
+        XCTAssertEqual(service.locationClientCount, 0)
+        XCTAssertFalse(service.isStreamingLocation)
+
+        service.startUpdating()
+        XCTAssertEqual(service.locationClientCount, 0)
+        XCTAssertTrue(service.isStreamingLocation)
+    }
+
+    private func makeService(_ status: CLAuthorizationStatus) -> LocationService {
+        let service = LocationService()
+        service.acceptsManagerAuthorizationUpdates = false
+        service.noteAuthorizationStatus(status)
+        return service
     }
 
     private func waitForStream(_ service: LocationService, streaming: Bool) async {

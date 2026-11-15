@@ -178,6 +178,9 @@ struct RealMapScreen: View {
             }
         }
         .onAppear {
+            // Record the hold even before permission. LocationService does
+            // not call startUpdatingLocation until authorization is granted
+            // and this hold, or another, still exists.
             if !holdsLocationUpdates {
                 locationService.acquireLocationUpdates()
                 holdsLocationUpdates = true

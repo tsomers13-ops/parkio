@@ -39,13 +39,18 @@ final class LocationService: NSObject {
     /// (or the reverse) does not stop updates.
     private(set) var locationClientCount = 0
 
-    /// True while this service has asked Core Location to stream.
+    /// True only after Core Location has actually been started.
+    /// A hold recorded before permission does not set this.
     private(set) var isStreamingLocation = false
 
     // ── Private ───────────────────────────────────────────────────────────────
 
     private let manager = CLLocationManager()
     private var locationStopPending = false
+
+    /// Tests set this to false so a late Core Location callback cannot
+    /// overwrite a status the test just applied.
+    var acceptsManagerAuthorizationUpdates = true
 
     // MARK: - Init
 
@@ -67,11 +72,13 @@ final class LocationService: NSObject {
         manager.requestWhenInUseAuthorization()
     }
 
-    /// Take one hold on the location stream. The first hold starts Core
-    /// Location. A matching `releaseLocationUpdates()` drops the hold.
+    /// Take one hold on the location stream. The hold is recorded even when
+    /// location is not authorized. Hardware starts only once permission
+    /// exists. A matching `releaseLocationUpdates()` drops the hold.
     func acquireLocationUpdates() {
         locationClientCount += 1
         locationStopPending = false
+        guard isAuthorized else { return }
         beginStreamingLocation()
     }
 
@@ -90,9 +97,11 @@ final class LocationService: NSObject {
         }
     }
 
-    /// Start streaming without taking a hold. Used by the authorization
-    /// callback and the location button, which are not paired with a release.
+    /// Start streaming without taking a hold. This is the location-button
+    /// path. It does nothing until authorization is granted, and it does
+    /// not set `isStreamingLocation` unless the hardware start runs.
     func startUpdating() {
+        guard isAuthorized else { return }
         beginStreamingLocation()
     }
 
@@ -105,12 +114,12 @@ final class LocationService: NSObject {
     }
 
     private func beginStreamingLocation() {
-        guard !isStreamingLocation else { return }
-        isStreamingLocation = true
+        guard isAuthorized, !isStreamingLocation else { return }
         manager.startUpdatingLocation()
         if CLLocationManager.headingAvailable() {
             manager.startUpdatingHeading()
         }
+        isStreamingLocation = true
     }
 
     private func endStreamingLocation() {
@@ -160,11 +169,23 @@ extension LocationService: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
         Task { @MainActor in
-            self.authorizationStatus = status
-            // Auto-start streaming once the user grants permission.
-            if self.isAuthorized {
-                self.startUpdating()
+            guard self.acceptsManagerAuthorizationUpdates else { return }
+            self.noteAuthorizationStatus(status)
+        }
+    }
+
+    /// Applies an authorization result. A grant starts the hardware only
+    /// when at least one view holds the stream. A denial stops it and
+    /// leaves the hold in place. Tests call this with the same statuses
+    /// Core Location reports.
+    func noteAuthorizationStatus(_ status: CLAuthorizationStatus) {
+        authorizationStatus = status
+        if isAuthorized {
+            if locationClientCount > 0 {
+                beginStreamingLocation()
             }
+        } else {
+            endStreamingLocation()
         }
     }
 

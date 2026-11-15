@@ -9,10 +9,10 @@
 // falls outside it, so a caller hides the pin instead of dropping it at
 // the canvas center.
 //
-// EPCOT's illustrated art is rotated 180° from a north-up map: the entrance
-// is at the bottom, World Discovery is on the left, and World Nature is on
-// the right. Pass `.northDown` for that art. The default stays north-up
-// for the schematic layout tests.
+// The default projection is north-up: higher latitude is smaller y, and
+// higher longitude is larger x. EPCOT's illustration is rotated 180° from
+// that, with the entrance at the bottom, so callers that place a point on
+// the artwork pass `.northDown`.
 
 import CoreGraphics
 
