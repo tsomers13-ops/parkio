@@ -72,7 +72,7 @@ final class EpcotSchematicLayoutTests: XCTestCase {
         ])
     }
 
-    func testProjectedPointsStayInsideTheCanvasMargin() {
+    func testProjectedPointsStayInsideTheCanvasMargin() throws {
         let point = try XCTUnwrap(MapSchematicProjection.normalize(
             latitude: spaceshipEarth.latitude,
             longitude: spaceshipEarth.longitude,
@@ -168,7 +168,7 @@ final class EpcotSchematicLayoutTests: XCTestCase {
         ))
     }
 
-    func testNorthDownIsTheIllustratedEpcotOrientation() {
+    func testNorthDownIsTheIllustratedEpcotOrientation() throws {
         let bounds = MapSchematicProjection.epcotBounds
         let latitude = 28.3740
         let longitude = -81.5470
