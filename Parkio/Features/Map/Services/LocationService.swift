@@ -34,10 +34,16 @@ final class LocationService: NSObject {
     /// Current Core Location authorization status.
     private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
-    /// Views currently asking for a stream. Hardware stays on until the last
-    /// one releases, so a handoff from the EPCOT canvas to a MapKit park
-    /// (or the reverse) does not stop updates.
-    private(set) var locationClientCount = 0
+    /// Holds currently asking for a stream, each with the accuracy it wants.
+    /// Hardware stays on until the last one releases, so a handoff from the
+    /// EPCOT canvas to a MapKit park (or the reverse) does not stop updates.
+    private var locationHolds: [UUID: CLLocationAccuracy] = [:]
+
+    var locationClientCount: Int { locationHolds.count }
+
+    /// The accuracy actually requested. Overlapping holds use the most
+    /// precise one. `kCLLocationAccuracyBest` is the smallest value.
+    private(set) var desiredLocationAccuracy: CLLocationAccuracy = kCLLocationAccuracyBest
 
     /// True only after Core Location has actually been started.
     /// A hold recorded before permission does not set this.
@@ -76,27 +82,41 @@ final class LocationService: NSObject {
 
     /// Take one hold on the location stream. The hold is recorded even when
     /// location is not authorized. Hardware starts only once permission
-    /// exists. A matching `releaseLocationUpdates()` drops the hold.
-    func acquireLocationUpdates() {
-        locationClientCount += 1
+    /// exists. Release the returned id to drop this hold.
+    /// Map holds use best accuracy. The foreground hold uses hundred meters.
+    @discardableResult
+    func acquireLocationUpdates(
+        accuracy: CLLocationAccuracy = kCLLocationAccuracyBest
+    ) -> UUID {
+        let id = UUID()
+        locationHolds[id] = accuracy
         locationStopPending = false
-        guard isAuthorized else { return }
+        applyDesiredAccuracy()
+        guard isAuthorized else { return id }
         beginStreamingLocation()
+        return id
     }
 
     /// Drop one hold. The stream stops only after the last hold is gone,
     /// and only on the next turn, so a view that acquires in the same
-    /// handoff keeps the stream running.
-    func releaseLocationUpdates() {
-        guard locationClientCount > 0 else { return }
-        locationClientCount -= 1
-        guard locationClientCount == 0 else { return }
+    /// handoff keeps the stream running. Accuracy falls back to whatever
+    /// the remaining holds requested.
+    func releaseLocationUpdates(_ hold: UUID) {
+        guard locationHolds.removeValue(forKey: hold) != nil else { return }
+        applyDesiredAccuracy()
+        guard locationHolds.isEmpty else { return }
         locationStopPending = true
         Task { @MainActor in
-            guard self.locationClientCount == 0, self.locationStopPending else { return }
+            guard self.locationHolds.isEmpty, self.locationStopPending else { return }
             self.locationStopPending = false
             self.endStreamingLocation()
         }
+    }
+
+    private func applyDesiredAccuracy() {
+        let accuracy = locationHolds.values.min() ?? kCLLocationAccuracyHundredMeters
+        desiredLocationAccuracy = accuracy
+        manager.desiredAccuracy = accuracy
     }
 
     /// Start streaming without taking a hold. This is the location-button
@@ -177,7 +197,7 @@ extension LocationService: CLLocationManagerDelegate {
     func noteAuthorizationStatus(_ status: CLAuthorizationStatus) {
         authorizationStatus = status
         if isAuthorized {
-            if locationClientCount > 0 {
+            if !locationHolds.isEmpty {
                 beginStreamingLocation()
             }
         } else {

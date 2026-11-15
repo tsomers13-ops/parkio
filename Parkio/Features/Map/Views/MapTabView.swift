@@ -73,6 +73,9 @@ struct MapTabView: View {
             }
             let mVM = MapViewModel(parkId: selectedPark.backendId, waitTimeVM: waitTimeVM)
             let pmVM = ParkMapViewModel(parkId: selectedPark.backendId)
+            if UITestConfiguration.showsServicePins {
+                mVM.activeGuestServiceCategories = Set(GuestServiceCategory.allCases)
+            }
             mapVM = mVM
             parkMapVM = pmVM
             mVM.onAppear()

@@ -3,6 +3,7 @@
 // holds it.
 
 import CoreLocation
+import SwiftUI
 import XCTest
 
 @testable import Parkio
@@ -12,17 +13,17 @@ final class LocationServiceBalanceTests: XCTestCase {
 
     func testLastReleaseStopsAndAnOverlappingClientDoesNot() async {
         let service = makeService(.authorizedWhenInUse)
-        service.acquireLocationUpdates()
-        service.acquireLocationUpdates()
+        let first = service.acquireLocationUpdates()
+        let second = service.acquireLocationUpdates()
         XCTAssertEqual(service.locationClientCount, 2)
         XCTAssertTrue(service.isStreamingLocation)
 
-        service.releaseLocationUpdates()
+        service.releaseLocationUpdates(first)
         await waitForStream(service, streaming: true)
         XCTAssertEqual(service.locationClientCount, 1)
         XCTAssertTrue(service.isStreamingLocation)
 
-        service.releaseLocationUpdates()
+        service.releaseLocationUpdates(second)
         XCTAssertEqual(service.locationClientCount, 0)
         XCTAssertTrue(service.isStreamingLocation)
         await waitForStream(service, streaming: false)
@@ -31,29 +32,29 @@ final class LocationServiceBalanceTests: XCTestCase {
 
     func testReleaseThenAcquireInTheSameTurnKeepsStreaming() async {
         let service = makeService(.authorizedWhenInUse)
-        service.acquireLocationUpdates()
-        service.releaseLocationUpdates()
-        service.acquireLocationUpdates()
+        let first = service.acquireLocationUpdates()
+        service.releaseLocationUpdates(first)
+        let second = service.acquireLocationUpdates()
         try? await Task.sleep(nanoseconds: 100_000_000)
         XCTAssertEqual(service.locationClientCount, 1)
         XCTAssertTrue(service.isStreamingLocation)
 
-        service.releaseLocationUpdates()
+        service.releaseLocationUpdates(second)
         await waitForStream(service, streaming: false)
         XCTAssertFalse(service.isStreamingLocation)
     }
 
     func testExtraReleaseAndUnpairedStartDoNotUnbalanceTheCount() async {
         let service = makeService(.authorizedWhenInUse)
-        service.releaseLocationUpdates()
+        service.releaseLocationUpdates(UUID())
         XCTAssertEqual(service.locationClientCount, 0)
         XCTAssertFalse(service.isStreamingLocation)
 
-        service.acquireLocationUpdates()
+        let hold = service.acquireLocationUpdates()
         service.startUpdating()
         XCTAssertEqual(service.locationClientCount, 1)
-        service.releaseLocationUpdates()
-        service.releaseLocationUpdates()
+        service.releaseLocationUpdates(hold)
+        service.releaseLocationUpdates(hold)
         await waitForStream(service, streaming: false)
         XCTAssertEqual(service.locationClientCount, 0)
         XCTAssertFalse(service.isStreamingLocation)
@@ -103,6 +104,29 @@ final class LocationServiceBalanceTests: XCTestCase {
         service.noteAuthorizationStatus(.authorizedWhenInUse)
         XCTAssertTrue(service.isStreamingLocation)
         XCTAssertEqual(service.locationClientCount, 1)
+    }
+
+    func testAccuracyUsesTheMostPreciseOverlappingHold() {
+        let service = makeService(.authorizedWhenInUse)
+        let app = service.acquireLocationUpdates(accuracy: kCLLocationAccuracyHundredMeters)
+        XCTAssertEqual(service.desiredLocationAccuracy, kCLLocationAccuracyHundredMeters)
+
+        let map = service.acquireLocationUpdates(accuracy: kCLLocationAccuracyBest)
+        XCTAssertEqual(service.locationClientCount, 2)
+        XCTAssertEqual(service.desiredLocationAccuracy, kCLLocationAccuracyBest)
+
+        service.releaseLocationUpdates(map)
+        XCTAssertEqual(service.locationClientCount, 1)
+        XCTAssertEqual(service.desiredLocationAccuracy, kCLLocationAccuracyHundredMeters)
+        XCTAssertTrue(service.isStreamingLocation)
+
+        service.releaseLocationUpdates(app)
+    }
+
+    func testInactiveKeepsTheForegroundHoldAndBackgroundReleasesIt() {
+        XCTAssertTrue(ForegroundLocationPolicy.holdsLocation(.active))
+        XCTAssertTrue(ForegroundLocationPolicy.holdsLocation(.inactive))
+        XCTAssertFalse(ForegroundLocationPolicy.holdsLocation(.background))
     }
 
     func testGrantWithNoHoldDoesNotStreamBeyondTheButton() {

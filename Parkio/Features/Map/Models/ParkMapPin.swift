@@ -50,6 +50,14 @@ struct ParkMapPin: Identifiable, Codable {
     /// 1 = headliner (always shown), 2 = secondary, 3 = low-priority / dense area.
     let priority: Int
 
+    /// SF Symbol for a small utility marker. Nil for attraction and dining pins.
+    var serviceSystemImage: String? = nil
+
+    /// Guest-service category raw value (`restroom`, `first_aid`, …).
+    /// Nil utility pins, such as shops, stay visible. A value hides the pin
+    /// until that category is switched on in the Services menu.
+    var guestServiceCategoryRaw: String? = nil
+
     var id: String { internalRideId }
 
     // MARK: - Helpers

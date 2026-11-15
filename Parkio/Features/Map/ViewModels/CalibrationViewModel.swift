@@ -221,7 +221,9 @@ final class CalibrationViewModel {
             labelOffsetX:   old.labelOffsetX,
             labelOffsetY:   old.labelOffsetY,
             anchorType:     old.anchorType,
-            priority:       old.priority
+            priority:       old.priority,
+            serviceSystemImage: old.serviceSystemImage,
+            guestServiceCategoryRaw: old.guestServiceCategoryRaw
         )
     }
 }

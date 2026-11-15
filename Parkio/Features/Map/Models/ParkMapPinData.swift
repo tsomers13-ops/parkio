@@ -23,7 +23,9 @@ enum ParkMapPinData {
         vx: CGFloat = 0, vy: CGFloat = 0,
         lx: CGFloat = 0, ly: CGFloat = -18,
         anchor: PinAnchorType = .bottomCenter,
-        priority: Int = 2
+        priority: Int = 2,
+        serviceSystemImage: String? = nil,
+        guestServiceCategoryRaw: String? = nil
     ) -> ParkMapPin {
         ParkMapPin(
             internalRideId: rideId,
@@ -33,7 +35,9 @@ enum ParkMapPinData {
             visualOffsetX: vx, visualOffsetY: vy,
             labelOffsetX: lx, labelOffsetY: ly,
             anchorType: anchor,
-            priority: priority
+            priority: priority,
+            serviceSystemImage: serviceSystemImage,
+            guestServiceCategoryRaw: guestServiceCategoryRaw
         )
     }
 
@@ -182,6 +186,26 @@ enum ParkMapPinData {
         pin("ep|la-poutinerie", "epcot", "La Poutinerie", x: 0.7699, y: 0.5254, anchor: .center, priority: 3),
         pin("ep|connections-eatery", "epcot", "Connections Eatery", x: 0.4291, y: 0.6715, anchor: .center, priority: 2),
         pin("ep|luminous", "epcot", "Luminous The Symphony of Us", x: 0.5067, y: 0.3177, anchor: .center, priority: 1),
+        pin("ep|refreshment-outpost", "epcot", "Refreshment Outpost", x: 0.2137, y: 0.2517, anchor: .center, priority: 3),
+        pin("ep|grab-n-goof", "epcot", "GRAB-N-GOOF", x: 0.4444, y: 0.7205, anchor: .center, priority: 3),
+    ]
+
+    /// Shops and guest services that were not on the illustrated pin set.
+    /// Positions are hand-fit to the drawn building or walkway, clear of labels.
+    /// Guest-service rows stay hidden until their Services category is on.
+    static let epcotServicePins: [ParkMapPin] = [
+        pin("ep|svc|cargo-bay", "epcot", "Mission: SPACE Cargo Bay", x: 0.2564, y: 0.6944, anchor: .center, priority: 3, serviceSystemImage: "bag.fill"),
+        pin("ep|svc|xandar", "epcot", "Treasures of Xandar", x: 0.3419, y: 0.7639, anchor: .center, priority: 3, serviceSystemImage: "bag.fill"),
+        pin("ep|svc|test-track-shop", "epcot", "Test Track Gear Shop", x: 0.1709, y: 0.5903, anchor: .center, priority: 3, serviceSystemImage: "bag.fill"),
+        pin("ep|svc|seabase", "epcot", "SeaBase Gift Shop", x: 0.6667, y: 0.8229, anchor: .center, priority: 3, serviceSystemImage: "bag.fill"),
+        pin("ep|svc|first-aid", "epcot", "First Aid — Odyssey Center", x: 0.3419, y: 0.5278, anchor: .center, priority: 3, serviceSystemImage: "cross.case.fill", guestServiceCategoryRaw: "first_aid"),
+        pin("ep|svc|baby-care", "epcot", "Baby Care Center — Odyssey Center", x: 0.3675, y: 0.5312, anchor: .center, priority: 3, serviceSystemImage: "stroller.fill", guestServiceCategoryRaw: "baby_care"),
+        pin("ep|svc|rr-odyssey", "epcot", "Restrooms — Odyssey Center", x: 0.3547, y: 0.5451, anchor: .center, priority: 3, serviceSystemImage: "toilet.fill", guestServiceCategoryRaw: "restroom"),
+        pin("ep|svc|guest-relations", "epcot", "Guest Relations — World Celebration", x: 0.4188, y: 0.7986, anchor: .center, priority: 3, serviceSystemImage: "info.circle.fill", guestServiceCategoryRaw: "guest_relations"),
+        pin("ep|svc|rr-communicore", "epcot", "Restrooms — CommuniCore Hall", x: 0.6752, y: 0.6944, anchor: .center, priority: 3, serviceSystemImage: "toilet.fill", guestServiceCategoryRaw: "restroom"),
+        pin("ep|svc|rr-land", "epcot", "Restrooms — The Land Pavilion", x: 0.8376, y: 0.6771, anchor: .center, priority: 3, serviceSystemImage: "toilet.fill", guestServiceCategoryRaw: "restroom"),
+        pin("ep|svc|rr-germany", "epcot", "Germany Restrooms", x: 0.2564, y: 0.1736, anchor: .center, priority: 3, serviceSystemImage: "toilet.fill", guestServiceCategoryRaw: "restroom"),
+        pin("ep|svc|rr-france", "epcot", "Restrooms near France Pavilion", x: 0.8829, y: 0.2865, anchor: .center, priority: 3, serviceSystemImage: "toilet.fill", guestServiceCategoryRaw: "restroom"),
     ]
 
     // MARK: Hollywood Studios

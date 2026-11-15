@@ -57,8 +57,8 @@ struct ParkMapCanvasView: View {
     /// Captured by GeometryReader so resetZoom() can compute fitScale without
     /// needing a size parameter at the call site (onChange has no size in scope).
     @State private var viewportSize: CGSize  = .zero
-    /// True only while this canvas started EPCOT location updates itself.
-    @State private var epcotLocationStarted = false
+    /// The map-accuracy location hold taken while EPCOT is on screen.
+    @State private var epcotLocationHold: UUID?
 
     var body: some View {
         GeometryReader { geo in
@@ -84,6 +84,14 @@ struct ParkMapCanvasView: View {
         }
         .clipped()
         .ignoresSafeArea(edges: .all)
+        .overlay(alignment: .bottom) {
+            // Same Services menu RealMapScreen shows on the MapKit parks.
+            // Categories stay off until the guest turns one on.
+            if parkMapVM.parkId == "epcot", !mapVM.availableGuestServiceCategories.isEmpty {
+                ServicesFilterChip(mapVM: mapVM)
+                    .padding(.bottom, 96)
+            }
+        }
         // When mapVM.isZoomed is cleared (park switch, toolbar reset button), return
         // to the default fit view smoothly.
         .onChange(of: mapVM.isZoomed) { _, zoomed in
@@ -197,7 +205,7 @@ struct ParkMapCanvasView: View {
                         // Normal mode: enriched ride pins with live wait data.
                         // Pins use pin.canvasPoint(in: cs) → CGPoint(x: cs.width * mapX, y: cs.height * mapY)
                         // A pin at mapX=0.5, mapY=0.5 lands at (cs.width/2, cs.height/2) = canvas center. ✓
-                        PinsLayerView(size: cs, mapVM: mapVM, parkMapVM: parkMapVM, onTap: handlePinTap)
+                        PinsLayerView(size: cs, zoom: scale, mapVM: mapVM, parkMapVM: parkMapVM, onTap: handlePinTap)
                         epcotUserLocation(canvasSize: cs)
                     }
                 }
@@ -295,12 +303,11 @@ struct ParkMapCanvasView: View {
         let shouldTrack = !stopping
             && parkMapVM.parkId == "epcot"
             && locationService.isAuthorized
-        if shouldTrack && !epcotLocationStarted {
-            locationService.acquireLocationUpdates()
-            epcotLocationStarted = true
-        } else if !shouldTrack && epcotLocationStarted {
-            locationService.releaseLocationUpdates()
-            epcotLocationStarted = false
+        if shouldTrack && epcotLocationHold == nil {
+            epcotLocationHold = locationService.acquireLocationUpdates()
+        } else if !shouldTrack, let hold = epcotLocationHold {
+            locationService.releaseLocationUpdates(hold)
+            epcotLocationHold = nil
         }
     }
 
@@ -325,6 +332,7 @@ struct ParkMapCanvasView: View {
 
 private struct PinsLayerView: View {
     let size: CGSize
+    let zoom: CGFloat
     let mapVM: MapViewModel
     let parkMapVM: ParkMapViewModel
     let onTap: (ParkMapPin) -> Void
@@ -340,7 +348,17 @@ private struct PinsLayerView: View {
     }
 
     private var sortedPins: [ParkMapPin] {
-        parkMapVM.pins.sorted { $0.priority < $1.priority }
+        parkMapVM.pins
+            .filter(showsPin)
+            .sorted { $0.priority < $1.priority }
+    }
+
+    /// Guest-service markers follow the MapKit Services menu: hidden until
+    /// that category is on. Shops use the same small glyph and stay visible,
+    /// matching the main annotation layer on the live map.
+    private func showsPin(_ pin: ParkMapPin) -> Bool {
+        guard let raw = pin.guestServiceCategoryRaw else { return true }
+        return mapVM.activeGuestServiceCategories.contains { $0.rideCategoryRawValue == raw }
     }
 
     var body: some View {
@@ -354,16 +372,51 @@ private struct PinsLayerView: View {
                 // misses `lkp`/`selectedRideId` for them (they open a detail sheet
                 // instead — see ParkMapCanvasView.handlePinTap).
                 let resolvedId = pin.stableID
-                PinView(
-                    pin: pin,
-                    size: size,
-                    enriched: resolvedId.flatMap { lkp[$0] },
-                    isSelected: resolvedId != nil && mapVM.selectedRideId == resolvedId,
-                    onTap: { onTap(pin) }
-                )
-                .zIndex(mapVM.selectedRideId == resolvedId ? 100 : Double(4 - pin.priority))
+                if let symbol = pin.serviceSystemImage {
+                    ServicePinView(pin: pin, size: size, zoom: zoom, symbol: symbol)
+                } else {
+                    PinView(
+                        pin: pin,
+                        size: size,
+                        enriched: resolvedId.flatMap { lkp[$0] },
+                        isSelected: resolvedId != nil && mapVM.selectedRideId == resolvedId,
+                        onTap: { onTap(pin) }
+                    )
+                    .zIndex(mapVM.selectedRideId == resolvedId ? 100 : Double(4 - pin.priority))
+                }
             }
         }
+    }
+}
+
+// MARK: - Service pin
+
+/// Small constant-size marker. Same gray disc and white glyph as
+/// GuestServiceAnnotationView on the MapKit map, a little smaller so it
+/// does not cover the illustrated labels. Counter-scaled against the
+/// canvas zoom so the on-screen size stays 14pt.
+private struct ServicePinView: View {
+    let pin: ParkMapPin
+    let size: CGSize
+    let zoom: CGFloat
+    let symbol: String
+
+    var body: some View {
+        Circle()
+            .fill(AppColor.textSecondary)
+            .frame(width: 14, height: 14)
+            .overlay(
+                Image(systemName: symbol)
+                    .font(.system(size: 7, weight: .semibold))
+                    .foregroundStyle(.white)
+            )
+            .overlay(Circle().strokeBorder(Color.white.opacity(0.6), lineWidth: 1))
+            .shadow(color: .black.opacity(0.18), radius: 1, x: 0, y: 1)
+            .scaleEffect(1 / max(zoom, 0.01))
+            .position(x: pin.canvasPoint(in: size).x, y: pin.canvasPoint(in: size).y)
+            .allowsHitTesting(false)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(pin.displayName)
     }
 }
 

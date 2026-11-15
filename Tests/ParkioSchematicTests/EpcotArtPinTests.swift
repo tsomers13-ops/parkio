@@ -36,8 +36,6 @@ final class EpcotArtPinTests: XCTestCase {
 
     func testUnpinnedVenuesAreAbsentAndNotPlacedAtCenter() {
         let names = [
-            "Refreshment Outpost",
-            "GRAB-N-GOOF",
             "Disney Character Spot",
             "Space 220 Lounge",
         ]
@@ -68,6 +66,39 @@ final class EpcotArtPinTests: XCTestCase {
             pins.contains { abs($0.mapX - 0.5) < 0.001 && abs($0.mapY - 0.5) < 0.001 },
             "an EPCOT pin sits at the canvas center"
         )
+    }
+
+    func testPlacedServicePinsProjectInsideTheCentralArt() {
+        let annotations = MapCoordinateService.shared.annotations(for: "epcot")
+        for pin in ParkMapPinData.epcotServicePins {
+            XCTAssertGreaterThanOrEqual(pin.mapX, 0.05, pin.displayName)
+            XCTAssertLessThanOrEqual(pin.mapX, 0.95, pin.displayName)
+            XCTAssertGreaterThanOrEqual(pin.mapY, 0.05, pin.displayName)
+            XCTAssertLessThanOrEqual(pin.mapY, 0.95, pin.displayName)
+            let source = annotations.first { $0.rideName == pin.displayName }
+            XCTAssertNotNil(source, pin.displayName)
+            let point = source.flatMap {
+                MapSchematicProjection.normalize(
+                    latitude: $0.latitude,
+                    longitude: $0.longitude,
+                    bounds: MapSchematicProjection.epcotBounds,
+                    orientation: .northDown
+                )
+            }
+            XCTAssertNotNil(point, pin.displayName)
+        }
+    }
+
+    func testEpcotCoordinatesWithoutAnArtPinAreExactlyTheExpectedSet() {
+        let pinned = Set(ParkMapPinData.epcotPins.map(\.displayName))
+            .union(ParkMapPinData.epcotServicePins.map(\.displayName))
+        let annotations = MapCoordinateService.shared.annotations(for: "epcot")
+        let missing = Set(annotations.compactMap { annotation -> String? in
+            let suffix = annotation.id.split(separator: "|").last.map(String.init) ?? ""
+            let placed = pinned.contains(annotation.rideName) || pinned.contains(suffix)
+            return placed ? nil : annotation.rideName
+        })
+        XCTAssertEqual(missing, [])
     }
 
     func testAddedDiningVenuesArePinnedOnTheArt() {

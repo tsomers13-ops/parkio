@@ -108,7 +108,7 @@ private struct FilterChip: View {
 // independently-toggleable Guest Service categories instead of flipping one
 // boolean. "Selected" styling activates as soon as ANY category is active,
 // so the chip itself gives an at-a-glance signal that something is showing.
-private struct ServicesFilterChip: View {
+struct ServicesFilterChip: View {
     var mapVM: MapViewModel
 
     @Environment(\.colorScheme) private var colorScheme

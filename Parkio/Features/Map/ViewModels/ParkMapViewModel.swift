@@ -80,7 +80,11 @@ final class ParkMapViewModel {
     // MARK: - Actions
 
     func loadPins() {
-        pins = ParkMapPinData.embeddedPins[parkId] ?? []
+        var loaded = ParkMapPinData.embeddedPins[parkId] ?? []
+        if parkId == "epcot" {
+            loaded += ParkMapPinData.epcotServicePins
+        }
+        pins = loaded
     }
 
     func pin(forRideId rideId: String) -> ParkMapPin? {

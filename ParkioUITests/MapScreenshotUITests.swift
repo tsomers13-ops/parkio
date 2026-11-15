@@ -31,7 +31,7 @@ final class MapScreenshotUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-parkio-uitests", "-parkio-open-map"]
         if selectEpcot {
-            app.launchArguments += ["-parkio-select-epcot"]
+            app.launchArguments += ["-parkio-select-epcot", "-parkio-show-services"]
         }
         app.launch()
 

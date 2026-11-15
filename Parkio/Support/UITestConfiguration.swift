@@ -51,4 +51,11 @@ enum UITestConfiguration {
         isRunningUITests
             && ProcessInfo.processInfo.arguments.contains("-parkio-open-map")
     }
+
+    /// Turn every Guest Services category on so the EPCOT screenshot shows
+    /// those pins. Production stays off until the guest opens Services.
+    static var showsServicePins: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-show-services")
+    }
 }
