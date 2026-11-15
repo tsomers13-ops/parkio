@@ -48,6 +48,11 @@ struct ParkioApp: App {
     // ColorScheme? applied to the WindowGroup via .preferredColorScheme().
     @State private var appearanceManager = AppAppearanceManager()
 
+    /// One location hold for the whole foreground session. Home and My Day
+    /// read `userLocation` without taking their own hold, which is how the
+    /// authorization callback used to keep a fix available from launch.
+    @State private var holdsForegroundLocation = false
+
     // ── Scene phase ───────────────────────────────────────────────────────────
 
     @Environment(\.scenePhase) private var scenePhase
@@ -95,6 +100,7 @@ struct ParkioApp: App {
                 .preferredColorScheme(appearanceManager.colorScheme)
                 // Seed static ride catalog on first launch.
                 .onAppear {
+                    syncForegroundLocation(active: scenePhase == .active)
                     RideSeeder.seedIfNeeded(context: sharedModelContainer.mainContext)
                     // Data-integrity self-check (duplicate IDs, land/park mismatches,
                     // stale DinoLand entries, missing map priorities, entity-ID coverage).
@@ -112,6 +118,7 @@ struct ParkioApp: App {
                 }
                 // Pause polling when backgrounded; resume and refresh when foregrounded.
                 .onChange(of: scenePhase) { _, newPhase in
+                    syncForegroundLocation(active: newPhase == .active)
                     switch newPhase {
                     case .background:
                         waitTimeViewModel.onBackground()
@@ -123,5 +130,18 @@ struct ParkioApp: App {
                 }
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    /// Holds location while the scene is active and releases it on
+    /// inactive or background. There is no location background mode, so
+    /// this does not stream after the app leaves the foreground.
+    private func syncForegroundLocation(active: Bool) {
+        if active && !holdsForegroundLocation {
+            locationService.acquireLocationUpdates()
+            holdsForegroundLocation = true
+        } else if !active && holdsForegroundLocation {
+            locationService.releaseLocationUpdates()
+            holdsForegroundLocation = false
+        }
     }
 }

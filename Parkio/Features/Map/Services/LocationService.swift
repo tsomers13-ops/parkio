@@ -48,9 +48,11 @@ final class LocationService: NSObject {
     private let manager = CLLocationManager()
     private var locationStopPending = false
 
+    #if DEBUG
     /// Tests set this to false so a late Core Location callback cannot
     /// overwrite a status the test just applied.
-    var acceptsManagerAuthorizationUpdates = true
+    internal var acceptsManagerAuthorizationUpdates = true
+    #endif
 
     // MARK: - Init
 
@@ -103,14 +105,6 @@ final class LocationService: NSObject {
     func startUpdating() {
         guard isAuthorized else { return }
         beginStreamingLocation()
-    }
-
-    /// Stop streaming only when no view holds it. A hold from the other map
-    /// surface wins over this call.
-    func stopUpdating() {
-        guard locationClientCount == 0 else { return }
-        locationStopPending = false
-        endStreamingLocation()
     }
 
     private func beginStreamingLocation() {
@@ -169,7 +163,9 @@ extension LocationService: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
         Task { @MainActor in
+            #if DEBUG
             guard self.acceptsManagerAuthorizationUpdates else { return }
+            #endif
             self.noteAuthorizationStatus(status)
         }
     }

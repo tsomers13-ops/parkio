@@ -264,9 +264,9 @@ struct ParkMapCanvasView: View {
                 inset: 0.05,
                 orientation: .northDown
            ) {
-            // The canvas is scaled to fit, so a fixed frame would shrink
-            // with it. Counter-scale by the current zoom to keep a 16pt dot.
-            // Magic Kingdom uses MapKit's user puck, which has an accuracy halo.
+            // The canvas zoom would shrink this 16pt dot. Counter-scale it
+            // so the on-screen size stays constant. Magic Kingdom's canvas
+            // has no location dot.
             ZStack {
                 Circle()
                     .fill(Color(red: 0.20, green: 0.48, blue: 0.96).opacity(0.22))
@@ -284,6 +284,7 @@ struct ParkMapCanvasView: View {
                 y: point.y * canvasSize.height
             )
             .allowsHitTesting(false)
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel("Your location")
         }
     }

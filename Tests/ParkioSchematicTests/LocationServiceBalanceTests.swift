@@ -75,6 +75,36 @@ final class LocationServiceBalanceTests: XCTestCase {
         XCTAssertTrue(service.isStreamingLocation)
     }
 
+    func testGrantedAtLaunchWithNoMapOpenPopulatesUserLocation() async {
+        let service = makeService(.authorizedWhenInUse)
+        service.acquireLocationUpdates()
+        XCTAssertEqual(service.locationClientCount, 1)
+        XCTAssertTrue(service.isStreamingLocation)
+
+        let fix = CLLocation(latitude: 28.3747, longitude: -81.5494)
+        service.locationManager(CLLocationManager(), didUpdateLocations: [fix])
+        let deadline = Date().addingTimeInterval(1)
+        while Date() < deadline, service.userLocation == nil {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+        XCTAssertEqual(service.userLocation?.coordinate.latitude ?? 0, 28.3747, accuracy: 0.0001)
+        XCTAssertEqual(service.userLocation?.coordinate.longitude ?? 0, -81.5494, accuracy: 0.0001)
+    }
+
+    func testRevokeWhileHeldStopsAndRegrantResumes() {
+        let service = makeService(.authorizedWhenInUse)
+        service.acquireLocationUpdates()
+        XCTAssertTrue(service.isStreamingLocation)
+
+        service.noteAuthorizationStatus(.denied)
+        XCTAssertFalse(service.isStreamingLocation)
+        XCTAssertEqual(service.locationClientCount, 1)
+
+        service.noteAuthorizationStatus(.authorizedWhenInUse)
+        XCTAssertTrue(service.isStreamingLocation)
+        XCTAssertEqual(service.locationClientCount, 1)
+    }
+
     func testGrantWithNoHoldDoesNotStreamBeyondTheButton() {
         let service = makeService(.notDetermined)
         service.noteAuthorizationStatus(.authorizedAlways)
