@@ -11,6 +11,8 @@ final class MapScreenshotUITests: XCTestCase {
     }
 
     func testCaptureEpcotMap() {
+        // Hide the user dot here. The companion test captures the same map
+        // with the dot, and CI gives every launch a GPS fix.
         let shot = launchMap(selectEpcot: true, hideUserDot: true)
         attach(shot, name: "epcot-map")
     }
