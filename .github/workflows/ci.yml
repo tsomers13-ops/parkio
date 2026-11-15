@@ -10,6 +10,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -31,7 +32,7 @@ jobs:
       RESULT_BUNDLE: ${{ github.workspace }}/test-results/Parkio.xcresult
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -53,16 +54,60 @@ jobs:
       - name: Run Xcode tests
         run: |
           set -euo pipefail
-          destination="platform=iOS Simulator,name=iPhone 17,OS=26.5"
-          echo "Destination: $destination"
           echo "Result bundle: $RESULT_BUNDLE"
           mkdir -p "$(dirname "$RESULT_BUNDLE")"
-          xcodebuild test \
+
+          # Boot the same simulator the tests use so location can be granted
+          # before the UI tests launch the app.
+          udid="$(xcrun simctl list devices available | awk '
+            /-- iOS 26.5 --/ { in_runtime = 1; next }
+            /-- / { in_runtime = 0 }
+            in_runtime && /iPhone 17 \(/ {
+              if (match($0, /\([A-Fa-f0-9-]+\)/)) {
+                print substr($0, RSTART + 1, RLENGTH - 2)
+                exit
+              }
+            }
+          ')"
+          if [ -z "$udid" ]; then
+            echo "iPhone 17 on iOS 26.5 was not found"
+            xcrun simctl list devices available
+            exit 1
+          fi
+          destination="platform=iOS Simulator,id=$udid"
+          echo "Destination: $destination"
+          xcrun simctl boot "$udid" || true
+          xcrun simctl bootstatus "$udid" -b
+
+          derived="${RUNNER_TEMP:-/tmp}/parkio-derived"
+          xcodebuild build-for-testing \
             -project Parkio.xcodeproj \
             -scheme Parkio \
             -destination "$destination" \
-            -resultBundlePath "$RESULT_BUNDLE" \
+            -derivedDataPath "$derived" \
             CODE_SIGNING_ALLOWED=NO
+          set +o pipefail
+          app="$(find "$derived" -path '*Debug-iphonesimulator/Parkio.app' -type d | head -1)"
+          set -o pipefail
+          if [ -z "$app" ]; then
+            echo "Parkio.app was not produced"
+            exit 1
+          fi
+          xcrun simctl install booted "$app"
+          xcrun simctl privacy booted grant location HHCQ35BDZY
+          xcrun simctl location booted set 28.3747,-81.5494
+
+          set +o pipefail
+          xctestrun="$(find "$derived" -name '*.xctestrun' | head -1)"
+          set -o pipefail
+          if [ -z "$xctestrun" ]; then
+            echo "No xctestrun under $derived"
+            exit 1
+          fi
+          xcodebuild test-without-building \
+            -xctestrun "$xctestrun" \
+            -destination "$destination" \
+            -resultBundlePath "$RESULT_BUNDLE"
 
       - name: Summarize Xcode test results
         if: always()
@@ -79,8 +124,31 @@ jobs:
 
       - name: Upload test results
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: Parkio.xcresult
           path: test-results/Parkio.xcresult
           if-no-files-found: ignore
+
+      # Map screenshots are about 4.6 MB. Export them on a manual run, on a
+      # pull request labeled map-screenshots, and on pull request 7 (the
+      # EPCOT art change). The runner artifact token is enough; the workflow
+      # stays at contents: read.
+      - name: Export map screenshots
+        if: always() && (github.event_name == 'workflow_dispatch' || github.event.pull_request.number == 7 || contains(github.event.pull_request.labels.*.name, 'map-screenshots'))
+        continue-on-error: true
+        run: |
+          set -u
+          mkdir -p map-screenshots
+          xcrun xcresulttool export attachments \
+            --path "$RESULT_BUNDLE" \
+            --output-path map-screenshots
+          find map-screenshots -type f -print
+
+      - name: Upload map screenshots
+        if: always() && (github.event_name == 'workflow_dispatch' || github.event.pull_request.number == 7 || contains(github.event.pull_request.labels.*.name, 'map-screenshots'))
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: map-screenshots
+          path: map-screenshots
+          if-no-files-found: warn

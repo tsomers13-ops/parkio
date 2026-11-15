@@ -47,6 +47,8 @@ struct RealMapScreen: View {
 
     @State private var currentLatDelta:      CLLocationDegrees = 0.015
     @State private var currentViewportWidth: CGFloat           = 390
+    /// The map-accuracy location hold taken while this MapKit screen is up.
+    @State private var locationHold: UUID?
 
     // ── HUD animation gates ────────────────────────────────────────────────────
     @State private var legendVisible:    Bool = false
@@ -176,7 +178,12 @@ struct RealMapScreen: View {
             }
         }
         .onAppear {
-            if locationService.isAuthorized { locationService.startUpdating() }
+            // Record the hold even before permission. LocationService does
+            // not call startUpdatingLocation until authorization is granted
+            // and this hold, or another, still exists.
+            if locationHold == nil {
+                locationHold = locationService.acquireLocationUpdates()
+            }
             mapVM.locationService = locationService
             syncPlannedRides()
             handlePendingRideIfNeeded()
@@ -185,7 +192,10 @@ struct RealMapScreen: View {
 #endif
         }
         .onDisappear {
-            locationService.stopUpdating()
+            if let hold = locationHold {
+                locationService.releaseLocationUpdates(hold)
+                locationHold = nil
+            }
             // Re-arm the readiness gate so that if the user returns to the Map tab
             // with a pending ride, the gate fires onChange again rather than
             // silently staying true and never triggering a retry.

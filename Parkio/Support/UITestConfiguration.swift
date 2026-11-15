@@ -44,4 +44,32 @@ enum UITestConfiguration {
         isRunningUITests
             && ProcessInfo.processInfo.arguments.contains("-parkio-open-mk-map")
     }
+
+    /// Open the Map tab on launch. Combine with `-parkio-select-epcot` to
+    /// open EPCOT; otherwise the map stays on Magic Kingdom.
+    static var opensMap: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-open-map")
+    }
+
+    /// Turn every Guest Services category on so the EPCOT screenshot shows
+    /// those pins. Production stays off until the guest opens Services.
+    static var showsServicePins: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-show-services")
+    }
+
+    /// The plain EPCOT map shot hides the user dot so it is distinct from
+    /// the shot that asserts the dot is on screen.
+    static var hidesUserLocationDot: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-hide-user-dot")
+    }
+
+    /// Dining UI tests were written without a GPS fix. CI now grants location
+    /// to the simulator, and a live fix refreshes Home while those tests tap.
+    static var suppressesLocationHold: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-suppress-location")
+    }
 }

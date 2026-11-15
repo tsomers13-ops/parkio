@@ -11,6 +11,7 @@
 import SwiftUI
 import SwiftData
 import BackgroundTasks
+import CoreLocation
 
 @main
 struct ParkioApp: App {
@@ -47,6 +48,11 @@ struct ParkioApp: App {
     // Persists the user's Light / Dark / System preference and vends the
     // ColorScheme? applied to the WindowGroup via .preferredColorScheme().
     @State private var appearanceManager = AppAppearanceManager()
+
+    /// One location hold for the whole foreground session. Home and My Day
+    /// read `userLocation` without taking their own hold, which is how the
+    /// authorization callback used to keep a fix available from launch.
+    @State private var foregroundLocationHold: UUID?
 
     // ── Scene phase ───────────────────────────────────────────────────────────
 
@@ -95,6 +101,7 @@ struct ParkioApp: App {
                 .preferredColorScheme(appearanceManager.colorScheme)
                 // Seed static ride catalog on first launch.
                 .onAppear {
+                    syncForegroundLocation(for: scenePhase)
                     RideSeeder.seedIfNeeded(context: sharedModelContainer.mainContext)
                     // Data-integrity self-check (duplicate IDs, land/park mismatches,
                     // stale DinoLand entries, missing map priorities, entity-ID coverage).
@@ -112,6 +119,7 @@ struct ParkioApp: App {
                 }
                 // Pause polling when backgrounded; resume and refresh when foregrounded.
                 .onChange(of: scenePhase) { _, newPhase in
+                    syncForegroundLocation(for: newPhase)
                     switch newPhase {
                     case .background:
                         waitTimeViewModel.onBackground()
@@ -123,5 +131,36 @@ struct ParkioApp: App {
                 }
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    /// Holds a coarse location fix while the app is in the foreground,
+    /// including `.inactive`. The hold drops only in `.background`.
+    /// There is no location background mode.
+    private func syncForegroundLocation(for phase: ScenePhase) {
+        if UITestConfiguration.suppressesLocationHold {
+            if let hold = foregroundLocationHold {
+                locationService.releaseLocationUpdates(hold)
+                foregroundLocationHold = nil
+            }
+            return
+        }
+        let shouldHold = ForegroundLocationPolicy.holdsLocation(phase)
+        if shouldHold && foregroundLocationHold == nil {
+            foregroundLocationHold = locationService.acquireLocationUpdates(
+                accuracy: kCLLocationAccuracyHundredMeters,
+                distanceFilter: 25
+            )
+        } else if !shouldHold, let hold = foregroundLocationHold {
+            locationService.releaseLocationUpdates(hold)
+            foregroundLocationHold = nil
+        }
+    }
+}
+
+/// The foreground location hold stays up through `.inactive` (Control
+/// Center, the app switcher) and drops only when the scene is `.background`.
+enum ForegroundLocationPolicy {
+    static func holdsLocation(_ phase: ScenePhase) -> Bool {
+        phase != .background
     }
 }

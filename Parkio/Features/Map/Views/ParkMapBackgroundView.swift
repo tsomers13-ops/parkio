@@ -81,19 +81,16 @@ private struct CompositionMapCanvas: View {
             MapTokens.canvasBase
 
             // ── Layer 2: authored park shapes ──────────────────────────────
+            // Fallback under the artwork. Magic Kingdom and EPCOT cover this
+            // canvas with their map images. No dot grid: a field of dots
+            // reads as pins.
             Canvas { context, size in
                 for shape in composition.orderedShapes {
                     renderShape(shape, in: context, canvasSize: size)
                 }
             }
 
-            // ── Layer 3: two-scale dot-grid texture (preserved) ────────────
-            DotGridView(
-                color: Color(red: 0.25, green: 0.20, blue: 0.15),
-                size: cs
-            )
-
-            // ── Layer 4: center bloom ──────────────────────────────────────
+            // ── Layer 3: center bloom ──────────────────────────────────────
             RadialGradient(
                 colors: [Color.white.opacity(0.04), .clear],
                 center: .center,
@@ -129,6 +126,28 @@ private struct CompositionMapCanvas: View {
             var strokeCtx = context
             strokeCtx.opacity = shape.fillOpacity * 0.18
             strokeCtx.stroke(path, with: .color(shape.fillColor), lineWidth: 1.5)
+        }
+
+        if let label = shape.label, let center = labelCenter(for: shape.geometry, canvasSize: canvasSize) {
+            var labelCtx = context
+            labelCtx.opacity = 0.85
+            let text = Text(label)
+                .font(.system(size: shape.type == .landmark ? 11 : 12, weight: .semibold))
+                .foregroundStyle(Color(red: 0.25, green: 0.20, blue: 0.15))
+            labelCtx.draw(labelCtx.resolve(text), at: center, anchor: .center)
+        }
+    }
+
+    private func labelCenter(for geometry: ShapeGeometry, canvasSize: CGSize) -> CGPoint? {
+        switch geometry {
+        case .rect(let rect), .roundedRect(let rect, _), .ellipse(let rect):
+            let frame = denorm(rect, canvasSize)
+            return CGPoint(x: frame.midX, y: frame.midY)
+        case .polygon(let points):
+            guard !points.isEmpty else { return nil }
+            let x = points.reduce(0.0) { $0 + $1.x } / CGFloat(points.count) * canvasSize.width
+            let y = points.reduce(0.0) { $0 + $1.y } / CGFloat(points.count) * canvasSize.height
+            return CGPoint(x: x, y: y)
         }
     }
 

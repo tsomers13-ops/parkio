@@ -126,28 +126,8 @@ struct MapCoordinateService {
 #if DEBUG
 private extension MapCoordinateService {
 
-    struct ParkBounds {
-        let minLat: Double
-        let maxLat: Double
-        let minLon: Double
-        let maxLon: Double
-
-        func contains(_ annotation: MapRideAnnotation) -> Bool {
-            annotation.latitude >= minLat
-                && annotation.latitude <= maxLat
-                && annotation.longitude >= minLon
-                && annotation.longitude <= maxLon
-        }
-    }
-
-    static let roughParkBounds: [String: ParkBounds] = [
-        "magic-kingdom": .init(minLat: 28.4160, maxLat: 28.4230, minLon: -81.5865, maxLon: -81.5750),
-        "epcot": .init(minLat: 28.3670, maxLat: 28.3765, minLon: -81.5545, maxLon: -81.5450),
-        "hollywood-studios": .init(minLat: 28.3525, maxLat: 28.3615, minLon: -81.5650, maxLon: -81.5560),  // maxLat widened from 28.3610 to include the verified Fantasmic! amphitheater coordinate (28.3612252, ThemeParks.wiki)
-        "animal-kingdom": .init(minLat: 28.3530, maxLat: 28.3630, minLon: -81.5945, maxLon: -81.5860),
-        "disneyland": .init(minLat: 33.8090, maxLat: 33.8165, minLon: -117.9240, maxLon: -117.9160),
-        "california-adventure": .init(minLat: 33.8040, maxLat: 33.8095, minLon: -117.9240, maxLon: -117.9160)
-    ]
+    /// The single Swift copy of these windows lives on MapSchematicProjection.
+    static let roughParkBounds: [String: GeoBounds] = MapSchematicProjection.parkBounds
 
     static func validate(annotationsByPark: [String: [MapRideAnnotation]], source: String) {
         var ids: [String: [String]] = [:]
@@ -192,7 +172,8 @@ private extension MapCoordinateService {
                 }
 
                 // Out-of-bounds coordinate check.
-                if let bounds = roughParkBounds[parkId], !bounds.contains(annotation) {
+                if let bounds = roughParkBounds[parkId],
+                   !bounds.contains(latitude: annotation.latitude, longitude: annotation.longitude) {
                     print("⚠️ MapCoordinateService[\(source)]: BAD COORD — \(annotation.id) at (\(annotation.latitude), \(annotation.longitude)) is outside rough \(parkId) bounds.")
                 }
 

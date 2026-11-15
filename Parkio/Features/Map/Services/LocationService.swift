@@ -34,9 +34,40 @@ final class LocationService: NSObject {
     /// Current Core Location authorization status.
     private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
+    private struct LocationHoldRequest {
+        var accuracy: CLLocationAccuracy
+        var distanceFilter: CLLocationDistance
+    }
+
+    /// Holds currently asking for a stream. Hardware stays on until the last
+    /// one releases, so a handoff from the EPCOT canvas to a MapKit park
+    /// (or the reverse) does not stop updates.
+    private var locationHolds: [UUID: LocationHoldRequest] = [:]
+
+    var locationClientCount: Int { locationHolds.count }
+
+    /// The accuracy actually requested. Overlapping holds use the most
+    /// precise one. `kCLLocationAccuracyBest` is the smallest value.
+    private(set) var desiredLocationAccuracy: CLLocationAccuracy = kCLLocationAccuracyBest
+
+    /// The distance filter actually requested, in meters. Overlapping holds
+    /// use the smallest filter, which is the most demanding.
+    private(set) var desiredDistanceFilter: CLLocationDistance = 5
+
+    /// True only after Core Location has actually been started.
+    /// A hold recorded before permission does not set this.
+    private(set) var isStreamingLocation = false
+
     // ── Private ───────────────────────────────────────────────────────────────
 
     private let manager = CLLocationManager()
+    private var locationStopPending = false
+
+    #if DEBUG
+    /// Tests set this to false so a late Core Location callback cannot
+    /// overwrite a status the test just applied.
+    internal var acceptsManagerAuthorizationUpdates = true
+    #endif
 
     // MARK: - Init
 
@@ -58,17 +89,71 @@ final class LocationService: NSObject {
         manager.requestWhenInUseAuthorization()
     }
 
-    /// Start streaming location updates (and heading if supported).
-    /// Call after authorization is confirmed.
+    /// Take one hold on the location stream. The hold is recorded even when
+    /// location is not authorized. Hardware starts only once permission
+    /// exists. Release the returned id to drop this hold.
+    /// Map holds use best accuracy and a 5 m filter. The foreground hold
+    /// uses hundred meters and a 25 m filter. Overlapping holds keep the
+    /// most demanding of each.
+    @discardableResult
+    func acquireLocationUpdates(
+        accuracy: CLLocationAccuracy = kCLLocationAccuracyBest,
+        distanceFilter: CLLocationDistance = 5
+    ) -> UUID {
+        let id = UUID()
+        locationHolds[id] = LocationHoldRequest(accuracy: accuracy, distanceFilter: distanceFilter)
+        locationStopPending = false
+        applyHoldSettings()
+        guard isAuthorized else { return id }
+        beginStreamingLocation()
+        return id
+    }
+
+    /// Drop one hold. The stream stops only after the last hold is gone,
+    /// and only on the next turn, so a view that acquires in the same
+    /// handoff keeps the stream running. Accuracy falls back to whatever
+    /// the remaining holds requested.
+    func releaseLocationUpdates(_ hold: UUID) {
+        guard locationHolds.removeValue(forKey: hold) != nil else { return }
+        applyHoldSettings()
+        guard locationHolds.isEmpty else { return }
+        locationStopPending = true
+        Task { @MainActor in
+            guard self.locationHolds.isEmpty, self.locationStopPending else { return }
+            self.locationStopPending = false
+            self.endStreamingLocation()
+        }
+    }
+
+    private func applyHoldSettings() {
+        let accuracy = locationHolds.values.map(\.accuracy).min() ?? kCLLocationAccuracyHundredMeters
+        let filter = locationHolds.values.map(\.distanceFilter).min() ?? 25
+        desiredLocationAccuracy = accuracy
+        desiredDistanceFilter = filter
+        manager.desiredAccuracy = accuracy
+        manager.distanceFilter = filter
+    }
+
+    /// Start streaming without taking a hold. This is the location-button
+    /// path. It does nothing until authorization is granted, and it does
+    /// not set `isStreamingLocation` unless the hardware start runs.
     func startUpdating() {
+        guard isAuthorized else { return }
+        beginStreamingLocation()
+    }
+
+    private func beginStreamingLocation() {
+        guard isAuthorized, !isStreamingLocation else { return }
         manager.startUpdatingLocation()
         if CLLocationManager.headingAvailable() {
             manager.startUpdatingHeading()
         }
+        isStreamingLocation = true
     }
 
-    /// Stop all active updates. Call when the map view disappears.
-    func stopUpdating() {
+    private func endStreamingLocation() {
+        guard isStreamingLocation else { return }
+        isStreamingLocation = false
         manager.stopUpdatingLocation()
         manager.stopUpdatingHeading()
     }
@@ -113,11 +198,25 @@ extension LocationService: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
         Task { @MainActor in
-            self.authorizationStatus = status
-            // Auto-start streaming once the user grants permission.
-            if self.isAuthorized {
-                self.startUpdating()
+            #if DEBUG
+            guard self.acceptsManagerAuthorizationUpdates else { return }
+            #endif
+            self.noteAuthorizationStatus(status)
+        }
+    }
+
+    /// Applies an authorization result. A grant starts the hardware only
+    /// when at least one view holds the stream. A denial stops it and
+    /// leaves the hold in place. Tests call this with the same statuses
+    /// Core Location reports.
+    func noteAuthorizationStatus(_ status: CLAuthorizationStatus) {
+        authorizationStatus = status
+        if isAuthorized {
+            if !locationHolds.isEmpty {
+                beginStreamingLocation()
             }
+        } else {
+            endStreamingLocation()
         }
     }
 

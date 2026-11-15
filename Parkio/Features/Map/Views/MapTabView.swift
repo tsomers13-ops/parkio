@@ -7,8 +7,8 @@
 //
 // Map layer:
 //   MapRoutingDecision.renderMode(forParkId:) picks the renderer per park:
-//     • Magic Kingdom  → ParkMapCanvasView, the supplied production map artwork
-//                        as an interactive pan/zoom image canvas.
+//     • Magic Kingdom and EPCOT → ParkMapCanvasView, filled with that
+//                        park's production map artwork.
 //     • Every other park → RealMapScreen, the full MapKit tile surface, user
 //                        location puck, ride annotations, follow mode, bearing
 //                        polyline, HUD (filter bar + glance bar), and the
@@ -73,6 +73,9 @@ struct MapTabView: View {
             }
             let mVM = MapViewModel(parkId: selectedPark.backendId, waitTimeVM: waitTimeVM)
             let pmVM = ParkMapViewModel(parkId: selectedPark.backendId)
+            if UITestConfiguration.showsServicePins {
+                mVM.activeGuestServiceCategories = Set(GuestServiceCategory.allCases)
+            }
             mapVM = mVM
             parkMapVM = pmVM
             mVM.onAppear()
@@ -126,10 +129,9 @@ private struct MapContentView: View {
 
     // MARK: Map surface
 
-    /// Magic Kingdom renders the supplied production map artwork as an
-    /// interactive pan/zoom canvas; every other park keeps the live MapKit
-    /// experience. Both share `mapVM`, so ride selection and the bottom sheet
-    /// behave identically regardless of which surface is on screen.
+    /// Magic Kingdom and EPCOT use the custom canvas. Every other park keeps
+    /// the live MapKit experience. Both share `mapVM`, so ride selection and
+    /// the bottom sheet behave identically regardless of which surface is on screen.
     @ViewBuilder
     private var mapSurface: some View {
         switch MapRoutingDecision.renderMode(forParkId: selectedPark.backendId) {
@@ -346,4 +348,5 @@ private struct MapWaitTimeBanner: View {
     return MapTabView(selectedPark: .constant(.magicKingdom))
         .modelContainer(container)
         .environment(waitVM)
+        .environment(LocationService())
 }
