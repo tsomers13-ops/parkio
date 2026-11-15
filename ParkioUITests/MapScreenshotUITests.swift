@@ -11,7 +11,7 @@ final class MapScreenshotUITests: XCTestCase {
     }
 
     func testCaptureEpcotMap() {
-        let shot = launchMap(selectEpcot: true)
+        let shot = launchMap(selectEpcot: true, hideUserDot: true)
         attach(shot, name: "epcot-map")
     }
 
@@ -22,16 +22,19 @@ final class MapScreenshotUITests: XCTestCase {
         attach(XCUIScreen.main.screenshot(), name: "epcot-map-dot")
     }
 
-    private func launchMap(selectEpcot: Bool) -> XCUIScreenshot {
-        _ = launchMapApp(selectEpcot: selectEpcot)
+    private func launchMap(selectEpcot: Bool, hideUserDot: Bool = false) -> XCUIScreenshot {
+        _ = launchMapApp(selectEpcot: selectEpcot, hideUserDot: hideUserDot)
         return XCUIScreen.main.screenshot()
     }
 
-    private func launchMapApp(selectEpcot: Bool) -> XCUIApplication {
+    private func launchMapApp(selectEpcot: Bool, hideUserDot: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["-parkio-uitests", "-parkio-open-map"]
         if selectEpcot {
             app.launchArguments += ["-parkio-select-epcot", "-parkio-show-services"]
+        }
+        if hideUserDot {
+            app.launchArguments += ["-parkio-hide-user-dot"]
         }
         app.launch()
 

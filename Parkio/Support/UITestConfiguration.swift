@@ -58,4 +58,11 @@ enum UITestConfiguration {
         isRunningUITests
             && ProcessInfo.processInfo.arguments.contains("-parkio-show-services")
     }
+
+    /// The plain EPCOT map shot hides the user dot so it is distinct from
+    /// the shot that asserts the dot is on screen.
+    static var hidesUserLocationDot: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-hide-user-dot")
+    }
 }

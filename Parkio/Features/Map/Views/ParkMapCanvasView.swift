@@ -262,7 +262,8 @@ struct ParkMapCanvasView: View {
     /// outside the park window, or a degenerate window draws nothing.
     @ViewBuilder
     private func epcotUserLocation(canvasSize: CGSize) -> some View {
-        if parkMapVM.parkId == "epcot",
+        if !UITestConfiguration.hidesUserLocationDot,
+           parkMapVM.parkId == "epcot",
            let location = locationService.userLocation,
            let bounds = MapSchematicProjection.parkBounds["epcot"],
            let point = MapSchematicProjection.normalize(
@@ -404,7 +405,7 @@ private struct ServicePinView: View {
     var body: some View {
         Circle()
             .fill(AppColor.textSecondary)
-            .frame(width: 14, height: 14)
+            .frame(width: ParkMapPin.serviceMarkerDiameter, height: ParkMapPin.serviceMarkerDiameter)
             .overlay(
                 Image(systemName: symbol)
                     .font(.system(size: 7, weight: .semibold))

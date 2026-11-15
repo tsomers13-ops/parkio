@@ -123,6 +123,25 @@ final class LocationServiceBalanceTests: XCTestCase {
         service.releaseLocationUpdates(app)
     }
 
+    func testDistanceFilterUsesTheMostDemandingOverlappingHold() {
+        let service = makeService(.authorizedWhenInUse)
+        let app = service.acquireLocationUpdates(
+            accuracy: kCLLocationAccuracyHundredMeters,
+            distanceFilter: 25
+        )
+        XCTAssertEqual(service.desiredDistanceFilter, 25)
+
+        let map = service.acquireLocationUpdates(distanceFilter: 5)
+        XCTAssertEqual(service.locationClientCount, 2)
+        XCTAssertEqual(service.desiredDistanceFilter, 5)
+
+        service.releaseLocationUpdates(map)
+        XCTAssertEqual(service.locationClientCount, 1)
+        XCTAssertEqual(service.desiredDistanceFilter, 25)
+
+        service.releaseLocationUpdates(app)
+    }
+
     func testInactiveKeepsTheForegroundHoldAndBackgroundReleasesIt() {
         XCTAssertTrue(ForegroundLocationPolicy.holdsLocation(.active))
         XCTAssertTrue(ForegroundLocationPolicy.holdsLocation(.inactive))

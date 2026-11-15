@@ -34,16 +34,25 @@ final class LocationService: NSObject {
     /// Current Core Location authorization status.
     private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
-    /// Holds currently asking for a stream, each with the accuracy it wants.
-    /// Hardware stays on until the last one releases, so a handoff from the
-    /// EPCOT canvas to a MapKit park (or the reverse) does not stop updates.
-    private var locationHolds: [UUID: CLLocationAccuracy] = [:]
+    private struct LocationHoldRequest {
+        var accuracy: CLLocationAccuracy
+        var distanceFilter: CLLocationDistance
+    }
+
+    /// Holds currently asking for a stream. Hardware stays on until the last
+    /// one releases, so a handoff from the EPCOT canvas to a MapKit park
+    /// (or the reverse) does not stop updates.
+    private var locationHolds: [UUID: LocationHoldRequest] = [:]
 
     var locationClientCount: Int { locationHolds.count }
 
     /// The accuracy actually requested. Overlapping holds use the most
     /// precise one. `kCLLocationAccuracyBest` is the smallest value.
     private(set) var desiredLocationAccuracy: CLLocationAccuracy = kCLLocationAccuracyBest
+
+    /// The distance filter actually requested, in meters. Overlapping holds
+    /// use the smallest filter, which is the most demanding.
+    private(set) var desiredDistanceFilter: CLLocationDistance = 5
 
     /// True only after Core Location has actually been started.
     /// A hold recorded before permission does not set this.
@@ -83,15 +92,18 @@ final class LocationService: NSObject {
     /// Take one hold on the location stream. The hold is recorded even when
     /// location is not authorized. Hardware starts only once permission
     /// exists. Release the returned id to drop this hold.
-    /// Map holds use best accuracy. The foreground hold uses hundred meters.
+    /// Map holds use best accuracy and a 5 m filter. The foreground hold
+    /// uses hundred meters and a 25 m filter. Overlapping holds keep the
+    /// most demanding of each.
     @discardableResult
     func acquireLocationUpdates(
-        accuracy: CLLocationAccuracy = kCLLocationAccuracyBest
+        accuracy: CLLocationAccuracy = kCLLocationAccuracyBest,
+        distanceFilter: CLLocationDistance = 5
     ) -> UUID {
         let id = UUID()
-        locationHolds[id] = accuracy
+        locationHolds[id] = LocationHoldRequest(accuracy: accuracy, distanceFilter: distanceFilter)
         locationStopPending = false
-        applyDesiredAccuracy()
+        applyHoldSettings()
         guard isAuthorized else { return id }
         beginStreamingLocation()
         return id
@@ -103,7 +115,7 @@ final class LocationService: NSObject {
     /// the remaining holds requested.
     func releaseLocationUpdates(_ hold: UUID) {
         guard locationHolds.removeValue(forKey: hold) != nil else { return }
-        applyDesiredAccuracy()
+        applyHoldSettings()
         guard locationHolds.isEmpty else { return }
         locationStopPending = true
         Task { @MainActor in
@@ -113,10 +125,13 @@ final class LocationService: NSObject {
         }
     }
 
-    private func applyDesiredAccuracy() {
-        let accuracy = locationHolds.values.min() ?? kCLLocationAccuracyHundredMeters
+    private func applyHoldSettings() {
+        let accuracy = locationHolds.values.map(\.accuracy).min() ?? kCLLocationAccuracyHundredMeters
+        let filter = locationHolds.values.map(\.distanceFilter).min() ?? 25
         desiredLocationAccuracy = accuracy
+        desiredDistanceFilter = filter
         manager.desiredAccuracy = accuracy
+        manager.distanceFilter = filter
     }
 
     /// Start streaming without taking a hold. This is the location-button

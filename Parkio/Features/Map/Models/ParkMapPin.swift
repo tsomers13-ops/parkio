@@ -60,6 +60,10 @@ struct ParkMapPin: Identifiable, Codable {
 
     var id: String { internalRideId }
 
+    /// On-screen diameter of a service glyph. The canvas counter-scales it
+    /// so this stays constant while the map zooms.
+    static let serviceMarkerDiameter: CGFloat = 14
+
     // MARK: - Helpers
 
     /// True when this pin falls outside the 0–1 bounds of the map image.

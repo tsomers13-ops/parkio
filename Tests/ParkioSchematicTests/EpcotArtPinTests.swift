@@ -101,6 +101,50 @@ final class EpcotArtPinTests: XCTestCase {
         XCTAssertEqual(missing, [])
     }
 
+    func testServicePinsDoNotOverlapEachOtherOrDiningPins() {
+        let composition = EPCOTComposition.make()
+        let viewport = composition.defaultViewport
+        // iPhone 17 point size, the device the map screenshots are taken on.
+        // Width is the tighter fit axis for the 1170×1152 canvas.
+        let zoom = min(
+            402 / (composition.contentSize.width * viewport.width),
+            874 / (composition.contentSize.height * viewport.height)
+        )
+        let diningNames = Set(RideMasterData.all.filter(\.type.isDining).map(\.name))
+        let diningPins = ParkMapPinData.epcotPins.filter { diningNames.contains($0.displayName) }
+        func center(_ pin: ParkMapPin) -> CGPoint {
+            CGPoint(
+                x: pin.mapX * composition.contentSize.width,
+                y: pin.mapY * composition.contentSize.height
+            )
+        }
+        func radius(_ pin: ParkMapPin) -> CGFloat {
+            if pin.serviceSystemImage != nil {
+                return ParkMapPin.serviceMarkerDiameter / 2 / zoom
+            }
+            // Priority 3 dining draws MinimalPinView's 15pt white circle in
+            // canvas space. Higher priorities draw the 18pt dot plus its 3pt ring.
+            return pin.priority >= 3 ? 7.5 : 10.5
+        }
+        func assertNoOverlap(_ a: ParkMapPin, _ b: ParkMapPin) {
+            let gap = hypot(center(a).x - center(b).x, center(a).y - center(b).y)
+            XCTAssertGreaterThanOrEqual(
+                gap,
+                radius(a) + radius(b) - 0.5,
+                "\(a.displayName) overlaps \(b.displayName)"
+            )
+        }
+        let services = ParkMapPinData.epcotServicePins
+        for i in services.indices {
+            for j in services.indices where j > i {
+                assertNoOverlap(services[i], services[j])
+            }
+            for dining in diningPins {
+                assertNoOverlap(services[i], dining)
+            }
+        }
+    }
+
     func testAddedDiningVenuesArePinnedOnTheArt() {
         let names = Set(ParkMapPinData.epcotPins.map(\.displayName))
         for name in [

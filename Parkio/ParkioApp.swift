@@ -140,7 +140,8 @@ struct ParkioApp: App {
         let shouldHold = ForegroundLocationPolicy.holdsLocation(phase)
         if shouldHold && foregroundLocationHold == nil {
             foregroundLocationHold = locationService.acquireLocationUpdates(
-                accuracy: kCLLocationAccuracyHundredMeters
+                accuracy: kCLLocationAccuracyHundredMeters,
+                distanceFilter: 25
             )
         } else if !shouldHold, let hold = foregroundLocationHold {
             locationService.releaseLocationUpdates(hold)
