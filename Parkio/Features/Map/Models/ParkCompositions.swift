@@ -135,15 +135,17 @@ enum MKComposition {
     }
 }
 
-// MARK: - EPCOT  (390 × 384)
+// MARK: - EPCOT  (1170 × 1152)
 
 enum EPCOTComposition {
-    /// Illustrated art is 390×384. The default viewport matches Magic Kingdom
-    /// so fit and zoom use the same 0.90 frame and the same scale limits.
+    /// Canvas matches the 3x artwork (1170×1152) so a fixed-size pin covers
+    /// the same share of the drawing as a Magic Kingdom pin on its 1000×1100
+    /// canvas. The default viewport and zoom limits still match Magic Kingdom.
+    /// The image is the same aspect ratio, so it still fills this canvas.
     static func make() -> ParkComposition {
         ParkComposition(
             parkId: "epcot",
-            contentSize: CGSize(width: 390, height: 384),
+            contentSize: CGSize(width: 1170, height: 1152),
             defaultViewport: CGRect(x: 0.05, y: 0.05, width: 0.90, height: 0.90),
             shapes: [
                 MapBackgroundShape(

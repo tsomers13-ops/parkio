@@ -47,6 +47,8 @@ struct RealMapScreen: View {
 
     @State private var currentLatDelta:      CLLocationDegrees = 0.015
     @State private var currentViewportWidth: CGFloat           = 390
+    /// True only while this screen holds one location-update client.
+    @State private var holdsLocationUpdates = false
 
     // ── HUD animation gates ────────────────────────────────────────────────────
     @State private var legendVisible:    Bool = false
@@ -176,7 +178,10 @@ struct RealMapScreen: View {
             }
         }
         .onAppear {
-            if locationService.isAuthorized { locationService.startUpdating() }
+            if !holdsLocationUpdates {
+                locationService.acquireLocationUpdates()
+                holdsLocationUpdates = true
+            }
             mapVM.locationService = locationService
             syncPlannedRides()
             handlePendingRideIfNeeded()
@@ -185,7 +190,10 @@ struct RealMapScreen: View {
 #endif
         }
         .onDisappear {
-            locationService.stopUpdating()
+            if holdsLocationUpdates {
+                locationService.releaseLocationUpdates()
+                holdsLocationUpdates = false
+            }
             // Re-arm the readiness gate so that if the user returns to the Map tab
             // with a pending ride, the gate fires onChange again rather than
             // silently staying true and never triggering a retry.

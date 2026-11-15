@@ -34,6 +34,42 @@ final class EpcotArtPinTests: XCTestCase {
         }
     }
 
+    func testUnpinnedVenuesAreAbsentAndNotPlacedAtCenter() {
+        let names = [
+            "Refreshment Outpost",
+            "GRAB-N-GOOF",
+            "Disney Character Spot",
+            "Space 220 Lounge",
+        ]
+        let pins = ParkMapPinData.epcotPins
+        let annotations = MapCoordinateService.shared.annotations(for: "epcot")
+        for name in names {
+            XCTAssertNil(pins.first { $0.displayName == name }, name)
+            let attraction = RideMasterData.all.first { $0.name == name }
+            XCTAssertNotNil(attraction, name)
+            XCTAssertNotNil(attraction?.stableID, name)
+            guard let annotation = annotations.first(where: { $0.rideName == name }) else {
+                continue
+            }
+            let point = MapSchematicProjection.normalize(
+                latitude: annotation.latitude,
+                longitude: annotation.longitude,
+                bounds: MapSchematicProjection.epcotBounds,
+                orientation: .northDown
+            )
+            if let point {
+                XCTAssertFalse(
+                    abs(point.x - 0.5) < 0.001 && abs(point.y - 0.5) < 0.001,
+                    "\(name) projected to the canvas center"
+                )
+            }
+        }
+        XCTAssertFalse(
+            pins.contains { abs($0.mapX - 0.5) < 0.001 && abs($0.mapY - 0.5) < 0.001 },
+            "an EPCOT pin sits at the canvas center"
+        )
+    }
+
     func testAddedDiningVenuesArePinnedOnTheArt() {
         let names = Set(ParkMapPinData.epcotPins.map(\.displayName))
         for name in [

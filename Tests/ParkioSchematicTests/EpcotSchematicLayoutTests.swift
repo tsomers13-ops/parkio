@@ -148,7 +148,7 @@ final class EpcotSchematicLayoutTests: XCTestCase {
 
     func testIllustratedEpcotCanvasMatchesTheArtAndMagicKingdomFit() {
         let composition = EPCOTComposition.make()
-        XCTAssertEqual(composition.contentSize, CGSize(width: 390, height: 384))
+        XCTAssertEqual(composition.contentSize, CGSize(width: 1170, height: 1152))
         XCTAssertEqual(
             composition.defaultViewport,
             CGRect(x: 0.05, y: 0.05, width: 0.90, height: 0.90)

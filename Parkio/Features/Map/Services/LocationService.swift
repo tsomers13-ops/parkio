@@ -34,9 +34,18 @@ final class LocationService: NSObject {
     /// Current Core Location authorization status.
     private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
+    /// Views currently asking for a stream. Hardware stays on until the last
+    /// one releases, so a handoff from the EPCOT canvas to a MapKit park
+    /// (or the reverse) does not stop updates.
+    private(set) var locationClientCount = 0
+
+    /// True while this service has asked Core Location to stream.
+    private(set) var isStreamingLocation = false
+
     // ── Private ───────────────────────────────────────────────────────────────
 
     private let manager = CLLocationManager()
+    private var locationStopPending = false
 
     // MARK: - Init
 
@@ -58,17 +67,55 @@ final class LocationService: NSObject {
         manager.requestWhenInUseAuthorization()
     }
 
-    /// Start streaming location updates (and heading if supported).
-    /// Call after authorization is confirmed.
+    /// Take one hold on the location stream. The first hold starts Core
+    /// Location. A matching `releaseLocationUpdates()` drops the hold.
+    func acquireLocationUpdates() {
+        locationClientCount += 1
+        locationStopPending = false
+        beginStreamingLocation()
+    }
+
+    /// Drop one hold. The stream stops only after the last hold is gone,
+    /// and only on the next turn, so a view that acquires in the same
+    /// handoff keeps the stream running.
+    func releaseLocationUpdates() {
+        guard locationClientCount > 0 else { return }
+        locationClientCount -= 1
+        guard locationClientCount == 0 else { return }
+        locationStopPending = true
+        Task { @MainActor in
+            guard self.locationClientCount == 0, self.locationStopPending else { return }
+            self.locationStopPending = false
+            self.endStreamingLocation()
+        }
+    }
+
+    /// Start streaming without taking a hold. Used by the authorization
+    /// callback and the location button, which are not paired with a release.
     func startUpdating() {
+        beginStreamingLocation()
+    }
+
+    /// Stop streaming only when no view holds it. A hold from the other map
+    /// surface wins over this call.
+    func stopUpdating() {
+        guard locationClientCount == 0 else { return }
+        locationStopPending = false
+        endStreamingLocation()
+    }
+
+    private func beginStreamingLocation() {
+        guard !isStreamingLocation else { return }
+        isStreamingLocation = true
         manager.startUpdatingLocation()
         if CLLocationManager.headingAvailable() {
             manager.startUpdatingHeading()
         }
     }
 
-    /// Stop all active updates. Call when the map view disappears.
-    func stopUpdating() {
+    private func endStreamingLocation() {
+        guard isStreamingLocation else { return }
+        isStreamingLocation = false
         manager.stopUpdatingLocation()
         manager.stopUpdatingHeading()
     }

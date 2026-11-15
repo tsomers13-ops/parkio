@@ -7,8 +7,8 @@
 //
 // Map layer:
 //   MapRoutingDecision.renderMode(forParkId:) picks the renderer per park:
-//     • Magic Kingdom and EPCOT → ParkMapCanvasView. Magic Kingdom uses the
-//                        production map artwork. EPCOT uses the GPS schematic.
+//     • Magic Kingdom and EPCOT → ParkMapCanvasView, filled with that
+//                        park's production map artwork.
 //     • Every other park → RealMapScreen, the full MapKit tile surface, user
 //                        location puck, ride annotations, follow mode, bearing
 //                        polyline, HUD (filter bar + glance bar), and the

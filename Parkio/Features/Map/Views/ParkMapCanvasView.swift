@@ -278,18 +278,17 @@ struct ParkMapCanvasView: View {
         }
     }
 
-    /// Starts location updates only for the EPCOT canvas, and only when
-    /// authorization is already granted. Stops them again when this view
-    /// started them and the user leaves EPCOT or the map.
+    /// Holds one location client while EPCOT is on screen and authorized.
+    /// Releasing that hold does not stop a MapKit park that acquired its own.
     private func syncEpcotLocation(stopping: Bool = false) {
         let shouldTrack = !stopping
             && parkMapVM.parkId == "epcot"
             && locationService.isAuthorized
         if shouldTrack && !epcotLocationStarted {
-            locationService.startUpdating()
+            locationService.acquireLocationUpdates()
             epcotLocationStarted = true
         } else if !shouldTrack && epcotLocationStarted {
-            locationService.stopUpdating()
+            locationService.releaseLocationUpdates()
             epcotLocationStarted = false
         }
     }
