@@ -106,6 +106,8 @@ final class EpcotArtPinTests: XCTestCase {
         let viewport = composition.defaultViewport
         // iPhone 17 point size, the device the map screenshots are taken on.
         // Width is the tighter fit axis for the 1170×1152 canvas.
+        // Dining pins inside one pavilion are allowed to stack; this only
+        // checks service pins against each other and against dining pins.
         let zoom = min(
             402 / (composition.contentSize.width * viewport.width),
             874 / (composition.contentSize.height * viewport.height)
