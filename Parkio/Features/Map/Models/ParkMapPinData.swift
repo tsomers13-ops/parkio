@@ -202,7 +202,7 @@ enum ParkMapPinData {
         pin("ep|svc|baby-care", "epcot", "Baby Care Center — Odyssey Center", x: 0.3761, y: 0.5226, anchor: .center, priority: 3, serviceSystemImage: "stroller.fill", guestServiceCategoryRaw: "baby_care"),
         pin("ep|svc|rr-odyssey", "epcot", "Restrooms — Odyssey Center", x: 0.3590, y: 0.5521, anchor: .center, priority: 3, serviceSystemImage: "toilet.fill", guestServiceCategoryRaw: "restroom"),
         pin("ep|svc|guest-relations", "epcot", "Guest Relations — World Celebration", x: 0.4188, y: 0.7986, anchor: .center, priority: 3, serviceSystemImage: "info.circle.fill", guestServiceCategoryRaw: "guest_relations"),
-        pin("ep|svc|rr-communicore", "epcot", "Restrooms — CommuniCore Hall", x: 0.5620, y: 0.6120, anchor: .center, priority: 3, serviceSystemImage: "toilet.fill", guestServiceCategoryRaw: "restroom"),
+        pin("ep|svc|rr-communicore", "epcot", "Restrooms — CommuniCore Hall", x: 0.5624, y: 0.6066, anchor: .center, priority: 3, serviceSystemImage: "toilet.fill", guestServiceCategoryRaw: "restroom"),
         pin("ep|svc|rr-land", "epcot", "Restrooms — The Land Pavilion", x: 0.8376, y: 0.6771, anchor: .center, priority: 3, serviceSystemImage: "toilet.fill", guestServiceCategoryRaw: "restroom"),
         pin("ep|svc|rr-germany", "epcot", "Germany Restrooms", x: 0.2564, y: 0.1736, anchor: .center, priority: 3, serviceSystemImage: "toilet.fill", guestServiceCategoryRaw: "restroom"),
         pin("ep|svc|rr-france", "epcot", "Restrooms near France Pavilion", x: 0.8829, y: 0.2865, anchor: .center, priority: 3, serviceSystemImage: "toilet.fill", guestServiceCategoryRaw: "restroom"),
