@@ -11,9 +11,10 @@
 // app the user IS a guest, so "Guest Rating" reads as "my rating" — precisely
 // the private feature sitting further down the same screen.
 //
-// Renders nothing at all for the 24 venues with no venueKey, and nothing when
-// ratings cannot be read. A restaurant with no ratings and a service that is
-// down are different facts, and only the first is ever stated.
+// Renders nothing at all for the 24 venues with no venueKey. An eligible
+// venue always offers the rate button. The public read only fills the
+// summary: a slow or failed read must not hide the button, and a service
+// that is down is never described as "no ratings."
 
 import SwiftUI
 import SwiftData
@@ -52,9 +53,16 @@ struct CommunityRatingSection: View {
         Group {
             switch model.load {
             case .unavailable:
-                // Fail soft: the venue screen stays completely usable, and
-                // nothing claims this restaurant has no ratings.
-                EmptyView()
+                // The public read failed. Keep the rate action; do not claim
+                // the restaurant has no ratings.
+                Section("Parkio Community") {
+                    Text("Guest ratings aren't available right now.")
+                        .font(.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                    rateButton
+                    sharedCaption
+                }
+                .listRowBackground(AppColor.card)
 
             case .idle, .loading:
                 Section("Parkio Community") {
@@ -64,6 +72,7 @@ struct CommunityRatingSection: View {
                             .font(.caption)
                             .foregroundStyle(AppColor.textTertiary)
                     }
+                    rateButton
                     .padding(.vertical, AppSpacing.xs)
                 }
                 .listRowBackground(AppColor.card)
