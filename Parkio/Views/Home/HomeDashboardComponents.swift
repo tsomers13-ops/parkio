@@ -210,6 +210,8 @@ struct HomeSectionHeader: View {
     var subtitle: String? = nil
     var actionLabel: String? = nil
     var action: (() -> Void)? = nil
+    /// Best Food Nearby shows dollar signs, so the price key sits on its header.
+    var showsDiningPriceKey: Bool = false
 
     var body: some View {
         HStack(alignment: .lastTextBaseline, spacing: AppSpacing.md) {
@@ -225,6 +227,10 @@ struct HomeSectionHeader: View {
             }
 
             Spacer()
+
+            if showsDiningPriceKey {
+                DiningPriceKeyButton(identifier: "parkio.dining.priceKey.home")
+            }
 
             if let actionLabel, let action {
                 Button(action: action) {
@@ -1529,10 +1535,11 @@ private struct HomeDiningVenueRow: View {
 
             // ── Right: price tier + mobile order badge ─────────────────────────
             VStack(alignment: .trailing, spacing: AppSpacing.xs) {
-                if let price = dining?.priceTier.displayString {
-                    Text(price)
+                if let tier = dining?.priceTier {
+                    Text(tier.displayString)
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(AppColor.textSecondary)
+                        .accessibilityLabel(tier.accessibilityLabel)
                 }
 
                 if dining?.mobileOrderAvailable == true {

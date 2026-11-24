@@ -651,7 +651,8 @@ struct HomeView: View {
                             title: "Best Food Nearby",
                             subtitle: diningCardSubtitle,
                             actionLabel: "See All",
-                            action: { showDiningList = true }
+                            action: { showDiningList = true },
+                            showsDiningPriceKey: true
                         )
                         .padding(.horizontal, AppSpacing.screenEdge)
                         .padding(.bottom, -AppSpacing.md)
