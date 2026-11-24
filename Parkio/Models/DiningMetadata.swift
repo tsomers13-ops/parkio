@@ -79,15 +79,17 @@ struct DiningMetadata: Sendable {
 
     // MARK: Editorial
 
-    /// Rough per-person cost bracket.
-    let priceTier: PriceTier
+    /// Rough per-person cost bracket. Nil when no tier is assigned; the UI
+    /// shows no price in that case, rather than a placeholder "$".
+    let priceTier: PriceTier?
 
-    /// Parkio editorial score, 1–10. Drives dining sort order and recommendations.
+    /// Parkio editorial score, 1–10. Nil when no score has been authored.
     ///   9–10 = unmissable  ·  7–8 = strongly recommended  ·  5–6 = solid backup
-    let parkioScore: Int
+    let parkioScore: Int?
 
-    /// One-line verdict shown under the venue name. Target ≤ 80 chars.
-    let shortVerdict: String
+    /// One-line verdict shown under the venue name. Nil when none has been
+    /// authored. Target ≤ 80 chars when present.
+    let shortVerdict: String?
 
     // MARK: Menu signals
 
@@ -112,10 +114,12 @@ struct DiningMetadata: Sendable {
 
     // MARK: Convenience init (short label names for catalog readability)
 
+    /// `price` may be nil. `score` and `verdict` stay nil for a tier-only
+    /// entry so a price is never paired with an invented editorial.
     init(
-        price:       PriceTier,
-        score:       Int,
-        verdict:     String,
+        price:       PriceTier? = nil,
+        score:       Int? = nil,
+        verdict:     String? = nil,
         signature:   [String]         = [],
         mobileOrder: Bool             = false,
         indoor:      Bool             = true,

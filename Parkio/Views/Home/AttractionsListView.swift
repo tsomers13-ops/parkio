@@ -1148,14 +1148,16 @@ private struct AttractionRow: View {
         liveState?.status.isRideable ?? false
     }
 
-    private var waitText: String {
+    private var waitText: String? {
         guard let live = liveState else {
             // No live state: show a friendly message based on type instead of "—".
+            // A dining venue with no price tier returns nil, so the row renders
+            // no price text at all.
             switch attractionType {
             case .characterMeet: return "Times vary"
             case .show:          return "Schedule"
             case .quickService, .snackStand, .tableService, .lounge, .festivalBooth:
-                return RideMasterData.diningByStableID[ride.id]?.priceTier.displayString ?? "$"
+                return RideMasterData.diningPriceText(stableID: ride.id)
             default:             return "—"
             }
         }
@@ -1205,11 +1207,13 @@ private struct AttractionRow: View {
 
                 // ── Wait badge column (fixed 72 pt) ───────────────────────
                 VStack(spacing: 2) {
-                    Text(waitText)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(waitColor)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
+                    if let waitText {
+                        Text(waitText)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(waitColor)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
 
                     if showTrend, let live = liveState {
                         Image(systemName: live.trend.systemImage)

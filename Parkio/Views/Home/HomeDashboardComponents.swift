@@ -1529,7 +1529,7 @@ private struct HomeDiningVenueRow: View {
 
             // ── Right: price tier + mobile order badge ─────────────────────────
             VStack(alignment: .trailing, spacing: AppSpacing.xs) {
-                if let price = dining?.priceTier.displayString {
+                if let price = dining?.priceTier?.displayString {
                     Text(price)
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(AppColor.textSecondary)
