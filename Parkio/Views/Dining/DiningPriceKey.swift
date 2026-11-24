@@ -49,7 +49,7 @@ struct DiningPriceKeyButton: View {
     }
 }
 
-/// The four ranges plus the per-adult note. Used by both the sheet and the push.
+/// Disney's four per-adult ranges. Used by both the sheet and the push.
 struct DiningPriceKeyScreen: View {
     var showsDone: Bool = false
 
@@ -73,12 +73,6 @@ struct DiningPriceKeyScreen: View {
                     .accessibilityLabel(tier.accessibilityLabel)
                     .accessibilityIdentifier("parkio.dining.priceKey.band.\(tier.rawValue)")
                 }
-
-                Text(PriceTier.pricingBasis)
-                    .font(.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("parkio.dining.priceKey.note")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(AppSpacing.screenEdge)

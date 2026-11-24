@@ -59,24 +59,30 @@ final class DiningPriceTierTests: XCTestCase {
     }
 
     func testDisneyPriceBandTextForAllFourTiers() {
-        XCTAssertEqual(PriceTier.budget.bandText, "Under $14.99")
-        XCTAssertEqual(PriceTier.moderate.bandText, "$15 to $34.99")
-        XCTAssertEqual(PriceTier.upscale.bandText, "$35 to $59.99")
-        XCTAssertEqual(PriceTier.signature.bandText, "$60 and up")
+        XCTAssertEqual(PriceTier.budget.bandText, "$14.99 and under per adult")
+        XCTAssertEqual(PriceTier.moderate.bandText, "$15 to $34.99 per adult")
+        XCTAssertEqual(PriceTier.upscale.bandText, "$35 to $59.99 per adult")
+        XCTAssertEqual(PriceTier.signature.bandText, "over $60 per adult")
         for tier in PriceTier.allCases {
             XCTAssertEqual(tier.label, tier.bandText, "band text has a second wording")
         }
     }
 
-    func testPriceBandNoteIsPerAdultBeforeTaxAndTip() {
-        XCTAssertEqual(PriceTier.pricingBasis, "Per adult, before tax and tip.")
+    func testPriceBandsArePerAdultAndMakeNoTaxOrTipClaim() {
+        let visible = PriceTier.allCases.map(\.bandText)
+        let spoken = PriceTier.allCases.map(\.accessibilityLabel)
+        for text in visible + spoken {
+            XCTAssertTrue(text.contains("per adult"), text)
+            XCTAssertFalse(text.localizedCaseInsensitiveContains("tax"), text)
+            XCTAssertFalse(text.localizedCaseInsensitiveContains("tip"), text)
+        }
+        XCTAssertEqual(
+            PriceTier.budget.accessibilityLabel,
+            "One dollar sign, 14 dollars and 99 cents and under per adult"
+        )
         XCTAssertEqual(
             PriceTier.moderate.accessibilityLabel,
             "Two dollar signs, 15 to 34 dollars and 99 cents per adult"
-        )
-        XCTAssertEqual(
-            PriceTier.budget.accessibilityLabel,
-            "One dollar sign, under 14 dollars and 99 cents per adult"
         )
         XCTAssertEqual(
             PriceTier.upscale.accessibilityLabel,
@@ -84,7 +90,7 @@ final class DiningPriceTierTests: XCTestCase {
         )
         XCTAssertEqual(
             PriceTier.signature.accessibilityLabel,
-            "Four dollar signs, 60 dollars and up per adult"
+            "Four dollar signs, over 60 dollars per adult"
         )
     }
 

@@ -74,7 +74,7 @@ final class DiningPriceKeyUITests: XCTestCase {
         XCTAssertTrue(panel.waitForExistence(timeout: timeout), "Price key did not open")
         let one = element("parkio.dining.priceKey.band.1")
         XCTAssertTrue(one.waitForExistence(timeout: timeout))
-        XCTAssertEqual(one.label, "One dollar sign, under 14 dollars and 99 cents per adult")
+        XCTAssertEqual(one.label, "One dollar sign, 14 dollars and 99 cents and under per adult")
         XCTAssertEqual(
             element("parkio.dining.priceKey.band.2").label,
             "Two dollar signs, 15 to 34 dollars and 99 cents per adult"
@@ -85,9 +85,8 @@ final class DiningPriceKeyUITests: XCTestCase {
         )
         XCTAssertEqual(
             element("parkio.dining.priceKey.band.4").label,
-            "Four dollar signs, 60 dollars and up per adult"
+            "Four dollar signs, over 60 dollars per adult"
         )
-        XCTAssertTrue(element("parkio.dining.priceKey.note").exists)
-        XCTAssertTrue(app.staticTexts["Per adult, before tax and tip."].exists)
+        XCTAssertFalse(app.staticTexts["Per adult, before tax and tip."].exists)
     }
 }

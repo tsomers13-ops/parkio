@@ -2,7 +2,7 @@
 //
 // Architecture
 // ────────────
-// PriceTier      — Disney's per-adult band ($–$$$$), before tax and tip.
+// PriceTier      — Disney's per-adult dining price band ($–$$$$).
 // DietaryFlag    — accommodation / dietary preference tags shown as filter chips.
 // DiningMetadata — static editorial data attached to a dining MasterAttraction.
 //
@@ -17,10 +17,10 @@ import Foundation
 
 // MARK: - PriceTier
 
-/// Disney's per-adult price band, before tax and tip.
+/// Disney's per-adult dining price band.
 ///
-/// `bandText` and `pricingBasis` are the only copies of those words. The
-/// price key, the dining detail, and VoiceOver all read them from here.
+/// `bandText` is the only copy of Disney's legend. The price key, the dining
+/// detail, and VoiceOver all read it from here.
 enum PriceTier: Int, Comparable, CaseIterable, Sendable {
     case budget    = 1  // $
     case moderate  = 2  // $$
@@ -31,20 +31,17 @@ enum PriceTier: Int, Comparable, CaseIterable, Sendable {
         lhs.rawValue < rhs.rawValue
     }
 
-    /// Shown under the four ranges. Ranges are per adult, before tax and tip.
-    static let pricingBasis = "Per adult, before tax and tip."
-
     /// "$", "$$", "$$$", "$$$$"
     var displayString: String { String(repeating: "$", count: rawValue) }
 
-    /// Disney's range for this band. A venue with no tier shows neither this
-    /// nor `displayString`.
+    /// Disney's range for this band, including "per adult". A venue with no
+    /// tier shows neither this nor `displayString`.
     var bandText: String {
         switch self {
-        case .budget:    return "Under $14.99"
-        case .moderate:  return "$15 to $34.99"
-        case .upscale:   return "$35 to $59.99"
-        case .signature: return "$60 and up"
+        case .budget:    return "$14.99 and under per adult"
+        case .moderate:  return "$15 to $34.99 per adult"
+        case .upscale:   return "$35 to $59.99 per adult"
+        case .signature: return "over $60 per adult"
         }
     }
 
@@ -56,13 +53,13 @@ enum PriceTier: Int, Comparable, CaseIterable, Sendable {
     var accessibilityLabel: String {
         switch self {
         case .budget:
-            return "One dollar sign, under 14 dollars and 99 cents per adult"
+            return "One dollar sign, 14 dollars and 99 cents and under per adult"
         case .moderate:
             return "Two dollar signs, 15 to 34 dollars and 99 cents per adult"
         case .upscale:
             return "Three dollar signs, 35 to 59 dollars and 99 cents per adult"
         case .signature:
-            return "Four dollar signs, 60 dollars and up per adult"
+            return "Four dollar signs, over 60 dollars per adult"
         }
     }
 }
