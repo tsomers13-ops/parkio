@@ -1392,7 +1392,7 @@ struct HomeBestFoodNearbyCard: View {
                     // The row is mostly whitespace around a score and a name;
                     // without this only the glyphs would be tappable.
                     .contentShape(Rectangle())
-                    .accessibilityIdentifier("parkio.home.bestFood.row")
+                    .accessibilityIdentifier("parkio.home.bestFood.row.\(rec.venue.name)")
                     .accessibilityHint("Opens this venue")
 
                     if index < recommendations.count - 1 {

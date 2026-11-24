@@ -130,13 +130,14 @@ jobs:
           path: test-results/Parkio.xcresult
           if-no-files-found: ignore
 
-      # The dining-service filter UI test attaches one screenshot. Export
-      # only that attachment so the map shots stay on their existing gate.
-      - name: Export dining service filter screenshot
+      # xcresulttool writes UUID filenames. manifest.json maps each one
+      # to suggestedHumanReadableName (the XCTAttachment name). Rename,
+      # then upload dining-service-filter and dining-price-key shots.
+      # Map screenshots stay on the step below, unchanged.
+      - name: Export dining filter screenshots
         if: always()
-        continue-on-error: true
         run: |
-          set -u
+          set -euo pipefail
           if [ ! -d "$RESULT_BUNDLE" ]; then
             echo "No result bundle at $RESULT_BUNDLE"
             exit 0
@@ -145,11 +146,12 @@ jobs:
           xcrun xcresulttool export attachments \
             --path "$RESULT_BUNDLE" \
             --output-path /tmp/parkio-attachments
-          find /tmp/parkio-attachments -type f -print
-          find /tmp/parkio-attachments -type f -iname '*dining-service-filter*' -exec cp {} dining-filter-screenshot/ \;
+          python3 .github/scripts/export_named_attachments.py \
+            /tmp/parkio-attachments \
+            dining-filter-screenshot
           find dining-filter-screenshot -type f -print
 
-      - name: Upload dining service filter screenshot
+      - name: Upload dining filter screenshots
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

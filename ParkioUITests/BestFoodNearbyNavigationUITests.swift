@@ -44,7 +44,9 @@ final class BestFoodNearbyNavigationUITests: XCTestCase {
         // Queried as a button on purpose: that is what the fix makes the row,
         // and it is the thing the UAT defect was missing. If the row regresses
         // to an inert HStack this query finds nothing and the test fails here.
-        let rows = app.buttons.matching(identifier: "parkio.home.bestFood.row")
+        let rows = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "parkio.home.bestFood.row.")
+        )
         var swipes = 0
         while rows.count == 0 && swipes < 8 {
             app.swipeUp()
