@@ -130,6 +130,33 @@ jobs:
           path: test-results/Parkio.xcresult
           if-no-files-found: ignore
 
+      # The dining-service filter UI test attaches one screenshot. Export
+      # only that attachment so the map shots stay on their existing gate.
+      - name: Export dining service filter screenshot
+        if: always()
+        continue-on-error: true
+        run: |
+          set -u
+          if [ ! -d "$RESULT_BUNDLE" ]; then
+            echo "No result bundle at $RESULT_BUNDLE"
+            exit 0
+          fi
+          mkdir -p /tmp/parkio-attachments dining-filter-screenshot
+          xcrun xcresulttool export attachments \
+            --path "$RESULT_BUNDLE" \
+            --output-path /tmp/parkio-attachments
+          find /tmp/parkio-attachments -type f -print
+          find /tmp/parkio-attachments -type f -iname '*dining-service-filter*' -exec cp {} dining-filter-screenshot/ \;
+          find dining-filter-screenshot -type f -print
+
+      - name: Upload dining service filter screenshot
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dining-service-filter-screenshot
+          path: dining-filter-screenshot
+          if-no-files-found: warn
+
       # Map screenshots are about 4.6 MB. Export them on a manual run, on a
       # pull request labeled map-screenshots, and on pull request 7 (the
       # EPCOT art change). The runner artifact token is enough; the workflow

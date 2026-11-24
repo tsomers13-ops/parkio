@@ -7,6 +7,8 @@
 //   • Search: inline bar above the chip strip; filters by name and land, case-insensitive.
 //   • Sorting: four modes — wait ascending, name A–Z, open first, by land.
 //   • Filtering: "Open only" chip; stacks with search and sort.
+//   • Dining service: All / Quick service / Sit-down, shown only while the
+//     Dining category is selected. Default All. Does not change venue data.
 //   • By Land: LazyVStack(pinnedViews: [.sectionHeaders]) gives sticky land headers.
 //   • My Day: context menu per row with auto-dismiss toast.
 //   • Favorites: star-icon toggle; favorites always sort to the top in all modes.
@@ -143,6 +145,7 @@ struct AttractionsListView: View {
     @State private var sort:              AttractionSort           = .waitAscending
     @State private var openOnly:          Bool                     = false
     @State private var categoryFilter:    AttractionCategoryFilter = .all
+    @State private var diningServiceFilter: DiningServiceFilter   = .all
     @State private var searchText:        String                   = ""
     @State private var toastMessage:      String?        = nil
     @State private var favoriteIds:       Set<String>    = []
@@ -176,12 +179,18 @@ struct AttractionsListView: View {
     // on larger stores that can stall the Home -> All Attractions push even if
     // this view's body is reduced to a trivial Text.
 
-    init(park: Park, rides: [Ride] = [], initialCategoryFilter: AttractionCategoryFilter = .all) {
+    init(
+        park: Park,
+        rides: [Ride] = [],
+        initialCategoryFilter: AttractionCategoryFilter = .all,
+        initialDiningServiceFilter: DiningServiceFilter = .all
+    ) {
         self.park = park
         self.rides = rides
             .filter { $0.park == park.rawValue }
             .sorted { $0.order < $1.order }
         _categoryFilter = State(initialValue: initialCategoryFilter)
+        _diningServiceFilter = State(initialValue: initialDiningServiceFilter)
 
         // Load persisted favorites for this park
         let favKey = "favorites_\(park.rawValue)"
@@ -268,15 +277,30 @@ struct AttractionsListView: View {
             filtered = afterOpenOnly
         }
 
+        // Service style applies only while Dining is the category. All keeps
+        // every venue the category filter already accepted. Ride, show, and
+        // character lists do not consult this filter.
+        let serviceFiltered: [Ride]
+        if categoryFilter == .dining && diningServiceFilter != .all {
+            serviceFiltered = filtered.filter { ride in
+                guard let type = RideMasterData.typeByStableID[ride.id] else { return false }
+                return diningServiceFilter.includes(type)
+            }
+        } else {
+            serviceFiltered = filtered
+        }
+
         // Partition into favorites and non-favorites (both from filtered set)
         let favSet      = favoriteIds
-        let favRides    = filtered
+        let favRides    = serviceFiltered
             .filter { favSet.contains($0.id) }
             .sorted { $0.name < $1.name }
-        let nonFavRides = filtered.filter { !favSet.contains($0.id) }
+        let nonFavRides = serviceFiltered.filter { !favSet.contains($0.id) }
 
         // Recently viewed — drawn from full park rides (not filtered by openOnly/search)
         // so a ride you just tapped always appears even if it's currently closed.
+        // The dining service filter does apply, so a quick-service venue does
+        // not stay on screen after the guest chooses Sit-down.
         // Suppressed during search to avoid confusing results context.
         // Favorites are excluded here to prevent duplication.
         // Hidden outside the Dining filter — Recently Viewed is preserved only
@@ -289,6 +313,11 @@ struct AttractionsListView: View {
             recentRides = recentlyViewedIds
                 .compactMap { id in rides.first { $0.id == id } }
                 .filter { !favSet.contains($0.id) }
+                .filter { ride in
+                    guard diningServiceFilter != .all else { return true }
+                    guard let type = RideMasterData.typeByStableID[ride.id] else { return false }
+                    return diningServiceFilter.includes(type)
+                }
         } else {
             recentRides = []
         }
@@ -305,7 +334,7 @@ struct AttractionsListView: View {
         if categoryFilter == .dining {
             resolvedFavRides = []
             currentSections  = []
-            currentRides     = filtered.sorted { lhs, rhs in
+            currentRides     = serviceFiltered.sorted { lhs, rhs in
                 let lRating = diningRatingStore.rating(for: lhs.id)
                 let rRating = diningRatingStore.rating(for: rhs.id)
                 let lFav    = lRating?.isFavorite ?? false
@@ -510,6 +539,9 @@ struct AttractionsListView: View {
 
     private var emptyTitle: String {
         if !searchText.isEmpty { return "No results" }
+        if categoryFilter == .dining && diningServiceFilter != .all {
+            return "No \(diningServiceFilter.title.lowercased())"
+        }
         if openOnly && categoryFilter != .all { return "No open \(categoryFilter.rawValue.lowercased())" }
         if openOnly             { return "No open attractions" }
         if categoryFilter != .all { return "No \(categoryFilter.rawValue.lowercased()) listed" }
@@ -521,8 +553,14 @@ struct AttractionsListView: View {
         if hasSearch && openOnly {
             return "No open attractions match \"\(searchText)\". Try clearing the search or filters."
         }
+        if hasSearch && categoryFilter == .dining && diningServiceFilter != .all {
+            return "No \(diningServiceFilter.title.lowercased()) matches \"\(searchText)\". Try another service filter."
+        }
         if hasSearch {
             return "No attractions match \"\(searchText)\". Check the spelling or try a different term."
+        }
+        if categoryFilter == .dining && diningServiceFilter != .all {
+            return "Switch the service filter to All to see every dining venue."
         }
         if openOnly {
             return "Remove the Open Only filter to see all attractions."
@@ -619,6 +657,7 @@ struct AttractionsListView: View {
                 .focused($searchFocused)
                 .submitLabel(.search)
                 .onSubmit { searchFocused = false }
+                .accessibilityIdentifier("parkio.attractions.search")
 
             if !searchText.isEmpty {
                 Button {
@@ -630,6 +669,8 @@ struct AttractionsListView: View {
                         .foregroundStyle(AppColor.textTertiary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("parkio.attractions.search.clear")
+                .accessibilityLabel("Clear search")
                 .transition(.opacity.combined(with: .scale(scale: 0.85)))
             }
         }
@@ -705,6 +746,15 @@ struct AttractionsListView: View {
                         .animation(AppMotion.quick, value: selected)
                     }
                 }
+            }
+
+            // Row 3: dining service style. Only while Dining is selected —
+            // the other categories are not dining lists.
+            if categoryFilter == .dining {
+                DiningServiceFilterBar(
+                    selection: $diningServiceFilter,
+                    accent: park.accentColor
+                )
             }
         }
     }
@@ -1324,6 +1374,7 @@ private struct AttractionRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(attractionType.isDining ? "parkio.dining.venueRow" : "parkio.attraction.row")
         .contextMenu {
             // ── Favorites ─────────────────────────────────────────────────
             Section {

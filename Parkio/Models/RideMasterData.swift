@@ -43,7 +43,7 @@ import Foundation
 
 // MARK: - AttractionType
 
-enum AttractionType: String, Sendable {
+enum AttractionType: String, CaseIterable, Sendable {
     /// Traditional ride with a live wait time — tracked in SwiftData and shown in Best Next Ride.
     case ride
     /// Scheduled theatrical show — no personal wait time (may have general queue / seating).
