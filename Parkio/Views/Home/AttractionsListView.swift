@@ -564,6 +564,10 @@ struct AttractionsListView: View {
                     .padding(.horizontal, AppSpacing.screenEdge)
                     .padding(.vertical, AppSpacing.sm)
 
+                if categoryFilter == .dining {
+                    diningPriceKeyHeader
+                }
+
                 Divider()
 
                 Group {
@@ -707,6 +711,21 @@ struct AttractionsListView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Dining price key
+
+    /// Visible only while the Dining filter is on, which is how the dining
+    /// list opens. Dollar signs on those rows have no words of their own.
+    private var diningPriceKeyHeader: some View {
+        HStack(spacing: AppSpacing.sm) {
+            Text("Prices")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppColor.textPrimary)
+            Spacer()
+            DiningPriceKeyButton(identifier: "parkio.dining.priceKey.list")
+        }
+        .padding(.horizontal, AppSpacing.screenEdge)
     }
 
     // MARK: - Sort menu
@@ -1148,6 +1167,13 @@ private struct AttractionRow: View {
         liveState?.status.isRideable ?? false
     }
 
+    /// Spoken price for a dining row that is showing dollar signs. Nil when
+    /// the row is showing a wait, or when the venue has no tier.
+    private var diningPriceAccessibilityLabel: String? {
+        guard liveState == nil, attractionType.isDining else { return nil }
+        return RideMasterData.diningByStableID[ride.id]?.priceTier?.accessibilityLabel
+    }
+
     private var waitText: String? {
         guard let live = liveState else {
             // No live state: show a friendly message based on type instead of "—".
@@ -1213,6 +1239,7 @@ private struct AttractionRow: View {
                             .foregroundStyle(waitColor)
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
+                            .accessibilityLabel(diningPriceAccessibilityLabel ?? waitText)
                     }
 
                     if showTrend, let live = liveState {

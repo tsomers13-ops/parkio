@@ -58,6 +58,36 @@ final class DiningPriceTierTests: XCTestCase {
         XCTAssertNil(RideMasterData.diningPriceText(stableID: grab.stableID))
     }
 
+    func testDisneyPriceBandTextForAllFourTiers() {
+        XCTAssertEqual(PriceTier.budget.bandText, "Under $14.99")
+        XCTAssertEqual(PriceTier.moderate.bandText, "$15 to $34.99")
+        XCTAssertEqual(PriceTier.upscale.bandText, "$35 to $59.99")
+        XCTAssertEqual(PriceTier.signature.bandText, "$60 and up")
+        for tier in PriceTier.allCases {
+            XCTAssertEqual(tier.label, tier.bandText, "band text has a second wording")
+        }
+    }
+
+    func testPriceBandNoteIsPerAdultBeforeTaxAndTip() {
+        XCTAssertEqual(PriceTier.pricingBasis, "Per adult, before tax and tip.")
+        XCTAssertEqual(
+            PriceTier.moderate.accessibilityLabel,
+            "Two dollar signs, 15 to 34 dollars and 99 cents per adult"
+        )
+        XCTAssertEqual(
+            PriceTier.budget.accessibilityLabel,
+            "One dollar sign, under 14 dollars and 99 cents per adult"
+        )
+        XCTAssertEqual(
+            PriceTier.upscale.accessibilityLabel,
+            "Three dollar signs, 35 to 59 dollars and 99 cents per adult"
+        )
+        XCTAssertEqual(
+            PriceTier.signature.accessibilityLabel,
+            "Four dollar signs, 60 dollars and up per adult"
+        )
+    }
+
     func testTieredPriceTextIsTheTierGlyphs() {
         for venue in diningVenues {
             guard let tier = venue.dining?.priceTier else { continue }

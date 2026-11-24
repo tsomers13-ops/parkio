@@ -11,6 +11,7 @@ struct RideDetailView: View {
     @Environment(WaitTimeViewModel.self)  private var waitTimeVM
 
     @State private var selectedDate: Date = Date()
+    @State private var showPriceKey = false
 
     /// Live wait state for this ride from the cache — nil if park data not loaded
     /// or ride name doesn't match any cached entry.
@@ -50,6 +51,32 @@ struct RideDetailView: View {
         }
     }
 
+    /// Dollar signs plus Disney's range, and the key that explains every band.
+    /// A venue with no tier shows the key only — no glyphs and no range.
+    @ViewBuilder
+    private var diningPriceRow: some View {
+        HStack(alignment: .center, spacing: AppSpacing.sm) {
+            if let tier = RideMasterData.diningByStableID[ride.id]?.priceTier {
+                HStack(alignment: .firstTextBaseline, spacing: AppSpacing.sm) {
+                    Text(tier.displayString)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(tier.bandText)
+                        .font(.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(tier.accessibilityLabel)
+            }
+            Spacer(minLength: 0)
+            DiningPriceKeyButton(
+                identifier: "parkio.dining.priceKey.detail",
+                isPresented: $showPriceKey
+            )
+        }
+    }
+
     /// Section header for the date-logging section.
     private var logSectionTitle: String {
         switch attractionType {
@@ -76,6 +103,10 @@ struct RideDetailView: View {
                             Text("\(ride.park) · \(ride.land)")
                                 .font(.subheadline)
                                 .foregroundStyle(AppColor.textSecondary)
+
+                            if attractionType.isDining {
+                                diningPriceRow
+                            }
 
                             HStack(spacing: AppSpacing.sm) {
                                 Image(systemName: ride.isRidden ? "checkmark.circle.fill" : "circle")
@@ -208,6 +239,9 @@ struct RideDetailView: View {
             }
             .accessibilityIdentifier("parkio.dining.detail")
             .navigationTitle(detailTitle)
+            .navigationDestination(isPresented: $showPriceKey) {
+                DiningPriceKeyScreen()
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

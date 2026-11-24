@@ -2,7 +2,7 @@
 //
 // Architecture
 // ────────────
-// PriceTier      — rough per-person spend bracket ($–$$$$).
+// PriceTier      — Disney's per-adult band ($–$$$$), before tax and tip.
 // DietaryFlag    — accommodation / dietary preference tags shown as filter chips.
 // DiningMetadata — static editorial data attached to a dining MasterAttraction.
 //
@@ -17,26 +17,52 @@ import Foundation
 
 // MARK: - PriceTier
 
-/// Approximate per-person spend, before tax and tip.
+/// Disney's per-adult price band, before tax and tip.
+///
+/// `bandText` and `pricingBasis` are the only copies of those words. The
+/// price key, the dining detail, and VoiceOver all read them from here.
 enum PriceTier: Int, Comparable, CaseIterable, Sendable {
-    case budget    = 1  // $    — under $15
-    case moderate  = 2  // $$   — $15–$25
-    case upscale   = 3  // $$$  — $25–$60
-    case signature = 4  // $$$$ — $60+
+    case budget    = 1  // $
+    case moderate  = 2  // $$
+    case upscale   = 3  // $$$
+    case signature = 4  // $$$$
 
     static func < (lhs: PriceTier, rhs: PriceTier) -> Bool {
         lhs.rawValue < rhs.rawValue
     }
 
+    /// Shown under the four ranges. Ranges are per adult, before tax and tip.
+    static let pricingBasis = "Per adult, before tax and tip."
+
     /// "$", "$$", "$$$", "$$$$"
     var displayString: String { String(repeating: "$", count: rawValue) }
 
-    var label: String {
+    /// Disney's range for this band. A venue with no tier shows neither this
+    /// nor `displayString`.
+    var bandText: String {
         switch self {
-        case .budget:    return "Budget"
-        case .moderate:  return "Moderate"
-        case .upscale:   return "Upscale"
-        case .signature: return "Signature Dining"
+        case .budget:    return "Under $14.99"
+        case .moderate:  return "$15 to $34.99"
+        case .upscale:   return "$35 to $59.99"
+        case .signature: return "$60 and up"
+        }
+    }
+
+    /// The band text. Kept so older call sites cannot drift onto a second wording.
+    var label: String { bandText }
+
+    /// Spoken form for a row that shows this tier. Dollar signs are counted
+    /// in words so VoiceOver does not spell "$" four times.
+    var accessibilityLabel: String {
+        switch self {
+        case .budget:
+            return "One dollar sign, under 14 dollars and 99 cents per adult"
+        case .moderate:
+            return "Two dollar signs, 15 to 34 dollars and 99 cents per adult"
+        case .upscale:
+            return "Three dollar signs, 35 to 59 dollars and 99 cents per adult"
+        case .signature:
+            return "Four dollar signs, 60 dollars and up per adult"
         }
     }
 }
