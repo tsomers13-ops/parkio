@@ -34,22 +34,16 @@ final class DiningServiceFilterUITests: XCTestCase {
         super.tearDown()
     }
 
-    /// Hittable match only. Home stays under the pushed dining list and has
-    /// the same filter identifiers; a covered chip is not hittable, so this
-    /// query waits for the chip on the list itself.
+    /// Identifier lookup. Home's chips use a different prefix, so these
+    /// match the dining list only.
     private func element(_ identifier: String) -> XCUIElement {
-        app.descendants(matching: .any)
-            .matching(identifier: identifier)
-            .matching(NSPredicate(format: "isHittable == true"))
-            .firstMatch
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
 
-    /// A dining-list row, not a Best Food Nearby row on the Home screen underneath.
+    /// The dining-list row for this venue. Best Food Nearby uses a different
+    /// identifier, so a name that is also on Home does not satisfy this.
     private func venueRow(_ name: String) -> XCUIElement {
-        app.descendants(matching: .any)
-            .matching(identifier: "parkio.dining.venueRow")
-            .matching(NSPredicate(format: "label CONTAINS %@", name))
-            .firstMatch
+        element("parkio.dining.venueRow.\(name)")
     }
 
     func testSwitchingServiceFilterChangesTheVisibleVenueList() {

@@ -57,12 +57,10 @@ enum DiningServiceFilter: String, CaseIterable, Sendable, Identifiable {
         }
     }
 
-    var accessibilityIdentifier: String {
-        switch self {
-        case .all:          return "parkio.dining.serviceFilter.all"
-        case .quickService: return "parkio.dining.serviceFilter.quickService"
-        case .sitDown:      return "parkio.dining.serviceFilter.sitDown"
-        }
+    /// List chips use the default prefix. Home passes its own so a pushed
+    /// dining list does not share identifiers with the card underneath.
+    func accessibilityIdentifier(prefix: String = "parkio.dining.serviceFilter") -> String {
+        "\(prefix).\(rawValue)"
     }
 
     var style: DiningServiceStyle? {

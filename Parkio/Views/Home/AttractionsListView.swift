@@ -1374,7 +1374,11 @@ private struct AttractionRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier(attractionType.isDining ? "parkio.dining.venueRow" : "parkio.attraction.row")
+        .accessibilityIdentifier(
+            attractionType.isDining
+                ? "parkio.dining.venueRow.\(ride.name)"
+                : "parkio.attraction.row"
+        )
         .contextMenu {
             // ── Favorites ─────────────────────────────────────────────────
             Section {

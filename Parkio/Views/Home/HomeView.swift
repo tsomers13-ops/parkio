@@ -658,7 +658,8 @@ struct HomeView: View {
 
                         DiningServiceFilterBar(
                             selection: $diningServiceFilter,
-                            accent: selectedPark.accentColor
+                            accent: selectedPark.accentColor,
+                            identifierPrefix: "parkio.home.dining.serviceFilter"
                         )
                         .padding(.horizontal, AppSpacing.screenEdge)
 

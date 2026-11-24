@@ -9,6 +9,9 @@ struct DiningServiceFilterBar: View {
 
     @Binding var selection: DiningServiceFilter
     var accent: Color
+    /// Home and the dining list are both in the hierarchy while the list is
+    /// pushed. Each screen passes its own prefix.
+    var identifierPrefix: String = "parkio.dining.serviceFilter"
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -32,13 +35,14 @@ struct DiningServiceFilterBar: View {
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityIdentifier(option.accessibilityIdentifier)
+                    .accessibilityIdentifier(option.accessibilityIdentifier(prefix: identifierPrefix))
                     .accessibilityLabel(option.accessibilityLabel)
                     .accessibilityAddTraits(selected ? .isSelected : [])
+                    .accessibilityRemoveTraits(selected ? [] : .isSelected)
                     .animation(AppMotion.quick, value: selected)
                 }
             }
         }
-        .accessibilityIdentifier("parkio.dining.serviceFilter")
+        .accessibilityIdentifier(identifierPrefix)
     }
 }
