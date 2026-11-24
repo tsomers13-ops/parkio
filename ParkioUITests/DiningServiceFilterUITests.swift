@@ -88,7 +88,27 @@ final class DiningServiceFilterUITests: XCTestCase {
                       "All did not bring Block & Hans back")
 
         clearSearch()
+        // The full list is back, including a quick-service row. Wait for it
+        // so the later disappearance means the Sit-down filter has settled,
+        // not that the row was never on screen.
+        XCTAssertTrue(venueRow("Block & Hans").waitForExistence(timeout: timeout),
+                      "Cleared search did not show Block & Hans before the screenshot")
         tapFilter(sitDown)
+        let selected = expectation(
+            for: NSPredicate(format: "isSelected == true"),
+            evaluatedWith: sitDown
+        )
+        wait(for: [selected], timeout: timeout)
+        XCTAssertTrue(sitDown.isSelected, "Sit-down was not selected before the screenshot")
+        XCTAssertTrue(venueRow("Akershus Royal Banquet Hall").waitForExistence(timeout: timeout),
+                      "Sit-down list had not settled on Akershus before the screenshot")
+        let quickGone = expectation(
+            for: NSPredicate(format: "exists == false"),
+            evaluatedWith: venueRow("Block & Hans")
+        )
+        wait(for: [quickGone], timeout: timeout)
+        XCTAssertFalse(venueRow("Block & Hans").exists,
+                       "Block & Hans was still listed when the screenshot was taken")
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = "dining-service-filter"
         shot.lifetime = .keepAlways

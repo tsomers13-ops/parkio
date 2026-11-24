@@ -136,14 +136,13 @@ final class BestFoodNearbyServiceFilterUITests: XCTestCase {
 
     private func assertTapTarget(_ chip: XCUIElement, _ name: String) {
         XCTAssertTrue(chip.isHittable, "\(name) chip is not on screen")
-        // A 44pt frame can measure a fraction under 44. Round to the
-        // nearest point so that does not fail the minimum.
+        // A 44pt frame can measure a fraction under 44.
         XCTAssertGreaterThanOrEqual(
-            chip.frame.height.rounded(), 44,
+            chip.frame.height, 43.99,
             "\(name) chip is \(chip.frame.height)pt tall"
         )
         XCTAssertGreaterThanOrEqual(
-            chip.frame.width.rounded(), 44,
+            chip.frame.width, 43.99,
             "\(name) chip is \(chip.frame.width)pt wide"
         )
     }
