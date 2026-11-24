@@ -2,7 +2,7 @@
 //
 // Architecture
 // ────────────
-// PriceTier      — rough per-person spend bracket ($–$$$$).
+// PriceTier      — Disney's per-adult dining price band ($–$$$$).
 // DietaryFlag    — accommodation / dietary preference tags shown as filter chips.
 // DiningMetadata — static editorial data attached to a dining MasterAttraction.
 //
@@ -17,12 +17,15 @@ import Foundation
 
 // MARK: - PriceTier
 
-/// Approximate per-person spend, before tax and tip.
+/// Disney's per-adult dining price band.
+///
+/// `bandText` is the only copy of Disney's legend. The price key, the dining
+/// detail, and VoiceOver all read it from here.
 enum PriceTier: Int, Comparable, CaseIterable, Sendable {
-    case budget    = 1  // $    — under $15
-    case moderate  = 2  // $$   — $15–$25
-    case upscale   = 3  // $$$  — $25–$60
-    case signature = 4  // $$$$ — $60+
+    case budget    = 1  // $
+    case moderate  = 2  // $$
+    case upscale   = 3  // $$$
+    case signature = 4  // $$$$
 
     static func < (lhs: PriceTier, rhs: PriceTier) -> Bool {
         lhs.rawValue < rhs.rawValue
@@ -31,12 +34,32 @@ enum PriceTier: Int, Comparable, CaseIterable, Sendable {
     /// "$", "$$", "$$$", "$$$$"
     var displayString: String { String(repeating: "$", count: rawValue) }
 
-    var label: String {
+    /// Disney's range for this band, including "per adult". A venue with no
+    /// tier shows neither this nor `displayString`.
+    var bandText: String {
         switch self {
-        case .budget:    return "Budget"
-        case .moderate:  return "Moderate"
-        case .upscale:   return "Upscale"
-        case .signature: return "Signature Dining"
+        case .budget:    return "$14.99 and under per adult"
+        case .moderate:  return "$15 to $34.99 per adult"
+        case .upscale:   return "$35 to $59.99 per adult"
+        case .signature: return "over $60 per adult"
+        }
+    }
+
+    /// The band text. Kept so older call sites cannot drift onto a second wording.
+    var label: String { bandText }
+
+    /// Spoken form for a row that shows this tier. Dollar signs are counted
+    /// in words so VoiceOver does not spell "$" four times.
+    var accessibilityLabel: String {
+        switch self {
+        case .budget:
+            return "One dollar sign, 14 dollars and 99 cents and under per adult"
+        case .moderate:
+            return "Two dollar signs, 15 to 34 dollars and 99 cents per adult"
+        case .upscale:
+            return "Three dollar signs, 35 to 59 dollars and 99 cents per adult"
+        case .signature:
+            return "Four dollar signs, over 60 dollars per adult"
         }
     }
 }
@@ -79,15 +102,17 @@ struct DiningMetadata: Sendable {
 
     // MARK: Editorial
 
-    /// Rough per-person cost bracket.
-    let priceTier: PriceTier
+    /// Rough per-person cost bracket. Nil when no tier is assigned; the UI
+    /// shows no price in that case, rather than a placeholder "$".
+    let priceTier: PriceTier?
 
-    /// Parkio editorial score, 1–10. Drives dining sort order and recommendations.
+    /// Parkio editorial score, 1–10. Nil when no score has been authored.
     ///   9–10 = unmissable  ·  7–8 = strongly recommended  ·  5–6 = solid backup
-    let parkioScore: Int
+    let parkioScore: Int?
 
-    /// One-line verdict shown under the venue name. Target ≤ 80 chars.
-    let shortVerdict: String
+    /// One-line verdict shown under the venue name. Nil when none has been
+    /// authored. Target ≤ 80 chars when present.
+    let shortVerdict: String?
 
     // MARK: Menu signals
 
@@ -112,10 +137,12 @@ struct DiningMetadata: Sendable {
 
     // MARK: Convenience init (short label names for catalog readability)
 
+    /// `price` may be nil. `score` and `verdict` stay nil for a tier-only
+    /// entry so a price is never paired with an invented editorial.
     init(
-        price:       PriceTier,
-        score:       Int,
-        verdict:     String,
+        price:       PriceTier? = nil,
+        score:       Int? = nil,
+        verdict:     String? = nil,
         signature:   [String]         = [],
         mobileOrder: Bool             = false,
         indoor:      Bool             = true,

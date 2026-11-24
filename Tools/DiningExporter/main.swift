@@ -118,7 +118,7 @@ do {
 
             let editorial = attraction.dining.map { metadata in
                 Editorial(
-                    priceTier: metadata.priceTier.rawValue,
+                    priceTier: metadata.priceTier?.rawValue,
                     parkioScore: metadata.parkioScore,
                     shortVerdict: metadata.shortVerdict,
                     signatureItems: metadata.signatureItems,

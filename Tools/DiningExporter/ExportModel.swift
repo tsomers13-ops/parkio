@@ -46,9 +46,9 @@ struct ExportCoordinate: Encodable {
 
 /// Editorial layer — present only for venues Parkio has actually reviewed.
 struct Editorial: Encodable {
-    let priceTier: Int
-    let parkioScore: Int
-    let shortVerdict: String
+    let priceTier: Int?
+    let parkioScore: Int?
+    let shortVerdict: String?
     let signatureItems: [String]
     let mobileOrderAvailable: Bool
     let indoorSeating: Bool

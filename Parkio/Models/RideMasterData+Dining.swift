@@ -55,57 +55,70 @@ extension RideMasterData {
         // ── Main Street, U.S.A. ──────────────────────────────────────────────────
         MA("Tony's Town Square Restaurant",
            park: .magicKingdom, land: "Main Street, U.S.A.",
-           type: .tableService, outdoor: false, map: 3, seed: true),
+           type: .tableService, outdoor: false, map: 3, seed: true,
+           dining: DM(price: .moderate)),
 
         MA("Main Street Bakery",
            park: .magicKingdom, land: "Main Street, U.S.A.",
-           type: .quickService, outdoor: false, map: 3, seed: true),
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("The Plaza Restaurant",
            park: .magicKingdom, land: "Main Street, U.S.A.",
-           type: .tableService, outdoor: false, map: 3, seed: true),
+           type: .tableService, outdoor: false, map: 3, seed: true,
+           dining: DM(price: .moderate)),
 
         MA("Plaza Ice Cream Parlor",
            park: .magicKingdom, land: "Main Street, U.S.A.",
-           type: .snackStand, outdoor: true, map: 3, seed: true),
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("Casey's Corner",
            park: .magicKingdom, land: "Main Street, U.S.A.",
-           type: .quickService, outdoor: true, map: 3, seed: true),
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("The Crystal Palace",
            park: .magicKingdom, land: "Main Street, U.S.A.",
-           type: .tableService, outdoor: false, map: 3, seed: true),
+           type: .tableService, outdoor: false, map: 3, seed: true,
+           dining: DM(price: .upscale)),
 
         // ── Adventureland ─────────────────────────────────────────────────────
         MA("Spring Roll Snack Cart",
            park: .magicKingdom, land: "Adventureland",
-           type: .snackStand, outdoor: true, map: 3, seed: true),
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("Sunshine Tree Terrace",
            park: .magicKingdom, land: "Adventureland",
-           type: .snackStand, outdoor: true, map: 3, seed: true),
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("Jungle Navigation Co. LTD Skipper Canteen",
            park: .magicKingdom, land: "Adventureland",
-           type: .tableService, outdoor: false, map: 3, seed: true),
+           type: .tableService, outdoor: false, map: 3, seed: true,
+           dining: DM(price: .moderate)),
 
         MA("Aloha Isle",
            park: .magicKingdom, land: "Adventureland",
-           type: .snackStand, outdoor: true, map: 3, seed: true),
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("The Beak and Barrel",
            park: .magicKingdom, land: "Adventureland",
-           type: .lounge, outdoor: true, map: 3, seed: true),
+           type: .lounge, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .moderate)),
 
         // ── Frontierland ──────────────────────────────────────────────────────
         MA("Golden Oak Outpost",
            park: .magicKingdom, land: "Frontierland",
-           type: .quickService, outdoor: true, map: 3, seed: true),
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("Pecos Bill Tall Tale Inn and Cafe",
            park: .magicKingdom, land: "Frontierland",
-           type: .quickService, outdoor: false, map: 3, seed: true),
+           type: .quickService, outdoor: false, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         // ── Liberty Square ────────────────────────────────────────────────────
         MA("The Diamond Horseshoe",
@@ -114,7 +127,8 @@ extension RideMasterData {
 
         MA("Liberty Tree Tavern",
            park: .magicKingdom, land: "Liberty Square",
-           type: .tableService, outdoor: false, map: 3, seed: true),
+           type: .tableService, outdoor: false, map: 3, seed: true,
+           dining: DM(price: .upscale)),
 
         MA("Sleepy Hollow",
            park: .magicKingdom, land: "Liberty Square",
@@ -129,7 +143,7 @@ extension RideMasterData {
         MA("Pinocchio Village Haus",
            park: .magicKingdom, land: "Fantasyland",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           dining: DM(price: .moderate, score: 7,
+           dining: DM(price: .budget, score: 7,
                       verdict: "Watch riders emerge from it's a small world while you eat. Great location.",
                       signature: ["Flatbread Pizza", "Pasta Bolognese"],
                       mobileOrder: true, indoor: true, kids: true,
@@ -137,22 +151,25 @@ extension RideMasterData {
 
         MA("Cinderella's Royal Table",
            park: .magicKingdom, land: "Fantasyland",
-           type: .tableService, outdoor: false, map: 3, seed: true),
+           type: .tableService, outdoor: false, map: 3, seed: true,
+           dining: DM(price: .signature)),
 
         MA("The Friar's Nook",
            park: .magicKingdom, land: "Fantasyland",
-           type: .quickService, outdoor: true, map: 3, seed: true),
+           type: .quickService, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("Storybook Treats",
            park: .magicKingdom, land: "Fantasyland",
-           type: .snackStand, outdoor: true, map: 3, seed: true),
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         // Be Our Guest is technically table service at dinner, quick-service at
         // lunch (walk-up). Table service type reflects the stronger use case.
         MA("Be Our Guest Restaurant",
            park: .magicKingdom, land: "Fantasyland",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           dining: DM(price: .upscale, score: 8,
+           dining: DM(price: .signature, score: 8,
                       verdict: "The most immersive dining room in MK. Book dinner or walk up for lunch.",
                       signature: ["French Onion Soup", "The Grey Stuff"],
                       mobileOrder: false, indoor: true, kids: true,
@@ -169,16 +186,19 @@ extension RideMasterData {
 
         MA("Prince Eric's Village Market",
            park: .magicKingdom, land: "Fantasyland",
-           type: .snackStand, outdoor: true, map: 3, seed: true),
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("Cheshire Café",
            park: .magicKingdom, land: "Fantasyland",
-           type: .snackStand, outdoor: true, map: 3, seed: true),
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         // ── Tomorrowland ──────────────────────────────────────────────────────
         MA("Energy Bytes",
            park: .magicKingdom, land: "Tomorrowland",
-           type: .snackStand, outdoor: true, map: 3, seed: true),
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("Cosmic Ray's Starlight Café",
            park: .magicKingdom, land: "Tomorrowland",
@@ -191,19 +211,23 @@ extension RideMasterData {
 
         MA("Auntie Gravity's Galactic Goodies",
            park: .magicKingdom, land: "Tomorrowland",
-           type: .snackStand, outdoor: true, map: 3, seed: true),
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("AstroFizz Hosted by Coca-Cola",
            park: .magicKingdom, land: "Tomorrowland",
-           type: .snackStand, outdoor: true, map: 3, seed: true),
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("Joffrey's Coffee & Tea Company",
            park: .magicKingdom, land: "Tomorrowland",
-           type: .snackStand, outdoor: true, map: 3, seed: true),
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("The Lunching Pad",
            park: .magicKingdom, land: "Tomorrowland",
-           type: .snackStand, outdoor: true, map: 3, seed: true),
+           type: .snackStand, outdoor: true, map: 3, seed: true,
+           dining: DM(price: .budget)),
 
         MA("Fireworks Dessert Parties at Tomorrowland Terrace Restaurant",
            park: .magicKingdom, land: "Tomorrowland",
@@ -221,7 +245,7 @@ extension RideMasterData {
         MA("Sunshine Seasons",
            park: .epcot, land: "World Nature",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           dining: DM(price: .moderate, score: 8,
+           dining: DM(price: .budget, score: 8,
                       verdict: "Best quick service in EPCOT. Massive variety; the salmon is legitimately good.",
                       signature: ["Oak-Grilled Salmon", "Rotisserie Chicken", "Sushi Rolls"],
                       mobileOrder: true, indoor: true, kids: true,
@@ -232,7 +256,7 @@ extension RideMasterData {
         MA("Katsura Grill",
            park: .epcot, land: "World Showcase",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           dining: DM(price: .moderate, score: 8,
+           dining: DM(price: .budget, score: 8,
                       verdict: "Best QS in World Showcase. Peaceful garden seating; don't skip the udon.",
                       signature: ["Udon Noodle Bowl", "Gyoza", "Green Tea Soft Serve"],
                       mobileOrder: false, indoor: false, kids: true,
@@ -243,7 +267,7 @@ extension RideMasterData {
            park: .epcot, land: "World Showcase",
            type: .quickService, outdoor: false, map: 3, seed: true,
            entityId: "74f13ee5-8e10-41a7-a19d-38e9c9582652",
-           dining: DM(price: .moderate, score: 8,
+           dining: DM(price: .budget, score: 8,
                       verdict: "Underrated gem. Generous portions and the best hummus in any park.",
                       signature: ["Chicken Shawarma Platter", "Hummus & Pita", "Lamb Wrap"],
                       mobileOrder: false, indoor: true, kids: true,
@@ -253,7 +277,7 @@ extension RideMasterData {
         MA("La Cantina de San Angel",
            park: .epcot, land: "World Showcase",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           dining: DM(price: .moderate, score: 7,
+           dining: DM(price: .budget, score: 7,
                       verdict: "Lagoon-side QS. The tacos are decent; the view of IllumiNations is the real menu item.",
                       signature: ["Tacos", "Empanadas", "Nachos"],
                       mobileOrder: false, indoor: false, kids: true,
@@ -263,7 +287,7 @@ extension RideMasterData {
         MA("Les Halles Boulangerie-Patisserie",
            park: .epcot, land: "World Showcase",
            type: .snackStand, outdoor: false, map: 3, seed: true,
-           dining: DM(price: .moderate, score: 9,
+           dining: DM(price: .budget, score: 9,
                       verdict: "Best bakery in any Disney park. The croissants are legitimately excellent.",
                       signature: ["Butter Croissant", "Napoleon Pastry", "Quiche Lorraine"],
                       mobileOrder: false, indoor: true, kids: true,
@@ -273,7 +297,7 @@ extension RideMasterData {
         MA("L'Artisan des Glaces",
            park: .epcot, land: "World Showcase",
            type: .snackStand, outdoor: false, map: 3, seed: true,
-           dining: DM(price: .moderate, score: 9,
+           dining: DM(price: .budget, score: 9,
                       verdict: "Best dessert in EPCOT. The ice cream macaron sandwich is the park's top snack.",
                       signature: ["Ice Cream Macaron Sandwich", "Sorbet"],
                       mobileOrder: false, indoor: true, kids: true,
@@ -284,7 +308,7 @@ extension RideMasterData {
            park: .epcot, land: "World Showcase",
            type: .quickService, outdoor: false, map: 3, seed: true,
            entityId: "ce284609-9d86-444e-af5a-6c0adb68b0aa",
-           dining: DM(price: .moderate, score: 7,
+           dining: DM(price: .budget, score: 7,
                       verdict: "Solid BBQ for a theme park. Large portions; kids love the mac & cheese.",
                       signature: ["St. Louis Ribs", "Pulled Pork Sandwich", "Mac & Cheese"],
                       mobileOrder: true, indoor: true, kids: true,
@@ -295,12 +319,14 @@ extension RideMasterData {
         MA("San Angel Inn Restaurante",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "07263f57-0431-4da2-a8b6-77d2965a6f83"),
+           entityId: "07263f57-0431-4da2-a8b6-77d2965a6f83",
+           dining: DM(price: .moderate)),
 
         MA("La Hacienda de San Angel",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "5b7cf10a-763b-45ba-9049-87140270826f"),
+           entityId: "5b7cf10a-763b-45ba-9049-87140270826f",
+           dining: DM(price: .moderate)),
 
         MA("La Cava del Tequila",
            park: .epcot, land: "World Showcase",
@@ -310,7 +336,8 @@ extension RideMasterData {
         MA("Choza de Margarita",
            park: .epcot, land: "World Showcase",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "419df435-6213-4d65-b0fc-8c0ad8379e11"),
+           entityId: "419df435-6213-4d65-b0fc-8c0ad8379e11",
+           dining: DM(price: .budget)),
 
         // ── World Showcase: Norway pavilion ──────────────────────────────
         // Kringla Bakeri og Kafe does not appear in the current ThemeParks.wiki
@@ -318,7 +345,8 @@ extension RideMasterData {
         MA("Akershus Royal Banquet Hall",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "eb6a60d7-b354-47a1-a091-0beb11b24188"),
+           entityId: "eb6a60d7-b354-47a1-a091-0beb11b24188",
+           dining: DM(price: .upscale)),
 
         // ── World Showcase: China pavilion ───────────────────────────────
         // Lotus Blossom Café does not appear in the current ThemeParks.wiki
@@ -326,24 +354,28 @@ extension RideMasterData {
         MA("Nine Dragons Restaurant",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "e8dccc86-cfb4-44c3-9a90-e95b88edbd21"),
+           entityId: "e8dccc86-cfb4-44c3-9a90-e95b88edbd21",
+           dining: DM(price: .moderate)),
 
         // ── World Showcase: Germany pavilion ─────────────────────────────
         MA("Biergarten Restaurant",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "c9e1d1f6-021f-43f2-a14b-3e67f65adbc4"),
+           entityId: "c9e1d1f6-021f-43f2-a14b-3e67f65adbc4",
+           dining: DM(price: .upscale)),
 
         MA("Sommerfest",
            park: .epcot, land: "World Showcase",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "3f3ef6db-69de-418a-8861-f541309cdb01"),
+           entityId: "3f3ef6db-69de-418a-8861-f541309cdb01",
+           dining: DM(price: .budget)),
 
         MA("Karamell-K\u{00FC}che",
            park: .epcot, land: "World Showcase",
            type: .snackStand, outdoor: true, map: 3, seed: true,
            aliases: ["Karamell-Kueche"],
-           entityId: "85352291-58dd-4dd9-86d3-cba21cebb684"),
+           entityId: "85352291-58dd-4dd9-86d3-cba21cebb684",
+           dining: DM(price: .budget)),
 
         // ── World Showcase: Italy pavilion ───────────────────────────────
         // Pizza al Taglio shares an identical ThemeParks.wiki coordinate with
@@ -352,12 +384,14 @@ extension RideMasterData {
         MA("Tutto Italia Ristorante",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "e14e439d-d1aa-4f3a-90e9-60c524bd0b5a"),
+           entityId: "e14e439d-d1aa-4f3a-90e9-60c524bd0b5a",
+           dining: DM(price: .moderate)),
 
         MA("Via Napoli Ristorante e Pizzeria",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "b83b6dc9-9573-4e15-ab00-9ed8a2334770"),
+           entityId: "b83b6dc9-9573-4e15-ab00-9ed8a2334770",
+           dining: DM(price: .moderate)),
 
         MA("Tutto Gusto Wine Cellar",
            park: .epcot, land: "World Showcase",
@@ -369,7 +403,8 @@ extension RideMasterData {
         MA("Fife & Drum Tavern",
            park: .epcot, land: "World Showcase",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "0e673d4b-eee4-4735-ab65-be39bcd28d11"),
+           entityId: "0e673d4b-eee4-4735-ab65-be39bcd28d11",
+           dining: DM(price: .budget)),
 
         MA("Block & Hans",
            park: .epcot, land: "World Showcase",
@@ -381,17 +416,20 @@ extension RideMasterData {
         MA("Teppan Edo",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "17d51899-7d6d-4cd7-93bb-4064a47d501b"),
+           entityId: "17d51899-7d6d-4cd7-93bb-4064a47d501b",
+           dining: DM(price: .moderate)),
 
         MA("Takumi-Tei",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "8410885a-115d-4a5f-9cd5-08d0e659a603"),
+           entityId: "8410885a-115d-4a5f-9cd5-08d0e659a603",
+           dining: DM(price: .signature)),
 
         MA("Shiki-Sai: Sushi Izakaya",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "48e7f9f2-ddc3-4ced-8d11-a5cd968085c2"),
+           entityId: "48e7f9f2-ddc3-4ced-8d11-a5cd968085c2",
+           dining: DM(price: .moderate)),
 
         // ── World Showcase: Morocco pavilion ─────────────────────────────
         // Tangierine Café already existed (see above, Priority 1). "Spice Road
@@ -400,7 +438,8 @@ extension RideMasterData {
         MA("Spice Road Table",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "dbf4a977-a7b5-41db-a9b7-ecad65f9aa0f"),
+           entityId: "dbf4a977-a7b5-41db-a9b7-ecad65f9aa0f",
+           dining: DM(price: .moderate)),
 
         // ── World Showcase: France pavilion ──────────────────────────────
         // Les Halles Boulangerie-Patisserie and L'Artisan des Glaces already
@@ -411,12 +450,14 @@ extension RideMasterData {
         MA("Monsieur Paul",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "93843fb0-ee5a-49c6-91a8-40a042e93865"),
+           entityId: "93843fb0-ee5a-49c6-91a8-40a042e93865",
+           dining: DM(price: .signature)),
 
         MA("Chefs de France",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "4807262a-ad16-4d43-a0d7-64b24603ef36"),
+           entityId: "4807262a-ad16-4d43-a0d7-64b24603ef36",
+           dining: DM(price: .moderate)),
 
         MA("Les Vins des Chefs de France",
            park: .epcot, land: "World Showcase",
@@ -427,13 +468,15 @@ extension RideMasterData {
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
            aliases: ["La Creperie de Paris"],
-           entityId: "fc64aa10-290f-472e-9fab-4d649f53ab2d"),
+           entityId: "fc64aa10-290f-472e-9fab-4d649f53ab2d",
+           dining: DM(price: .moderate)),
 
         // ── World Showcase: United Kingdom pavilion ──────────────────────
         MA("Rose & Crown Dining Room",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "6ecdbfc8-85c2-436d-893b-6db0f437b74a"),
+           entityId: "6ecdbfc8-85c2-436d-893b-6db0f437b74a",
+           dining: DM(price: .moderate)),
 
         MA("Rose & Crown Pub",
            park: .epcot, land: "World Showcase",
@@ -448,36 +491,42 @@ extension RideMasterData {
         MA("Yorkshire County Fish Shop",
            park: .epcot, land: "World Showcase",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "67186665-6756-4c29-9010-6efc222b2d9b"),
+           entityId: "67186665-6756-4c29-9010-6efc222b2d9b",
+           dining: DM(price: .budget)),
 
         // ── World Showcase: Canada pavilion ──────────────────────────────
         MA("Le Cellier Steakhouse",
            park: .epcot, land: "World Showcase",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "3206e3a6-cbc3-4960-9700-163764bc47d6"),
+           entityId: "3206e3a6-cbc3-4960-9700-163764bc47d6",
+           dining: DM(price: .upscale)),
 
         MA("La Poutinerie",
            park: .epcot, land: "World Showcase",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "195fac06-ab2f-4655-8af7-b27adcdad54e"),
+           entityId: "195fac06-ab2f-4655-8af7-b27adcdad54e",
+           dining: DM(price: .budget)),
 
         // ── World Showcase: Refreshment Outpost (between Germany and China,
         // not tied to a single country pavilion) — Priority 4B ────────────
         MA("Refreshment Outpost",
            park: .epcot, land: "World Showcase",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "58404f45-7e74-4c0c-b037-b903fa1066d2"),
+           entityId: "58404f45-7e74-4c0c-b037-b903fa1066d2",
+           dining: DM(price: .budget)),
 
         // ── World Celebration (Priority 4B — factual-only) ────────────────
         MA("Connections Eatery",
            park: .epcot, land: "World Celebration",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "c7444c22-4b35-4a9e-9cca-56ecc05376cc"),
+           entityId: "c7444c22-4b35-4a9e-9cca-56ecc05376cc",
+           dining: DM(price: .budget)),
 
         MA("GEO-82",
            park: .epcot, land: "World Celebration",
            type: .lounge, outdoor: false, map: 3, seed: true,
-           entityId: "95ab66f4-4e47-4f76-875f-45ae70831e2f"),
+           entityId: "95ab66f4-4e47-4f76-875f-45ae70831e2f",
+           dining: DM(price: .moderate)),
 
         MA("GRAB-N-GOOF",
            park: .epcot, land: "World Celebration",
@@ -488,7 +537,8 @@ extension RideMasterData {
         MA("Space 220 Restaurant",
            park: .epcot, land: "World Discovery",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "b772df79-1fca-4c0a-a2f3-88b22e63e7c3"),
+           entityId: "b772df79-1fca-4c0a-a2f3-88b22e63e7c3",
+           dining: DM(price: .upscale)),
 
         // Space 220 Lounge shares the exact ThemeParks.wiki coordinate with
         // Space 220 Restaurant (same building, upper-level walk-in lounge vs.
@@ -501,7 +551,8 @@ extension RideMasterData {
         MA("Space 220 Lounge",
            park: .epcot, land: "World Discovery",
            type: .lounge, outdoor: false, map: nil, seed: true,
-           entityId: "15107c34-65a3-473c-aaeb-655b508f529d"),
+           entityId: "15107c34-65a3-473c-aaeb-655b508f529d",
+           dining: DM(price: .moderate)),
 
         // ── World Nature (Priority 4B) ─────────────────────────────────────
         // Coral Reef Restaurant (inside The Seas with Nemo & Friends) is
@@ -511,7 +562,8 @@ extension RideMasterData {
         MA("Garden Grill Restaurant",
            park: .epcot, land: "World Nature",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "d4179c4c-eb08-4559-aa7c-f9802fda641b"),
+           entityId: "d4179c4c-eb08-4559-aa7c-f9802fda641b",
+           dining: DM(price: .upscale)),
     ]
 }
 
@@ -528,7 +580,7 @@ extension RideMasterData {
            park: .hollywoodStudios, land: "Hollywood Boulevard",
            type: .lounge, outdoor: true, map: 3, seed: true,
            entityId: "d2af9650-9f91-45ef-98be-de44b4b44c32",
-           dining: DM(price: .upscale, score: 8,
+           dining: DM(price: nil, score: 8,
                       verdict: "Walk-up bar bites from a signature restaurant. Order the Cobb salad and grapefruit cake.",
                       signature: ["Cobb Salad", "Grapefruit Cake", "Brown Derby Old Fashioned"],
                       mobileOrder: false, indoor: false, kids: false,
@@ -540,7 +592,8 @@ extension RideMasterData {
         MA("The Hollywood Brown Derby",
            park: .hollywoodStudios, land: "Hollywood Boulevard",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "917783a5-da9c-4c55-ac51-0ac1f8253131"),
+           entityId: "917783a5-da9c-4c55-ac51-0ac1f8253131",
+           dining: DM(price: .upscale)),
 
         // ── Echo Lake ─────────────────────────────────────────────────────────
         MA("Backlot Express",
@@ -557,12 +610,14 @@ extension RideMasterData {
         MA("50's Prime Time Cafe",
            park: .hollywoodStudios, land: "Echo Lake",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "c600282c-227b-4ffc-b1ee-b5987609ee4f"),
+           entityId: "c600282c-227b-4ffc-b1ee-b5987609ee4f",
+           dining: DM(price: .moderate)),
 
         MA("Hollywood & Vine",
            park: .hollywoodStudios, land: "Echo Lake",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "7bf05bdc-8279-427b-8a6d-50fc62ef31cb"),
+           entityId: "7bf05bdc-8279-427b-8a6d-50fc62ef31cb",
+           dining: DM(price: .upscale)),
 
         MA("Tune-In Lounge",
            park: .hollywoodStudios, land: "Echo Lake",
@@ -572,19 +627,22 @@ extension RideMasterData {
         MA("Dockside Diner",
            park: .hollywoodStudios, land: "Echo Lake",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "e2e6cccf-acf4-48f4-bbfb-47b712714583"),
+           entityId: "e2e6cccf-acf4-48f4-bbfb-47b712714583",
+           dining: DM(price: .budget)),
 
         // ── Commissary Lane ───────────────────────────────────────────────────
         // Priority 4C — factual-only.
         MA("ABC Commissary",
            park: .hollywoodStudios, land: "Commissary Lane",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "1ae86482-6627-4229-814d-0f1ccebb20d4"),
+           entityId: "1ae86482-6627-4229-814d-0f1ccebb20d4",
+           dining: DM(price: .budget)),
 
         MA("Sci-Fi Dine-In Theater Restaurant",
            park: .hollywoodStudios, land: "Commissary Lane",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "d9dbd260-9e34-406d-abb7-19f9d733e577"),
+           entityId: "d9dbd260-9e34-406d-abb7-19f9d733e577",
+           dining: DM(price: .moderate)),
 
         // ── Grand Avenue ───────────────────────────────────────────────────────
         // Priority 4C — factual-only.
@@ -598,17 +656,20 @@ extension RideMasterData {
         MA("Catalina Eddie's",
            park: .hollywoodStudios, land: "Sunset Boulevard",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "a595b641-4472-4d2b-92b5-5a0e31785193"),
+           entityId: "a595b641-4472-4d2b-92b5-5a0e31785193",
+           dining: DM(price: .budget)),
 
         MA("Fairfax Fare",
            park: .hollywoodStudios, land: "Sunset Boulevard",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "904887b2-82b5-426c-b2b0-0b5d6977ff94"),
+           entityId: "904887b2-82b5-426c-b2b0-0b5d6977ff94",
+           dining: DM(price: .budget)),
 
         MA("Rosie's All-American Cafe",
            park: .hollywoodStudios, land: "Sunset Boulevard",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "a8804f66-ed5c-4daa-99a1-bcddd2f1fca6"),
+           entityId: "a8804f66-ed5c-4daa-99a1-bcddd2f1fca6",
+           dining: DM(price: .budget)),
 
         // ── Toy Story Land ────────────────────────────────────────────────────
         MA("Woody's Lunch Box",
@@ -625,14 +686,15 @@ extension RideMasterData {
         MA("Roundup Rodeo BBQ",
            park: .hollywoodStudios, land: "Toy Story Land",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "7a73a6df-4d33-4648-b3e3-57985f84f0ae"),
+           entityId: "7a73a6df-4d33-4648-b3e3-57985f84f0ae",
+           dining: DM(price: .upscale)),
 
         // ── Star Wars: Galaxy's Edge ──────────────────────────────────────────
         MA("Ronto Roasters",
            park: .hollywoodStudios, land: "Star Wars: Galaxy's Edge",
            type: .quickService, outdoor: true, map: 3, seed: true,
            entityId: "4ea1129c-749c-4be8-a0f9-9700740213fc",
-           dining: DM(price: .moderate, score: 9,
+           dining: DM(price: .budget, score: 9,
                       verdict: "The Ronto Wrap is the best handheld in any Disney park. Get here early.",
                       signature: ["Ronto Wrap", "Meiloorun Fruit Juice"],
                       mobileOrder: false, indoor: false, kids: true,
@@ -652,7 +714,7 @@ extension RideMasterData {
            park: .hollywoodStudios, land: "Star Wars: Galaxy's Edge",
            type: .lounge, outdoor: false, map: 3, seed: true,
            entityId: "f020b5e3-d26d-4339-83f9-0f1f858a0e40",
-           dining: DM(price: .upscale, score: 9,
+           dining: DM(price: .moderate, score: 9,
                       verdict: "The most fun 45 minutes in WDW. Order the Fuzzy Tauntaun. Book in advance.",
                       signature: ["Fuzzy Tauntaun", "Bespin Fizz", "Blue Milk"],
                       mobileOrder: false, indoor: true, kids: true,
@@ -662,12 +724,14 @@ extension RideMasterData {
         MA("Kat Saka's Kettle",
            park: .hollywoodStudios, land: "Star Wars: Galaxy's Edge",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "43891eb1-27bb-429e-b6b9-430b54f57858"),
+           entityId: "43891eb1-27bb-429e-b6b9-430b54f57858",
+           dining: DM(price: .budget)),
 
         MA("Milk Stand",
            park: .hollywoodStudios, land: "Star Wars: Galaxy's Edge",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "6a696644-26ba-496e-8e2b-efbaad615785"),
+           entityId: "6a696644-26ba-496e-8e2b-efbaad615785",
+           dining: DM(price: .budget)),
     ]
 }
 
@@ -722,7 +786,8 @@ extension RideMasterData {
         MA("Pizzafari",
            park: .animalKingdom, land: "Discovery Island",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "625821c3-5bd2-4c08-b449-257f3c81cbde"),
+           entityId: "625821c3-5bd2-4c08-b449-257f3c81cbde",
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Creature Comforts",
@@ -738,30 +803,34 @@ extension RideMasterData {
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Isle of Java",
            park: .animalKingdom, land: "Discovery Island",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Eight Spoon Café",
            park: .animalKingdom, land: "Discovery Island",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("The Smiling Crocodile",
            park: .animalKingdom, land: "Discovery Island",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "9a64300c-4861-4bed-9713-b4f49e55e566"),
+           entityId: "9a64300c-4861-4bed-9713-b4f49e55e566",
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Terra Treats and Snack Shop",
            park: .animalKingdom, land: "Discovery Island",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // ── Africa ────────────────────────────────────────────────────────────
         MA("Harambe Market",
            park: .animalKingdom, land: "Africa",
            type: .quickService, outdoor: true, map: 3, seed: true,
            entityId: "665cc4c1-1bcd-4e5e-a44d-adb6a6889abc",
-           dining: DM(price: .moderate, score: 7,
+           dining: DM(price: .budget, score: 7,
                       verdict: "Themed open-air market. Great atmosphere and the grilled corn is addictive.",
                       signature: ["Cheeseburger Kotlet", "Chicken Skewers", "Grilled Corn"],
                       mobileOrder: true, indoor: false, kids: true,
@@ -776,12 +845,14 @@ extension RideMasterData {
         MA("Tusker House Restaurant",
            park: .animalKingdom, land: "Africa",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "d58db4d0-3bad-4655-937b-1cbc9ed0e880"),
+           entityId: "d58db4d0-3bad-4655-937b-1cbc9ed0e880",
+           dining: DM(price: .upscale)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Kusafiri Coffee Shop & Bakery",
            park: .animalKingdom, land: "Africa",
-           type: .quickService, outdoor: true, seed: true),
+           type: .quickService, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Dawa Bar",
@@ -792,23 +863,26 @@ extension RideMasterData {
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Tamu Tamu Refreshments",
            park: .animalKingdom, land: "Africa",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Harambe Fruit Market",
            park: .animalKingdom, land: "Africa",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Mahindi",
            park: .animalKingdom, land: "Africa",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // ── Asia ──────────────────────────────────────────────────────────────
         MA("Yak & Yeti Local Food Cafes",
            park: .animalKingdom, land: "Asia",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           dining: DM(price: .budget, score: 6,
+           dining: DM(price: .moderate, score: 6,
                       verdict: "Solid counter service for a midday break. Better value than the sit-down next door.",
                       signature: ["Fried Chicken Pot Sticker", "Asian Chicken Sandwich"],
                       mobileOrder: true, indoor: false, kids: true,
@@ -822,7 +896,8 @@ extension RideMasterData {
         MA("Yak & Yeti Restaurant",
            park: .animalKingdom, land: "Asia",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "cea213d9-bf4f-408a-ac61-768e7709ab7d"),
+           entityId: "cea213d9-bf4f-408a-ac61-768e7709ab7d",
+           dining: DM(price: .moderate)),
 
         // factual-only — Product decision 2026-10-05: canonical identity for
         // the Thirsty River / Trek Snacks ambiguity. "Trek Snacks Grab and
@@ -847,24 +922,27 @@ extension RideMasterData {
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Drinkwallah",
            park: .animalKingdom, land: "Asia",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Caravan Road",
            park: .animalKingdom, land: "Asia",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Anandapur Ice Cream Truck",
            park: .animalKingdom, land: "Asia",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // ── Pandora ───────────────────────────────────────────────────────────
         MA("Satu'li Canteen",
            park: .animalKingdom, land: "Pandora",
            type: .quickService, outdoor: false, map: 3, seed: true,
            entityId: "7aa4f221-7b52-445e-bc27-f7baac4530ad",
-           dining: DM(price: .moderate, score: 9,
+           dining: DM(price: .budget, score: 9,
                       verdict: "Best quick service in any WDW park. The bowls are fresh, filling, and genuinely good.",
                       signature: ["Cheeseburger Pod", "Vegetable Curry Bowl", "Blue Milk"],
                       mobileOrder: true, indoor: true, kids: true,
@@ -873,7 +951,8 @@ extension RideMasterData {
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Pongu Pongu",
            park: .animalKingdom, land: "Pandora",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // ── Main Entrance ─────────────────────────────────────────────────────
         // factual-only — Product decision 2026-10-05: included as an Animal
@@ -882,7 +961,8 @@ extension RideMasterData {
         MA("Rainforest Cafe at Disney's Animal Kingdom",
            park: .animalKingdom, land: "Main Entrance",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "224d803c-cd7a-45d8-bfab-d843f2030983"),
+           entityId: "224d803c-cd7a-45d8-bfab-d843f2030983",
+           dining: DM(price: .moderate)),
     ]
 }
 
@@ -927,42 +1007,49 @@ extension RideMasterData {
         MA("Carnation Café",
            park: .disneyland, land: "Main Street, U.S.A.",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "c7ce633e-1f6b-4699-98c9-6772bb196b16"),
+           entityId: "c7ce633e-1f6b-4699-98c9-6772bb196b16",
+           dining: DM(price: .moderate)),
 
         // factual-only — Product decision 2026-10-05
         MA("Gibson Girl Ice Cream Parlor",
            park: .disneyland, land: "Main Street, U.S.A.",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "2215958d-c6b0-4513-912c-706dbf3e46e9"),
+           entityId: "2215958d-c6b0-4513-912c-706dbf3e46e9",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Jolly Holiday Bakery Cafe",
            park: .disneyland, land: "Main Street, U.S.A.",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "d295c224-299f-4fda-9d14-1d7780401929"),
+           entityId: "d295c224-299f-4fda-9d14-1d7780401929",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Little Red Wagon",
            park: .disneyland, land: "Main Street, U.S.A.",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "1cdd0f00-de40-4f7f-bf1b-014926d51aca"),
+           entityId: "1cdd0f00-de40-4f7f-bf1b-014926d51aca",
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Market House",
            park: .disneyland, land: "Main Street, U.S.A.",
-           type: .quickService, outdoor: false, seed: true),
+           type: .quickService, outdoor: false, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Refreshment Corner",
            park: .disneyland, land: "Main Street, U.S.A.",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "27ab9530-4fd5-4e9c-a5b1-d553fed56655"),
+           entityId: "27ab9530-4fd5-4e9c-a5b1-d553fed56655",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Plaza Inn",
            park: .disneyland, land: "Main Street, U.S.A.",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "8deb6338-b65f-467c-9dd3-56ed8c02c355"),
+           entityId: "8deb6338-b65f-467c-9dd3-56ed8c02c355",
+           dining: DM(price: .moderate)),
 
         // ── Adventureland ─────────────────────────────────────────────────────
         MA("The Tropical Hideaway",
@@ -982,7 +1069,7 @@ extension RideMasterData {
            park: .disneyland, land: "Adventureland",
            type: .snackStand, outdoor: true, map: 3, seed: true,
            entityId: "7bf706cd-0cf5-4640-a079-23a7a46f4f5b",
-           dining: DM(price: .moderate, score: 8,
+           dining: DM(price: .budget, score: 8,
                       verdict: "Best walk-up snack in Disneyland. Grab a beef skewer while waiting for Indiana Jones.",
                       signature: ["Outback Skewer (Beef)", "Pretzel Bread", "Chicken Skewer"],
                       mobileOrder: false, indoor: false, kids: true,
@@ -991,13 +1078,15 @@ extension RideMasterData {
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("South Seas Traders",
            park: .disneyland, land: "Adventureland",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Tiki Juice Bar",
            park: .disneyland, land: "Adventureland",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "c48369cc-e341-4066-96b8-3687ccad1e49"),
+           entityId: "c48369cc-e341-4066-96b8-3687ccad1e49",
+           dining: DM(price: .budget)),
 
         // ── New Orleans Square ────────────────────────────────────────────────
         MA("Blue Bayou Restaurant",
@@ -1026,25 +1115,29 @@ extension RideMasterData {
         MA("Harbour Galley",
            park: .disneyland, land: "New Orleans Square",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "92f45ae9-5e6d-4923-88d4-7f676c2d10b2"),
+           entityId: "92f45ae9-5e6d-4923-88d4-7f676c2d10b2",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Mint Julep Bar",
            park: .disneyland, land: "New Orleans Square",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "2e0d0726-07c7-42f6-b839-68a56a41e268"),
+           entityId: "2e0d0726-07c7-42f6-b839-68a56a41e268",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Royal Street Veranda",
            park: .disneyland, land: "New Orleans Square",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "d2feb649-41ea-4097-a45b-10cfb48d13aa"),
+           entityId: "d2feb649-41ea-4097-a45b-10cfb48d13aa",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Tiana's Palace",
            park: .disneyland, land: "New Orleans Square",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "f0f57b5c-5bc5-49d6-8b7f-34e4aa03c2e8"),
+           entityId: "f0f57b5c-5bc5-49d6-8b7f-34e4aa03c2e8",
+           dining: DM(price: .budget)),
 
         // ── Bayou Country ─────────────────────────────────────────────────────
         MA("Hungry Bear Barbecue Jamboree",
@@ -1067,12 +1160,13 @@ extension RideMasterData {
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("The Golden Horseshoe",
            park: .disneyland, land: "Frontierland",
-           type: .quickService, outdoor: false, seed: true),
+           type: .quickService, outdoor: false, seed: true,
+           dining: DM(price: .budget)),
 
         MA("Rancho del Zocalo Restaurante",
            park: .disneyland, land: "Frontierland",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           dining: DM(price: .moderate, score: 7,
+           dining: DM(price: .budget, score: 7,
                       verdict: "Solid Mexican QS with generous portions. Convenient before or after Big Thunder.",
                       signature: ["Carne Asada Plate", "Fish Tacos", "Cheese Enchiladas"],
                       mobileOrder: true, indoor: true, kids: true,
@@ -1085,49 +1179,57 @@ extension RideMasterData {
         MA("River Belle Terrace",
            park: .disneyland, land: "Frontierland",
            type: .tableService, outdoor: true, map: 3, seed: true,
-           entityId: "057872ed-3f27-496f-80e2-edd3639ba084"),
+           entityId: "057872ed-3f27-496f-80e2-edd3639ba084",
+           dining: DM(price: .moderate)),
 
         // factual-only — Product decision 2026-10-05
         MA("Stage Door Café",
            park: .disneyland, land: "Frontierland",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "fae2515c-777b-4f37-b647-06383c1904d3"),
+           entityId: "fae2515c-777b-4f37-b647-06383c1904d3",
+           dining: DM(price: .budget)),
 
         // ── Fantasyland ───────────────────────────────────────────────────────
         // factual-only — Product decision 2026-10-05
         MA("Edelweiss Snacks",
            park: .disneyland, land: "Fantasyland",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "fbee3a16-4be3-47f3-97a7-70ef09aff088"),
+           entityId: "fbee3a16-4be3-47f3-97a7-70ef09aff088",
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Maurice's Treats",
            park: .disneyland, land: "Fantasyland",
-           type: .quickService, outdoor: true, seed: true),
+           type: .quickService, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Red Rose Taverne",
            park: .disneyland, land: "Fantasyland",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "1db8443f-624c-4d95-967c-1766a52b24ec"),
+           entityId: "1db8443f-624c-4d95-967c-1766a52b24ec",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Troubadour Tavern",
            park: .disneyland, land: "Fantasyland",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "3a63d923-413a-4512-b873-c690596fb479"),
+           entityId: "3a63d923-413a-4512-b873-c690596fb479",
+           dining: DM(price: .budget)),
 
         // ── Mickey's Toontown ─────────────────────────────────────────────────
         // factual-only — Product decision 2026-10-05
         MA("Café Daisy",
            park: .disneyland, land: "Mickey's Toontown",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "f8d61baa-dc1a-4e82-ab6b-f24bdd83e6e1"),
+           entityId: "f8d61baa-dc1a-4e82-ab6b-f24bdd83e6e1",
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Good Boy! Grocers",
            park: .disneyland, land: "Mickey's Toontown",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // ── Tomorrowland ──────────────────────────────────────────────────────
         MA("Galactic Grill",
@@ -1144,37 +1246,43 @@ extension RideMasterData {
         MA("Alien Pizza Planet",
            park: .disneyland, land: "Tomorrowland",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "ce05c344-81fc-4b32-8717-cb1c26c65292"),
+           entityId: "ce05c344-81fc-4b32-8717-cb1c26c65292",
+           dining: DM(price: .budget)),
 
         // ── Star Wars: Galaxy's Edge ──────────────────────────────────────────
         // factual-only — Product decision 2026-10-05
         MA("Docking Bay 7 Food and Cargo",
            park: .disneyland, land: "Star Wars: Galaxy's Edge",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "8abfd370-4c29-4154-bb96-41e031b78d29"),
+           entityId: "8abfd370-4c29-4154-bb96-41e031b78d29",
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-05
         MA("Kat Saka's Kettle",
            park: .disneyland, land: "Star Wars: Galaxy's Edge",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Milk Stand",
            park: .disneyland, land: "Star Wars: Galaxy's Edge",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "94453dec-3f16-43a6-94c9-be55144606b8"),
+           entityId: "94453dec-3f16-43a6-94c9-be55144606b8",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-05
         MA("Oga's Cantina at the Disneyland Resort",
            park: .disneyland, land: "Star Wars: Galaxy's Edge",
            type: .lounge, outdoor: false, map: 3, seed: true,
-           entityId: "eb29424b-42ed-41a2-891c-d4c9494eab12"),
+           entityId: "eb29424b-42ed-41a2-891c-d4c9494eab12",
+           dining: DM(price: .moderate)),
 
         // factual-only — Product decision 2026-10-05
         MA("Ronto Roasters",
            park: .disneyland, land: "Star Wars: Galaxy's Edge",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "1822fb68-5f64-4329-b7e2-d4065f7159ac"),
+           entityId: "1822fb68-5f64-4329-b7e2-d4065f7159ac",
+           dining: DM(price: .budget)),
     ]
 }
 
@@ -1230,7 +1338,7 @@ extension RideMasterData {
            park: .californiaAdventure, land: "Avengers Campus",
            type: .quickService, outdoor: false, map: 3, seed: true,
            entityId: "bbfe672e-075a-477a-b066-1117cf80030c",
-           dining: DM(price: .moderate, score: 8,
+           dining: DM(price: .budget, score: 8,
                       verdict: "Best themed QS in DCA. The Pym-ini is a solid sandwich with great presentation.",
                       signature: ["Pym-ini Sandwich", "Not So Little Chicken Sandwich", "Cosmic Cream Orange Cake"],
                       mobileOrder: true, indoor: true, kids: true,
@@ -1240,24 +1348,27 @@ extension RideMasterData {
         MA("Pym Tasting Lab",
            park: .californiaAdventure, land: "Avengers Campus",
            type: .lounge, outdoor: true, map: 3, seed: true,
-           entityId: "ca4b4068-02a7-4d98-92a6-f781ad5711d3"),
+           entityId: "ca4b4068-02a7-4d98-92a6-f781ad5711d3",
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-06
         MA("Shawarma Palace",
            park: .californiaAdventure, land: "Avengers Campus",
-           type: .quickService, outdoor: true, seed: true),
+           type: .quickService, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-06
         MA("Terran Treats",
            park: .californiaAdventure, land: "Avengers Campus",
-           type: .quickService, outdoor: true, seed: true),
+           type: .quickService, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // ── Cars Land ─────────────────────────────────────────────────────────
         MA("Flo's V8 Café",
            park: .californiaAdventure, land: "Cars Land",
            type: .quickService, outdoor: true, map: 3, seed: true,
            entityId: "85201274-b743-41ca-95a1-d575a07811d0",
-           dining: DM(price: .moderate, score: 7,
+           dining: DM(price: .budget, score: 7,
                       verdict: "Solid QS with great Cars Land theming. Best seat is outside near the fountain.",
                       signature: ["Radiator Springs Rotisserie Chicken", "Chili Mac", "Flo's Float"],
                       mobileOrder: true, indoor: false, kids: true,
@@ -1270,19 +1381,21 @@ extension RideMasterData {
         MA("Cozy Cone Motel",
            park: .californiaAdventure, land: "Cars Land",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "7025ea53-9d7f-4e7f-a0ad-0ea9523c3c01"),
+           entityId: "7025ea53-9d7f-4e7f-a0ad-0ea9523c3c01",
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-06
         MA("Fillmore's Taste-In",
            park: .californiaAdventure, land: "Cars Land",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // ── Pixar Pier ────────────────────────────────────────────────────────
         MA("Lamplight Lounge",
            park: .californiaAdventure, land: "Pixar Pier",
            type: .lounge, outdoor: false, map: 3, seed: true,
            entityId: "1214912c-de6d-4493-9344-c245357f7af6",
-           dining: DM(price: .upscale, score: 9,
+           dining: DM(price: .moderate, score: 9,
                       verdict: "Best restaurant in DCA. Walk-up bar menu rivals the full reservation experience.",
                       signature: ["Lobster Nachos", "Pixar Short Rib Toast", "Passion Fruit Old Fashioned"],
                       mobileOrder: false, indoor: true, kids: false,
@@ -1301,22 +1414,26 @@ extension RideMasterData {
         // factual-only; no verified coordinate — Product decision 2026-10-06
         MA("Angry Dogs",
            park: .californiaAdventure, land: "Pixar Pier",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-06
         MA("Jack-Jack Cookie Num Nums",
            park: .californiaAdventure, land: "Pixar Pier",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-06
         MA("Poultry Palace",
            park: .californiaAdventure, land: "Pixar Pier",
-           type: .quickService, outdoor: true, seed: true),
+           type: .quickService, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-06
         MA("Señor Buzz Churros",
            park: .californiaAdventure, land: "Pixar Pier",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // ── Paradise Gardens Park ─────────────────────────────────────────────
         MA("Corn Dog Castle",
@@ -1333,19 +1450,22 @@ extension RideMasterData {
         MA("Boardwalk Pizza & Pasta",
            park: .californiaAdventure, land: "Paradise Gardens Park",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "0ccdca1c-2e60-4f7c-8395-2adce67e34ba"),
+           entityId: "0ccdca1c-2e60-4f7c-8395-2adce67e34ba",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-06
         MA("Paradise Garden Grill",
            park: .californiaAdventure, land: "Paradise Gardens Park",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "f7ff4406-5bd6-4067-9ed1-92ea1efdcc63"),
+           entityId: "f7ff4406-5bd6-4067-9ed1-92ea1efdcc63",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-06
         MA("Bayside Brews",
            park: .californiaAdventure, land: "Paradise Gardens Park",
            type: .lounge, outdoor: true, map: 3, seed: true,
-           entityId: "2f9b48bb-ad41-44e6-be57-82e62d154b0e"),
+           entityId: "2f9b48bb-ad41-44e6-be57-82e62d154b0e",
+           dining: DM(price: .budget)),
 
         // ── Grizzly Peak ──────────────────────────────────────────────────────
         MA("Smokejumpers Grill",
@@ -1363,60 +1483,70 @@ extension RideMasterData {
         MA("Carthay Circle Restaurant",
            park: .californiaAdventure, land: "Buena Vista Street",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "753b558a-ff18-4ed9-a3c2-70e76b421618"),
+           entityId: "753b558a-ff18-4ed9-a3c2-70e76b421618",
+           dining: DM(price: .upscale)),
 
         // factual-only — Product decision 2026-10-06
         MA("Carthay Circle Lounge",
            park: .californiaAdventure, land: "Buena Vista Street",
            type: .lounge, outdoor: false, map: 3, seed: true,
-           entityId: "1bef32e2-73b4-4de3-bb07-f71c3f301f22"),
+           entityId: "1bef32e2-73b4-4de3-bb07-f71c3f301f22",
+           dining: DM(price: .upscale)),
 
         // factual-only — Product decision 2026-10-06
         MA("Clarabelle's Hand-Scooped Ice Cream",
            park: .californiaAdventure, land: "Buena Vista Street",
            type: .snackStand, outdoor: false, map: 3, seed: true,
-           entityId: "40217671-2e04-467b-b462-10d97fbca69d"),
+           entityId: "40217671-2e04-467b-b462-10d97fbca69d",
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-06
         MA("Fiddler, Fifer & Practical Cafe",
            park: .californiaAdventure, land: "Buena Vista Street",
-           type: .quickService, outdoor: false, seed: true),
+           type: .quickService, outdoor: false, seed: true,
+           dining: DM(price: .budget)),
 
         // ── Hollywood Land ────────────────────────────────────────────────────
         // factual-only — Product decision 2026-10-06
         MA("Award Wieners",
            park: .californiaAdventure, land: "Hollywood Land",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "13dbf6c5-2118-4e2a-8609-a3600bf17d1f"),
+           entityId: "13dbf6c5-2118-4e2a-8609-a3600bf17d1f",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-06
         MA("Studio Catering Co.",
            park: .californiaAdventure, land: "Hollywood Land",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "ceb71f40-b730-4209-80be-ef89c114dfdf"),
+           entityId: "ceb71f40-b730-4209-80be-ef89c114dfdf",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-06
         MA("Hollywood Lounge",
            park: .californiaAdventure, land: "Hollywood Land",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "8c153230-8203-4351-bc5a-485a67527b55"),
+           entityId: "8c153230-8203-4351-bc5a-485a67527b55",
+           dining: DM(price: .budget)),
 
         // factual-only; no verified coordinate — Product decision 2026-10-06
         MA("Fairfax Market",
            park: .californiaAdventure, land: "Hollywood Land",
-           type: .snackStand, outdoor: true, seed: true),
+           type: .snackStand, outdoor: true, seed: true,
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-06
         MA("Schmoozies!",
            park: .californiaAdventure, land: "Hollywood Land",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "167199e4-933e-4647-9154-75b13975eea3"),
+           entityId: "167199e4-933e-4647-9154-75b13975eea3",
+           dining: DM(price: .budget)),
 
         // ── San Fransokyo Square ──────────────────────────────────────────────
         // factual-only — Product decision 2026-10-06
         MA("Ghirardelli® Soda Fountain and Chocolate Shop",
            park: .californiaAdventure, land: "San Fransokyo Square",
-           type: .quickService, outdoor: false, seed: true),
+           type: .quickService, outdoor: false, seed: true,
+           dining: DM(price: .budget)),
         // NOTE: no verified ThemeParks.wiki coordinate found for this venue —
         // left without a pin, per Product instruction to leave absent
         // coordinates absent rather than approximate.
@@ -1425,56 +1555,65 @@ extension RideMasterData {
         MA("Cocina Cucamonga Mexican Grill",
            park: .californiaAdventure, land: "San Fransokyo Square",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "33be9d07-5da1-42b4-a8bb-2486209693bc"),
+           entityId: "33be9d07-5da1-42b4-a8bb-2486209693bc",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-06
         MA("Lucky Fortune Cookery",
            park: .californiaAdventure, land: "San Fransokyo Square",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "38df151c-f563-406f-8dbc-7e824c7afc75"),
+           entityId: "38df151c-f563-406f-8dbc-7e824c7afc75",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-06
         MA("Aunt Cass Café",
            park: .californiaAdventure, land: "San Fransokyo Square",
            type: .quickService, outdoor: false, map: 3, seed: true,
-           entityId: "778f814e-7113-4599-adce-b598a39d6cd9"),
+           entityId: "778f814e-7113-4599-adce-b598a39d6cd9",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-06
         MA("Port of San Fransokyo Cervecería",
            park: .californiaAdventure, land: "San Fransokyo Square",
            type: .lounge, outdoor: false, map: 3, seed: true,
-           entityId: "884a2e75-ef8a-4676-b65c-67320e732bb1"),
+           entityId: "884a2e75-ef8a-4676-b65c-67320e732bb1",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-06
         MA("Rita's Turbine Blenders",
            park: .californiaAdventure, land: "San Fransokyo Square",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "431e008b-505c-42fd-9db1-a2e4d5feae78"),
+           entityId: "431e008b-505c-42fd-9db1-a2e4d5feae78",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-06
         MA("Cappuccino Cart",
            park: .californiaAdventure, land: "San Fransokyo Square",
            type: .snackStand, outdoor: true, map: 3, seed: true,
-           entityId: "0eefcad3-0b3f-4cb9-b91a-9d493af7222a"),
+           entityId: "0eefcad3-0b3f-4cb9-b91a-9d493af7222a",
+           dining: DM(price: .budget)),
 
         // ── Performance Corridor ──────────────────────────────────────────────
         // factual-only — Product decision 2026-10-06
         MA("Wine Country Trattoria",
            park: .californiaAdventure, land: "Performance Corridor",
            type: .tableService, outdoor: false, map: 3, seed: true,
-           entityId: "048f854a-97d8-4295-8b7f-2575605259c6"),
+           entityId: "048f854a-97d8-4295-8b7f-2575605259c6",
+           dining: DM(price: .upscale)),
 
         // factual-only — Product decision 2026-10-06
         MA("Sonoma Terrace",
            park: .californiaAdventure, land: "Performance Corridor",
            type: .quickService, outdoor: true, map: 3, seed: true,
-           entityId: "13bc1b70-3a42-41eb-9cb5-7fa8615af2ca"),
+           entityId: "13bc1b70-3a42-41eb-9cb5-7fa8615af2ca",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-06
         MA("Mendocino Terrace",
            park: .californiaAdventure, land: "Performance Corridor",
            type: .lounge, outdoor: true, map: 3, seed: true,
-           entityId: "4ff553fa-008a-4d99-b6b0-30dd69d3453f"),
+           entityId: "4ff553fa-008a-4d99-b6b0-30dd69d3453f",
+           dining: DM(price: .budget)),
 
         // factual-only — Product decision 2026-10-06; Magic Key access
         // restriction is a real-world constraint, not modeled as metadata
@@ -1482,13 +1621,20 @@ extension RideMasterData {
         MA("Magic Key Terrace - Magic Key Holder Dining",
            park: .californiaAdventure, land: "Performance Corridor",
            type: .lounge, outdoor: true, map: 3, seed: true,
-           entityId: "a098bd7c-f1a9-4ffb-97db-e85925509f19"),
+           entityId: "a098bd7c-f1a9-4ffb-97db-e85925509f19",
+           dining: DM(price: .moderate)),
     ]
 }
 
 // MARK: - Dining convenience lookups (extend RideMasterData)
 
 extension RideMasterData {
+
+    /// Dollar glyphs for a dining row that has no live wait. Nil when the
+    /// venue has no price tier, which is what the row renders: no price text.
+    static func diningPriceText(stableID: String) -> String? {
+        diningByStableID[stableID]?.priceTier?.displayString
+    }
 
     /// O(1) dining metadata lookup by stableID. Returns nil for non-dining attractions.
     static let diningByStableID: [String: DiningMetadata] = {

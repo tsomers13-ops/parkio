@@ -564,6 +564,10 @@ struct AttractionsListView: View {
                     .padding(.horizontal, AppSpacing.screenEdge)
                     .padding(.vertical, AppSpacing.sm)
 
+                if categoryFilter == .dining {
+                    diningPriceKeyHeader
+                }
+
                 Divider()
 
                 Group {
@@ -707,6 +711,21 @@ struct AttractionsListView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Dining price key
+
+    /// Visible only while the Dining filter is on, which is how the dining
+    /// list opens. Dollar signs on those rows have no words of their own.
+    private var diningPriceKeyHeader: some View {
+        HStack(spacing: AppSpacing.sm) {
+            Text("Prices")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppColor.textPrimary)
+            Spacer()
+            DiningPriceKeyButton(identifier: "parkio.dining.priceKey.list")
+        }
+        .padding(.horizontal, AppSpacing.screenEdge)
     }
 
     // MARK: - Sort menu
@@ -1148,14 +1167,23 @@ private struct AttractionRow: View {
         liveState?.status.isRideable ?? false
     }
 
-    private var waitText: String {
+    /// Spoken price for a dining row that is showing dollar signs. Nil when
+    /// the row is showing a wait, or when the venue has no tier.
+    private var diningPriceAccessibilityLabel: String? {
+        guard liveState == nil, attractionType.isDining else { return nil }
+        return RideMasterData.diningByStableID[ride.id]?.priceTier?.accessibilityLabel
+    }
+
+    private var waitText: String? {
         guard let live = liveState else {
             // No live state: show a friendly message based on type instead of "—".
+            // A dining venue with no price tier returns nil, so the row renders
+            // no price text at all.
             switch attractionType {
             case .characterMeet: return "Times vary"
             case .show:          return "Schedule"
             case .quickService, .snackStand, .tableService, .lounge, .festivalBooth:
-                return RideMasterData.diningByStableID[ride.id]?.priceTier.displayString ?? "$"
+                return RideMasterData.diningPriceText(stableID: ride.id)
             default:             return "—"
             }
         }
@@ -1205,11 +1233,14 @@ private struct AttractionRow: View {
 
                 // ── Wait badge column (fixed 72 pt) ───────────────────────
                 VStack(spacing: 2) {
-                    Text(waitText)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(waitColor)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
+                    if let waitText {
+                        Text(waitText)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(waitColor)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                            .accessibilityLabel(diningPriceAccessibilityLabel ?? waitText)
+                    }
 
                     if showTrend, let live = liveState {
                         Image(systemName: live.trend.systemImage)
