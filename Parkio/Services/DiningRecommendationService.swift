@@ -51,16 +51,20 @@ enum DiningRecommendationService {
     /// Returns the top `limit` personalised dining recommendations for `park`.
     ///
     /// - Parameters:
-    ///   - park:  The park whose seeded dining venues are scored.
-    ///   - store: The user's `DiningRatingStore` (read-only).
-    ///   - limit: Maximum recommendations to return (default 3 for home card).
+    ///   - park:          The park whose seeded dining venues are scored.
+    ///   - store:         The user's `DiningRatingStore` (read-only).
+    ///   - limit:         Maximum recommendations to return (default 3 for home card).
+    ///   - serviceFilter: Quick service / Sit-down choice. `.all` ranks the
+    ///                    same venues as before. Applied before ranking so
+    ///                    the limit is taken from the chosen bucket.
     /// - Returns: Array of `DiningRecommendation`, sorted best-first.
     static func topRecommendations(
         for park: Park,
         store: DiningRatingStore,
-        limit: Int = 3
+        limit: Int = 3,
+        serviceFilter: DiningServiceFilter = .all
     ) -> [DiningRecommendation] {
-        let venues = RideMasterData.topDining(for: park)
+        let venues = serviceFilter.applied(to: RideMasterData.topDining(for: park))
         return Array(rank(venues, store: store).prefix(limit))
     }
 

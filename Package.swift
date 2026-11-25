@@ -32,6 +32,7 @@ let sourcesNotInExporter: [String] = [
                 "Parkio/Models/DTOs",
                 "Parkio/Models/AppNavigationCoordinator.swift",
                 "Parkio/Models/DiningRating.swift",
+                "Parkio/Models/DiningServiceStyle.swift",
                 "Parkio/Models/DiningVenueKeys.swift",
                 "Parkio/Models/DiningRatingStore.swift",
                 "Parkio/Models/DiningRecommendation.swift",

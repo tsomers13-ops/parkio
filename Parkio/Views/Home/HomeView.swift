@@ -76,6 +76,9 @@ struct HomeView: View {
     @State private var showAddItemSheet    = false
     @State private var showDiningList      = false
     @State private var showShoppingList    = false
+    /// All / Quick service / Sit-down for Best Food Nearby. Default All.
+    /// Passed into the full dining list when the guest opens it from here.
+    @State private var diningServiceFilter: DiningServiceFilter = .all
 
     /// Canonical Ride behind a tapped Best Food Nearby recommendation.
     /// Resolved from the recommendation's stableID against the same @Query the
@@ -461,6 +464,21 @@ struct HomeView: View {
         return hasRatings ? "Based on your visits" : "Parkio picks · top-rated venues"
     }
 
+    private var parkHasDiningVenues: Bool {
+        !RideMasterData.topDining(for: selectedPark).isEmpty
+    }
+
+    /// Top three venues in the selected service bucket. `.all` is the
+    /// previous unfiltered ranking.
+    private var foodRecommendations: [DiningRecommendation] {
+        DiningRecommendationService.topRecommendations(
+            for: selectedPark,
+            store: diningRatingStore,
+            limit: 3,
+            serviceFilter: diningServiceFilter
+        )
+    }
+
     private var averageWaitMinutes: Int? {
         let waits = rideableCandidates.compactMap(\.state.waitMinutes)
         guard !waits.isEmpty else { return nil }
@@ -639,16 +657,32 @@ struct HomeView: View {
                         .padding(.horizontal, AppSpacing.screenEdge)
                         .padding(.bottom, -AppSpacing.md)
 
-                        HomeBestFoodNearbyCard(
-                            recommendations: DiningRecommendationService.topRecommendations(
-                                for: selectedPark,
-                                store: diningRatingStore
-                            ),
-                            park: selectedPark,
-                            onSeeAll: { showDiningList = true },
-                            onSelect: { openDiningDetail(for: $0) }
+                        DiningServiceFilterBar(
+                            selection: $diningServiceFilter,
+                            accent: selectedPark.accentColor,
+                            identifierPrefix: "parkio.home.dining.serviceFilter"
                         )
                         .padding(.horizontal, AppSpacing.screenEdge)
+
+                        if foodRecommendations.isEmpty && parkHasDiningVenues {
+                            Text("No \(diningServiceFilter.title) venues at \(selectedPark.displayName).")
+                                .font(.subheadline)
+                                .foregroundStyle(AppColor.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(AppSpacing.xl)
+                                .background(AppColor.card)
+                                .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl))
+                                .padding(.horizontal, AppSpacing.screenEdge)
+                                .accessibilityIdentifier("parkio.dining.serviceFilter.empty")
+                        } else {
+                            HomeBestFoodNearbyCard(
+                                recommendations: foodRecommendations,
+                                park: selectedPark,
+                                onSeeAll: { showDiningList = true },
+                                onSelect: { openDiningDetail(for: $0) }
+                            )
+                            .padding(.horizontal, AppSpacing.screenEdge)
+                        }
 
                         // ── Park Day Summary ──────────────────────────────────
                         // Appears once ≥3 rides are logged today. Slides in from
@@ -708,7 +742,12 @@ struct HomeView: View {
                 AttractionsListView(park: selectedPark, rides: parkRides)
             }
             .navigationDestination(isPresented: $showDiningList) {
-                AttractionsListView(park: selectedPark, rides: parkRides, initialCategoryFilter: .dining)
+                AttractionsListView(
+                    park: selectedPark,
+                    rides: parkRides,
+                    initialCategoryFilter: .dining,
+                    initialDiningServiceFilter: diningServiceFilter
+                )
             }
             .navigationDestination(isPresented: $showShoppingList) {
                 ShoppingListView(park: selectedPark)

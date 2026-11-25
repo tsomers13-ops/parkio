@@ -27,6 +27,23 @@ final class DiningPriceKeyUITests: XCTestCase {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
 
+    func testDiningListPriceKeyScreenshot() {
+        let key = element("parkio.dining.priceKey.list")
+        XCTAssertTrue(key.waitForExistence(timeout: timeout), "Dining list has no Price key")
+        key.tap()
+
+        let panel = element("parkio.dining.priceKey.panel")
+        XCTAssertTrue(panel.waitForExistence(timeout: timeout), "Price key did not open")
+        let band = element("parkio.dining.priceKey.band.1")
+        XCTAssertTrue(band.waitForExistence(timeout: timeout), "Price key band did not settle")
+        XCTAssertEqual(band.label, "One dollar sign, 14 dollars and 99 cents and under per adult")
+
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "dining-price-key"
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
     func testDiningListPriceKeyOpensShowsAllRangesAndDismisses() {
         let key = element("parkio.dining.priceKey.list")
         XCTAssertTrue(key.waitForExistence(timeout: timeout), "Dining list has no Price key")

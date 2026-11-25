@@ -1,0 +1,53 @@
+// DiningServiceFilterBar.swift — All / Quick service / Sit-down chips.
+//
+// Shared by every screen that lists dining venues. The selection itself
+// lives with the screen; this view only draws the control.
+
+import SwiftUI
+
+struct DiningServiceFilterBar: View {
+
+    @Binding var selection: DiningServiceFilter
+    var accent: Color
+    /// Home and the dining list are both in the hierarchy while the list is
+    /// pushed. Each screen passes its own prefix.
+    var identifierPrefix: String = "parkio.dining.serviceFilter"
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: AppSpacing.xs) {
+                ForEach(DiningServiceFilter.allCases) { option in
+                    let selected = selection == option
+                    Button {
+                        withAnimation(AppMotion.quick) { selection = option }
+                        AppHaptic.selection()
+                    } label: {
+                        Text(option.title)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(selected ? .white : AppColor.textSecondary)
+                            .padding(.horizontal, AppSpacing.sm)
+                            .padding(.vertical, AppSpacing.xxs + 2)
+                            // Clip only the painted capsule. The 44pt frame
+                            // comes after, so the pill stays the same size
+                            // and the tap target grows around it.
+                            .background(
+                                selected
+                                    ? accent
+                                    : AppColor.skeleton.opacity(0.55)
+                            )
+                            .clipShape(Capsule())
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier(option.accessibilityIdentifier(prefix: identifierPrefix))
+                    .accessibilityLabel(option.accessibilityLabel)
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                    .accessibilityRemoveTraits(selected ? [] : .isSelected)
+                    .animation(AppMotion.quick, value: selected)
+                }
+            }
+        }
+        .accessibilityIdentifier(identifierPrefix)
+    }
+}
