@@ -115,6 +115,9 @@ private struct MapContentView: View {
     /// parks always lands somewhere safe even if the guest had manually
     /// toggled to Live for a park that does have an Explore Map.
     @State private var mapMode: MapRenderMode
+    /// Hold for walking-route fixes on both Explore and Live. Released when
+    /// the map tab goes away so a foreground hold elsewhere can keep running.
+    @State private var mapLocationHold: UUID?
 
     @Environment(WaitTimeViewModel.self) private var waitTimeVM
     @Environment(LocationService.self) private var locationService
@@ -165,13 +168,16 @@ private struct MapContentView: View {
                 // Location and routing belong to the map experience, not to one
                 // renderer. This keeps estimates alive in both Explore and Live.
                 mapVM.locationService = locationService
-                if locationService.isAuthorized {
-                    locationService.startUpdating()
+                if mapLocationHold == nil {
+                    mapLocationHold = locationService.acquireLocationUpdates()
                 }
                 refreshWalkingRoute()
             }
             .onDisappear {
-                locationService.stopUpdating()
+                if let hold = mapLocationHold {
+                    locationService.releaseLocationUpdates(hold)
+                    mapLocationHold = nil
+                }
                 walkingRouteModel.cancel()
             }
             .onChange(of: mapVM.selectedRideId) { _, _ in
@@ -184,9 +190,6 @@ private struct MapContentView: View {
                 refreshWalkingRoute()
             }
             .onChange(of: locationService.authorizationStatus.rawValue) { _, _ in
-                if locationService.isAuthorized {
-                    locationService.startUpdating()
-                }
                 refreshWalkingRoute()
             }
         }
