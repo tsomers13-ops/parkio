@@ -12,6 +12,7 @@ struct RideDetailView: View {
 
     @State private var selectedDate: Date = Date()
     @State private var showPriceKey = false
+    @State private var selectedDiningConsumption: DiningConsumption?
 
     /// Live wait state for this ride from the cache — nil if park data not loaded
     /// or ride name doesn't match any cached entry.
@@ -183,6 +184,23 @@ struct RideDetailView: View {
 
                     // ── Log a visit ──────────────────────────────
                     Section(logSectionTitle) {
+                        if attractionType.isDining {
+                            Picker("What did you have?", selection: $selectedDiningConsumption) {
+                                Text("Select…").tag(DiningConsumption?.none)
+                                ForEach(DiningConsumption.allCases) { consumption in
+                                    Text(consumption.displayName).tag(Optional(consumption))
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .accessibilityIdentifier("parkio.dining.consumption-picker")
+
+                            if selectedDiningConsumption == nil {
+                                Text("Choose what you had before logging this visit.")
+                                    .font(.caption)
+                                    .foregroundStyle(AppColor.textTertiary)
+                            }
+                        }
+
                         DatePicker(
                             "Date",
                             selection: $selectedDate,
@@ -198,6 +216,7 @@ struct RideDetailView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(accentColor)
+                        .disabled(attractionType.isDining && selectedDiningConsumption == nil)
                     }
                     .listRowBackground(AppColor.card)
 
@@ -211,8 +230,15 @@ struct RideDetailView: View {
                                 HStack {
                                     Image(systemName: "calendar")
                                         .foregroundStyle(accentColor)
-                                    Text(log.date, style: .date)
-                                        .foregroundStyle(AppColor.textPrimary)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(log.date, style: .date)
+                                            .foregroundStyle(AppColor.textPrimary)
+                                        if attractionType.isDining {
+                                            Text(log.diningConsumption?.displayName ?? "Not specified")
+                                                .font(.caption)
+                                                .foregroundStyle(AppColor.textSecondary)
+                                        }
+                                    }
                                     Spacer()
                                     Text(log.date, style: .time)
                                         .font(.caption)
@@ -248,14 +274,16 @@ struct RideDetailView: View {
                     Button("Done") { dismiss() }
                         .tint(accentColor)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: toggleRidden) {
-                        Image(systemName: ride.isRidden ? "checkmark.circle.fill" : "circle")
+                if !attractionType.isDining {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(action: toggleRidden) {
+                            Image(systemName: ride.isRidden ? "checkmark.circle.fill" : "circle")
+                        }
+                        .tint(accentColor)
+                        .accessibilityLabel(ride.isRidden
+                                            ? "Mark as not \(visitedVerb.lowercased())"
+                                            : "Mark \(visitedVerb.lowercased()) today")
                     }
-                    .tint(accentColor)
-                    .accessibilityLabel(ride.isRidden
-                                        ? "Mark as not \(visitedVerb.lowercased())"
-                                        : "Mark \(visitedVerb.lowercased()) today")
                 }
             }
         }
@@ -264,10 +292,15 @@ struct RideDetailView: View {
     // MARK: - Actions
 
     private func logDate() {
-        let log = RideLog(date: selectedDate, ride: ride)
+        let log = RideLog(
+            date: selectedDate,
+            ride: ride,
+            diningConsumption: attractionType.isDining ? selectedDiningConsumption : nil
+        )
         context.insert(log)
         ride.logs.append(log)
         try? context.save()
+        selectedDiningConsumption = nil
         AppHaptic.success()
     }
 

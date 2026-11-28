@@ -34,6 +34,7 @@
 
 import SwiftUI
 import MapKit
+import SwiftData
 
 // MARK: - RealMapScreen
 
@@ -41,9 +42,13 @@ struct RealMapScreen: View {
 
     @Environment(MapViewModel.self)             private var mapVM
     @Environment(LocationService.self)          private var locationService
+    @Environment(WalkingRouteModel.self)        private var walkingRouteModel
     @Environment(AppNavigationCoordinator.self) private var coordinator
     @Environment(MyDayStore.self)               private var myDayStore
     @Environment(\.verticalSizeClass)           private var verticalSizeClass
+
+    @Query private var allRides: [Ride]
+    @State private var selectedDiningRide: Ride?
 
     @State private var currentLatDelta:      CLLocationDegrees = 0.015
     @State private var currentViewportWidth: CGFloat           = 390
@@ -242,6 +247,9 @@ struct RealMapScreen: View {
             mapVM.logPipeline(latDelta: currentLatDelta, viewportWidth: currentViewportWidth)
         }
 #endif
+        .sheet(item: $selectedDiningRide) { ride in
+            RideDetailView(ride: ride)
+        }
     }
 
     // MARK: - My Day sync
@@ -337,12 +345,11 @@ struct RealMapScreen: View {
             Map(position: $vm.cameraPosition) {
                 UserAnnotation()
 
-                if let userCoord = locationService.userLocation?.coordinate,
-                   let rideCoord = mapVM.selectedRideCoordinate {
-                    let color = mapVM.selectedRideProximity?.polylineColor
-                        ?? Color.accentColor.opacity(0.45)
-                    MapPolyline(coordinates: [userCoord, rideCoord])
-                        .stroke(color, style: StrokeStyle(lineWidth: 2, dash: [6, 5]))
+                if let route = walkingRouteModel.route,
+                   route.coordinates.count > 1 {
+                    let color = RideProximity(distance: route.distance).polylineColor
+                    MapPolyline(coordinates: route.coordinates)
+                        .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
                 }
 
                 ForEach(visible) { annotation in
@@ -357,7 +364,7 @@ struct RealMapScreen: View {
                             isSelected:   mapVM.selectedRideId == annotation.id,
                             labelOpacity: labelOpacity(for: annotation, safeIds: safeIds)
                         ) {
-                            mapVM.selectRide(annotation.id)
+                            handleAnnotationTap(annotation)
                         }
                     }
                     .annotationTitles(.hidden)
@@ -408,6 +415,26 @@ struct RealMapScreen: View {
                 }
             )
         }
+    }
+
+    /// Dining annotations use the same canonical detail flow as the Dining
+    /// list and illustrated park maps. All other annotations retain the
+    /// existing ride bottom-sheet behavior.
+    private func handleAnnotationTap(_ annotation: RideAnnotation) {
+        if annotation.category == .dining {
+            // Never fall through to the ride sheet for dining. A missing seeded
+            // model is a data-integrity problem, not a reason to show ride UI.
+            guard let ride = allRides.first(where: { $0.id == annotation.id }) else {
+                assertionFailure("Dining annotation has no matching Ride: \(annotation.id)")
+                return
+            }
+
+            mapVM.dismiss()
+            selectedDiningRide = ride
+            return
+        }
+
+        mapVM.selectRide(annotation.id)
     }
 
     private func isEmptyMapTap(_ point: CGPoint, proxy: MapProxy, visible: [RideAnnotation]) -> Bool {
@@ -482,27 +509,28 @@ struct RealMapScreen: View {
 
     @ViewBuilder
     private func walkGuidanceLayer(geo: GeometryProxy) -> some View {
-        if let proximity = mapVM.selectedRideProximity,
-           proximity != .far,
-           !mapVM.sheetDetent.isExpanded,
-           let marker = mapVM.selectedEnrichedMarker,
-           let dist   = mapVM.distanceToSelectedRide {
+        if let route = walkingRouteModel.route,
+           let marker = mapVM.selectedEnrichedMarker {
+            let proximity = RideProximity(distance: route.distance)
+            if proximity != .far,
+               !mapVM.sheetDetent.isExpanded {
 
-            let containerH = geo.size.height + geo.safeAreaInsets.bottom
-            let sheetH     = mapVM.sheetDetent.height(for: containerH)
-            let bottomPad  = geo.safeAreaInsets.bottom + 49 + sheetH + 8
+                let containerH = geo.size.height + geo.safeAreaInsets.bottom
+                let sheetH     = mapVM.sheetDetent.height(for: containerH)
+                let bottomPad  = geo.safeAreaInsets.bottom + 49 + sheetH + 8
 
-            VStack {
-                Spacer()
-                WalkGuidanceCard(
-                    rideName:  marker.annotation.rideName,
-                    distance:  dist,
-                    proximity: proximity
-                )
-                .padding(.horizontal, AppSpacing.screenEdge)
-                .padding(.bottom, bottomPad)
+                VStack {
+                    Spacer()
+                    WalkGuidanceCard(
+                        rideName: marker.annotation.rideName,
+                        route: route,
+                        proximity: proximity
+                    )
+                    .padding(.horizontal, AppSpacing.screenEdge)
+                    .padding(.bottom, bottomPad)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 
@@ -605,7 +633,7 @@ struct RealMapScreen: View {
 
                     DistanceChipIfNeeded()
                         .environment(mapVM)
-                        .environment(locationService)
+                        .environment(walkingRouteModel)
                         .animation(AppMotion.standard, value: mapVM.selectedRideId)
 
                     LocationButton()
@@ -1067,6 +1095,7 @@ import SwiftData
         .environment(mapVM)
         .environment(waitVM)
         .environment(locSvc)
+        .environment(WalkingRouteModel())
         .environment(AppNavigationCoordinator())
         .environment(MyDayStore())
         .modelContainer(container)

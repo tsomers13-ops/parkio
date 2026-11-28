@@ -19,7 +19,7 @@
 // Architecture contract (unchanged):
 //   Zone coordinates (x, y, w, h) are normalized 0–1 and match ParkMapPin positions.
 //   Do NOT move zone bounds — move them only when pins move.
-//   ParkMapViewModel.hasMapImage = true → this file is bypassed entirely.
+//   ParkMapViewModel.hasProductionMapImage = true → this file is bypassed entirely.
 //
 // Type-checker safety:
 //   Every @ViewBuilder body is a single expression.
@@ -36,7 +36,10 @@ import SwiftUI
 //
 // hasMapImage path: unchanged — real image asset fills composition.contentSize.
 // Composition path: CompositionMapCanvas renders MapBackgroundShapes via Canvas,
-//   then layers the existing dot-grid texture + bloom + vignette on top.
+//   then layers the existing dot-grid texture + bloom + vignette on top, then
+//   ZoneView renders each park's named/iconed regions (ParkLayout.zones) over
+//   the shapes — this is what makes the Explore Map legible as "World Nature",
+//   "World Discovery", etc. rather than unlabeled colored terrain.
 
 struct ParkMapBackgroundView: View {
     @Environment(ParkMapViewModel.self) private var parkMapVM
@@ -46,7 +49,7 @@ struct ParkMapBackgroundView: View {
     let composition: ParkComposition
 
     var body: some View {
-        if parkMapVM.hasMapImage {
+        if parkMapVM.hasProductionMapImage {
             realMapImage
         } else {
             CompositionMapCanvas(composition: composition)
@@ -67,8 +70,8 @@ struct ParkMapBackgroundView: View {
 
 // MARK: - Composition canvas renderer
 
-/// Renders a ParkComposition as the map background.
-/// Replaces PlaceholderMapCanvas. Preserves dot-grid, bloom, and vignette layers.
+/// Renders a ParkComposition as the map background: authored shapes, then the
+/// dot-grid/bloom/vignette texture layers, then named zone labels on top.
 private struct CompositionMapCanvas: View {
     let composition: ParkComposition
 
@@ -105,6 +108,14 @@ private struct CompositionMapCanvas: View {
                 startRadius: cs.width * 0.22,
                 endRadius:   cs.width * 0.88
             )
+
+            // ── Layer 6: named zone labels ──────────────────────────────────
+            // Zone bounds (ParkLayout.layout(for:).zones) were authored against
+            // the same normalized 0–1 space as the shapes above — see the doc
+            // comment on ParkLayout below.
+            ForEach(ParkLayout.layout(for: composition.parkId).zones) { zone in
+                ZoneView(zone: zone, canvasSize: cs)
+            }
         }
         .frame(width: cs.width, height: cs.height)
     }
@@ -231,68 +242,6 @@ struct ParkLayout {
         case "california-adventure":  return .californiaAdventure
         default:                      return .magicKingdom
         }
-    }
-}
-
-// MARK: - Main canvas renderer
-
-private struct PlaceholderMapCanvas: View {
-    let layout: ParkLayout
-    let size: CGSize
-
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-
-            // ── Layer 1: base canvas ─────────────────────────────────────
-            // Adaptive parchment (light) / charcoal (dark) per park.
-            layout.canvasColor.ignoresSafeArea()
-
-            // ── Layer 2: two-scale dot grid texture ──────────────────────
-            // Light: warm-charcoal dots on parchment.
-            // Dark: park-accent-tinted dots on charcoal.
-            DotGridView(color: layout.accentColor, size: size)
-
-            // ── Layer 3: center bloom — subtle brightness at map center ──
-            // Mimics the "hotspot" in Maps satellite view; draws eye inward.
-            RadialGradient(
-                colors: [Color.white.opacity(0.045), .clear],
-                center: .center,
-                startRadius: 0,
-                endRadius:   size.width * 0.55
-            )
-
-            // ── Layer 4: edge vignette — keeps center brighter than edges ─
-            RadialGradient(
-                colors: [.clear, layout.canvasColor.opacity(0.48)],
-                center: .center,
-                startRadius: size.width * 0.20,
-                endRadius:   size.width * 0.90
-            )
-
-            // ── Layer 5: zone regions ────────────────────────────────────
-            ForEach(layout.zones) { zone in
-                ZoneView(zone: zone, canvasSize: size)
-            }
-
-            // ── Layer 6: atmospheric top fade ────────────────────────────
-            // Deepens the sky / top edge; adds distance and framing.
-            LinearGradient(
-                colors: [layout.canvasColor.opacity(0.60), .clear],
-                startPoint: .top,
-                endPoint: UnitPoint(x: 0.5, y: 0.20)
-            )
-            .allowsHitTesting(false)
-
-            // ── Layer 7: atmospheric bottom fade ─────────────────────────
-            LinearGradient(
-                colors: [.clear, layout.canvasColor.opacity(0.42)],
-                startPoint: UnitPoint(x: 0.5, y: 0.78),
-                endPoint: .bottom
-            )
-            .allowsHitTesting(false)
-        }
-        .frame(width: size.width, height: size.height)
-        .clipped()
     }
 }
 
@@ -550,7 +499,18 @@ private extension ParkLayout {
     )
 
     // ── EPCOT ────────────────────────────────────────────────────────────────
-
+    //
+    // Visual refinement pass (2026-10-13): zone bounds now match
+    // EPCOTComposition's redesigned, non-overlapping shape bounds exactly
+    // (see that file's header comment for the full rationale), so each label
+    // card sits squarely inside its own district instead of floating over a
+    // different region's land shape. "World Showcase" moved from a huge
+    // background strip (which itself overlapped the Norway/France sub-labels
+    // below it) onto the lagoon itself — the one spot in this district with
+    // no land shape under it at all. The Norway/France per-pavilion labels
+    // were removed outright: three overlapping label cards in the same small
+    // area was the single biggest source of visual clutter, and the pins
+    // themselves already carry venue names on tap.
     static let epcot = ParkLayout(
         parkId:      "epcot",
         // Light: cool-tinted parchment  |  Dark: deep navy charcoal
@@ -558,29 +518,21 @@ private extension ParkLayout {
         // Light: warm charcoal dots  |  Dark: sky blue accent
         accentColor: mapColor(light: (0.25, 0.20, 0.15), dark: (0.20, 0.70, 1.00)),
         zones: [
-            MapZone(id: "ep-discovery",   label: "World\nDiscovery",    icon: "atom",
-                    x: 0.50, y: 0.08, w: 0.40, h: 0.30,
-                    fill: Color(red: 0.12, green: 0.38, blue: 0.80),
-                    fillOpacity: 0.25),
             MapZone(id: "ep-nature",      label: "World\nNature",       icon: "leaf.fill",
-                    x: 0.08, y: 0.14, w: 0.34, h: 0.32,
+                    x: 0.02, y: 0.16, w: 0.29, h: 0.24,
                     fill: Color(red: 0.10, green: 0.52, blue: 0.32),
-                    fillOpacity: 0.25),
-            MapZone(id: "ep-celebrate",   label: "World\nCelebration",  icon: "sparkles",
-                    x: 0.30, y: 0.18, w: 0.26, h: 0.22,
-                    fill: Color(red: 0.62, green: 0.42, blue: 0.08),
-                    fillOpacity: 0.24),
-            MapZone(id: "ep-showcase",    label: "World Showcase",       icon: "globe.europe.africa.fill",
-                    x: 0.08, y: 0.62, w: 0.84, h: 0.28,
-                    fill: Color(red: 0.38, green: 0.30, blue: 0.20),
-                    fillOpacity: 0.24, labelOpacity: 0.42),
-            MapZone(id: "ep-frozen",      label: "Norway\n(Frozen)",     icon: "snowflake",
-                    x: 0.14, y: 0.65, w: 0.22, h: 0.22,
-                    fill: Color(red: 0.20, green: 0.35, blue: 0.75),
                     fillOpacity: 0.26),
-            MapZone(id: "ep-ratatouille", label: "France\n(Remy)",       icon: "fork.knife",
-                    x: 0.44, y: 0.70, w: 0.22, h: 0.22,
-                    fill: Color(red: 0.62, green: 0.18, blue: 0.28),
+            MapZone(id: "ep-celebrate",   label: "World\nCelebration",  icon: "sparkles",
+                    x: 0.33, y: 0.16, w: 0.34, h: 0.24,
+                    fill: Color(red: 0.62, green: 0.42, blue: 0.08),
+                    fillOpacity: 0.26),
+            MapZone(id: "ep-discovery",   label: "World\nDiscovery",    icon: "atom",
+                    x: 0.69, y: 0.16, w: 0.29, h: 0.24,
+                    fill: Color(red: 0.12, green: 0.38, blue: 0.80),
+                    fillOpacity: 0.26),
+            MapZone(id: "ep-showcase",    label: "World\nShowcase",     icon: "globe.europe.africa.fill",
+                    x: 0.20, y: 0.50, w: 0.60, h: 0.32,
+                    fill: Color(red: 0.12, green: 0.40, blue: 0.55),
                     fillOpacity: 0.26),
         ]
     )

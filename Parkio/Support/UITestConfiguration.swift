@@ -72,4 +72,25 @@ enum UITestConfiguration {
         isRunningUITests
             && ProcessInfo.processInfo.arguments.contains("-parkio-suppress-location")
     }
+
+    /// Land on the Map tab with EPCOT selected — the surface the Explore/Live
+    /// toggle and EPCOT pin navigation regression tests start from.
+    static var opensEpcotMap: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-open-epcot-map")
+    }
+
+    /// Open the Log Park Day sheet directly on launch (Magic Kingdom pre-selected).
+    /// Used by LogParkDayUITests to reach the sheet without driving Home UI.
+    static var opensLogParkDaySheet: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-open-log-park-day")
+    }
+
+    /// Open the Log Park Day sheet with NO persisted active park — simulates
+    /// a first-launch user who has never selected a park.
+    static var opensLogParkDaySheetNoPark: Bool {
+        isRunningUITests
+            && ProcessInfo.processInfo.arguments.contains("-parkio-open-log-park-day-no-park")
+    }
 }

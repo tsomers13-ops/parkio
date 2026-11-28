@@ -3,17 +3,14 @@
 // Shown when:
 //   • A ride is selected
 //   • User location is known
-//   • Straight-line distance ≤ 400 m (proximity is .nearby or .moderate)
+//   • Routed walking distance ≤ 400 m (proximity is .nearby or .moderate)
 //   • Bottom sheet is NOT at .full
 //
 // Layout:
 //   Icon | Ride name (line 1) · distance
 //        | Walk estimate (line 2)   — or "You're here" when distance < 50 m
 //
-// Walk time:
-//   Estimated from straight-line distance at a 1.2 m/s walking pace.
-//   Rounded UP to the nearest minute. Minimum displayed: 1 min.
-//   This is a rough estimate only — not a routed distance.
+// Distance and time come directly from the active MKDirections walking route.
 //
 // Caller responsibilities:
 //   • Evaluate the visibility conditions before rendering this view.
@@ -30,24 +27,13 @@ import CoreLocation
 struct WalkGuidanceCard: View {
 
     let rideName:  String
-    let distance:  CLLocationDistance
+    let route: WalkingRoute
     let proximity: RideProximity
 
     // MARK: - Derived
 
     /// Distance < 50 m — treat as "arrived".
-    private var isArrived: Bool { distance < 50 }
-
-    /// Estimated walk duration at 1.2 m/s, rounded up, minimum 1 minute.
-    private var estimatedMinutes: Int {
-        guard !isArrived else { return 0 }
-        let seconds = distance / 1.2
-        return max(1, Int(ceil(seconds / 60.0)))
-    }
-
-    private var distanceLabel: String {
-        RideAnnotation.formattedDistance(distance)
-    }
+    private var isArrived: Bool { route.distance < 50 }
 
     private var iconName: String {
         isArrived ? "mappin.circle.fill" : proximity.walkIcon
@@ -79,7 +65,7 @@ struct WalkGuidanceCard: View {
                         .font(.caption.weight(.medium))
                         .foregroundStyle(Color.green)
                 } else {
-                    Text("\(distanceLabel) · ~\(estimatedMinutes) min walk")
+                    Text("\(route.formattedDistance) · ~\(route.estimatedMinutes) min walk")
                         .font(.caption)
                         .foregroundStyle(AppColor.textSecondary)
                 }
@@ -102,11 +88,21 @@ struct WalkGuidanceCard: View {
 
 #Preview("WalkGuidanceCard") {
     VStack(spacing: 16) {
-        WalkGuidanceCard(rideName: "Space Mountain",       distance: 32,    proximity: .nearby)
-        WalkGuidanceCard(rideName: "Haunted Mansion",      distance: 210,   proximity: .moderate)
-        WalkGuidanceCard(rideName: "Tiana's Bayou Adventure", distance: 380, proximity: .moderate)
-        WalkGuidanceCard(rideName: "Pirates of Caribbean", distance: 95,    proximity: .nearby)
+        WalkGuidanceCard(rideName: "Space Mountain", route: .preview(distance: 32), proximity: .nearby)
+        WalkGuidanceCard(rideName: "Haunted Mansion", route: .preview(distance: 210), proximity: .moderate)
+        WalkGuidanceCard(rideName: "Tiana's Bayou Adventure", route: .preview(distance: 380), proximity: .moderate)
+        WalkGuidanceCard(rideName: "Pirates of Caribbean", route: .preview(distance: 95), proximity: .nearby)
     }
     .padding(24)
     .background(Color(.systemGroupedBackground))
+}
+
+private extension WalkingRoute {
+    static func preview(distance: CLLocationDistance) -> WalkingRoute {
+        WalkingRoute(
+            distance: distance,
+            expectedTravelTime: max(60, distance / 1.2),
+            coordinates: []
+        )
+    }
 }

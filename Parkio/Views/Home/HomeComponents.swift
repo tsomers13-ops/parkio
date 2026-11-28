@@ -289,3 +289,41 @@ struct StaleBanner: View {
         .background(AppColor.warning)
     }
 }
+
+// MARK: - Log Park Day button
+
+/// Compact labeled tap target anchored below the park selector.
+/// Full-width so the 44-pt minimum tap height is easily met.
+struct HomeLogParkDayButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: AppSpacing.sm) {
+                Image(systemName: "calendar.badge.plus")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppColor.brandPrimary)
+                    .frame(width: 28, height: 28)
+                    .background(AppColor.brandPrimary.opacity(0.12), in: Circle())
+
+                Text("Log park day")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            .padding(.horizontal, AppSpacing.cardPadding)
+            .padding(.vertical, AppSpacing.md)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(AppColor.card)
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Log park day")
+        .accessibilityHint("Records a visit to the active park for today's date")
+    }
+}

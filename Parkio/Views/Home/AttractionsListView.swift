@@ -13,9 +13,8 @@
 //   • My Day: context menu per row with auto-dismiss toast.
 //   • Favorites: star-icon toggle; favorites always sort to the top in all modes.
 //     Persisted per-park in UserDefaults as a JSON-encoded Set<String>.
-//   • Recently Viewed: tracks the last 10 tapped rides (MRU order); shown as a card
-//     below Favorites but above the main list.  Hidden during search.
-//     Persisted per-park in UserDefaults as a JSON-encoded [String].
+//   • Recently Viewed: removed. Legacy `recentlyViewed_*` UserDefaults keys are left
+//     inert (not cleared) to avoid silent data loss on a downgrade path.
 //
 // Performance model:
 //   The original freeze: liveState(matching:) ran two full linear scans of liveRides,
@@ -126,7 +125,6 @@ private struct RenderSnapshot {
     let rides:               [Ride]                    // non-favorite, pre-sorted; empty when byLand
     let sections:            [LandSection]             // pre-grouped, non-favorite; empty when not byLand
     let favoriteRides:       [Ride]                    // favorited rides, name-sorted
-    let recentlyViewedRides: [Ride]                    // last ≤10, MRU-ordered; empty during search
 }
 
 // MARK: - AttractionsListView
@@ -149,7 +147,6 @@ struct AttractionsListView: View {
     @State private var searchText:        String                   = ""
     @State private var toastMessage:      String?        = nil
     @State private var favoriteIds:       Set<String>    = []
-    @State private var recentlyViewedIds: [String]       = []
     @FocusState private var searchFocused: Bool
 
     // ── Community ratings (Gate 7) ────────────────────────────────────────────
@@ -198,13 +195,8 @@ struct AttractionsListView: View {
            let decoded = try? JSONDecoder().decode(Set<String>.self, from: data) {
             _favoriteIds = State(initialValue: decoded)
         }
-
-        // Load persisted recently-viewed list for this park
-        let rvKey = "recentlyViewed_\(park.rawValue)"
-        if let data    = UserDefaults.standard.data(forKey: rvKey),
-           let decoded = try? JSONDecoder().decode([String].self, from: data) {
-            _recentlyViewedIds = State(initialValue: decoded)
-        }
+        // Note: `recentlyViewed_<park>` UserDefaults keys are intentionally not
+        // cleared here — they are left inert to avoid data loss on any downgrade path.
     }
 
     // MARK: - Snapshot builder
@@ -297,31 +289,6 @@ struct AttractionsListView: View {
             .sorted { $0.name < $1.name }
         let nonFavRides = serviceFiltered.filter { !favSet.contains($0.id) }
 
-        // Recently viewed — drawn from full park rides (not filtered by openOnly/search)
-        // so a ride you just tapped always appears even if it's currently closed.
-        // The dining service filter does apply, so a quick-service venue does
-        // not stay on screen after the guest chooses Sit-down.
-        // Suppressed during search to avoid confusing results context.
-        // Favorites are excluded here to prevent duplication.
-        // Hidden outside the Dining filter — Recently Viewed is preserved only
-        // for the dedicated dining experience, per the approved UX change.
-        // Gated here (the single source RenderSnapshot.recentlyViewedRides),
-        // not at each render call site, so visibility always stays in sync
-        // with categoryFilter with no risk of missing a call site.
-        let recentRides: [Ride]
-        if !isSearching && categoryFilter == .dining {
-            recentRides = recentlyViewedIds
-                .compactMap { id in rides.first { $0.id == id } }
-                .filter { !favSet.contains($0.id) }
-                .filter { ride in
-                    guard diningServiceFilter != .all else { return true }
-                    guard let type = RideMasterData.typeByStableID[ride.id] else { return false }
-                    return diningServiceFilter.includes(type)
-                }
-        } else {
-            recentRides = []
-        }
-
         // ── Sort / group ───────────────────────────────────────────────────────
         // When the Dining filter is active, bypass the ride-star favorites split
         // and apply dining-specific sort: (1) heart-favorited venues first,
@@ -356,15 +323,14 @@ struct AttractionsListView: View {
         }
 
         return RenderSnapshot(
-            liveMap:             liveMap,
-            plannedIds:          plannedIds,
-            favoriteIds:         favSet,
-            openCount:           openCount,
-            totalRideCount:      totalRideCount,
-            rides:               currentRides,
-            sections:            currentSections,
-            favoriteRides:       resolvedFavRides,
-            recentlyViewedRides: recentRides
+            liveMap:        liveMap,
+            plannedIds:     plannedIds,
+            favoriteIds:    favSet,
+            openCount:      openCount,
+            totalRideCount: totalRideCount,
+            rides:          currentRides,
+            sections:       currentSections,
+            favoriteRides:  resolvedFavRides
         )
     }
 
@@ -517,24 +483,6 @@ struct AttractionsListView: View {
         }
     }
 
-    // MARK: - Recently viewed helpers
-
-    private func recordRecentlyViewed(_ ride: Ride) {
-        var ids = recentlyViewedIds
-        ids.removeAll { $0 == ride.id }
-        ids.insert(ride.id, at: 0)
-        if ids.count > 10 { ids = Array(ids.prefix(10)) }
-        recentlyViewedIds = ids
-        saveRecentlyViewed()
-    }
-
-    private func saveRecentlyViewed() {
-        let key = "recentlyViewed_\(park.rawValue)"
-        if let data = try? JSONEncoder().encode(recentlyViewedIds) {
-            UserDefaults.standard.set(data, forKey: key)
-        }
-    }
-
     // MARK: - Empty state helpers (cheap — no ViewModel access)
 
     private var emptyTitle: String {
@@ -582,13 +530,9 @@ struct AttractionsListView: View {
         // Determine whether anything at all is renderable
         let hasContent: Bool = {
             if sort == .byLand {
-                return !snap.sections.isEmpty
-                    || !snap.favoriteRides.isEmpty
-                    || !snap.recentlyViewedRides.isEmpty
+                return !snap.sections.isEmpty || !snap.favoriteRides.isEmpty
             } else {
-                return !snap.rides.isEmpty
-                    || !snap.favoriteRides.isEmpty
-                    || !snap.recentlyViewedRides.isEmpty
+                return !snap.rides.isEmpty || !snap.favoriteRides.isEmpty
             }
         }()
 
@@ -802,10 +746,9 @@ struct AttractionsListView: View {
 
     // MARK: - Flat ride list
     //
-    // Renders up to three stacked cards:
-    //   1. Favorites  — present when favoriteRides is non-empty
-    //   2. Recently Viewed — present when recentlyViewedRides is non-empty
-    //   3. Main list  — all non-favorite, filtered+sorted rides
+    // Renders up to two stacked cards:
+    //   1. Favorites — present when favoriteRides is non-empty
+    //   2. Main list — all non-favorite, filtered+sorted rides
 
     private func rideList(snap: RenderSnapshot) -> some View {
         ScrollView(showsIndicators: false) {
@@ -818,17 +761,6 @@ struct AttractionsListView: View {
                         headerIcon:  "star.fill",
                         headerColor: Color.yellow,
                         rides:       snap.favoriteRides,
-                        snap:        snap
-                    )
-                }
-
-                // ── Recently Viewed card ───────────────────────────────────
-                if !snap.recentlyViewedRides.isEmpty {
-                    rideCard(
-                        headerTitle: "Recently Viewed",
-                        headerIcon:  "clock.arrow.circlepath",
-                        headerColor: AppColor.textSecondary,
-                        rides:       snap.recentlyViewedRides,
                         snap:        snap
                     )
                 }
@@ -864,7 +796,7 @@ struct AttractionsListView: View {
     //
     // Renders a rounded card with an optional labeled header row followed by
     // AttractionRows separated by indented dividers.
-    // Used for Favorites, Recently Viewed, and the unsectioned main list.
+    // Used for Favorites and the unsectioned main list.
 
     @ViewBuilder
     private func rideCard(
@@ -907,8 +839,7 @@ struct AttractionsListView: View {
                     isFavorite:       snap.favoriteIds.contains(ride.id),
                     community:        communitySummary(for: ride),
                     onToggleMyDay:    { toggleMyDay(for: ride) },
-                    onToggleFavorite: { toggleFavorite(for: ride) },
-                    onTap:            { recordRecentlyViewed(ride) }
+                    onToggleFavorite: { toggleFavorite(for: ride) }
                 )
 
                 if idx < rides.count - 1 {
@@ -926,8 +857,7 @@ struct AttractionsListView: View {
     //
     // Layout order:
     //   1. Favorites section  (sticky header)
-    //   2. Recently Viewed section (sticky header)
-    //   3. Land sections — non-favorite rides only (sticky headers)
+    //   2. Land sections — non-favorite rides only (sticky headers)
     //
     // LazyVStack(pinnedViews: [.sectionHeaders]) makes each land header stick
     // to the top of the scroll view while that land's rows are on screen.
@@ -963,31 +893,6 @@ struct AttractionsListView: View {
                     }
                 }
 
-                // ── Recently Viewed section ────────────────────────────────
-                if !snap.recentlyViewedRides.isEmpty {
-                    Section {
-                        rideCard(
-                            headerTitle: nil,
-                            headerIcon:  nil,
-                            headerColor: nil,
-                            rides:       snap.recentlyViewedRides,
-                            snap:        snap
-                        )
-                        .padding(.horizontal, AppSpacing.screenEdge)
-                    } header: {
-                        AttractionSectionHeader(
-                            title:       "Recently Viewed",
-                            systemImage: "clock.arrow.circlepath",
-                            color:       AppColor.textSecondary,
-                            count:       snap.recentlyViewedRides.count
-                        )
-                        .padding(.horizontal, AppSpacing.screenEdge)
-                        .padding(.vertical, AppSpacing.sm)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(AppColor.background)
-                    }
-                }
-
                 // ── Land sections (non-favorites) ──────────────────────────
                 ForEach(snap.sections) { section in
                     Section {
@@ -1003,8 +908,7 @@ struct AttractionsListView: View {
                                     isFavorite:       snap.favoriteIds.contains(ride.id),
                                     community:        communitySummary(for: ride),
                                     onToggleMyDay:    { toggleMyDay(for: ride) },
-                                    onToggleFavorite: { toggleFavorite(for: ride) },
-                                    onTap:            { recordRecentlyViewed(ride) }
+                                    onToggleFavorite: { toggleFavorite(for: ride) }
                                 )
 
                                 if idx < section.rides.count - 1 {
@@ -1100,7 +1004,7 @@ struct AttractionsListView: View {
 
 // MARK: - AttractionSectionHeader
 //
-// Sticky header used for Favorites and Recently Viewed sections in byLand mode.
+// Sticky header used for the Favorites section in byLand mode.
 // Mirrors the visual style of LandSectionHeaderView but accepts an icon + color.
 
 private struct AttractionSectionHeader: View {
@@ -1181,7 +1085,6 @@ private struct AttractionRow: View {
     let community:        CommunityRatingSummary?
     let onToggleMyDay:    () -> Void
     let onToggleFavorite: () -> Void
-    let onTap:            () -> Void
 
     @State private var showDetail = false
 
@@ -1275,7 +1178,6 @@ private struct AttractionRow: View {
 
     var body: some View {
         Button {
-            onTap()
             showDetail = true
             AppHaptic.light()
         } label: {
