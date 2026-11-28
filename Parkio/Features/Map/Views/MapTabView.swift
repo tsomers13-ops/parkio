@@ -6,15 +6,20 @@
 //   at creation time.
 //
 // Map layer:
-//   MapRoutingDecision.renderMode(forParkId:) picks the renderer per park:
-//     • Magic Kingdom and EPCOT → ParkMapCanvasView, filled with that
-//                        park's production map artwork.
-//     • Every other park → RealMapScreen, the full MapKit tile surface, user
-//                        location puck, ride annotations, follow mode, bearing
-//                        polyline, HUD (filter bar + glance bar), and the
-//                        location / compass buttons.
-//   Both renderers share the same MapViewModel, so ride selection and the
-//   bottom sheet (RideMapBottomSheetView) behave identically either way.
+//   Two renderers, both sharing the same MapViewModel so ride selection and
+//   the bottom sheet (RideMapBottomSheetView) behave identically either way:
+//     • ParkMapCanvasView — the Explore Map: an original illustrated map as
+//       an interactive pan/zoom canvas. Magic Kingdom and EPCOT use their
+//       production artwork.
+//     • RealMapScreen — the Live Map: the full MapKit tile surface, user
+//       location puck, ride annotations, follow mode, bearing polyline, HUD
+//       (filter bar + glance bar), and the location / compass buttons.
+//   MapModeAvailability.isExploreMapAvailable(forParkId:) decides whether a
+//   park offers the Explore/Live toggle at all (MapContentView.topChrome) —
+//   a park with no calibrated Explore Map yet stays on the Live Map with no
+//   toggle shown. MapContentView.mapMode picks which one renders.
+//   MapRoutingDecision still records each park's default and is still tested;
+//   MapTabView no longer consults it.
 //
 // Park switching (single source of truth):
 //   switchPark(to:) updates mapVM.parkId and parkMapVM.parkId. MapViewModel's
@@ -43,6 +48,7 @@ struct MapTabView: View {
     // sync in one place instead of lazily standing it up mid-switch.
     @State private var parkMapVM: ParkMapViewModel?
     @State private var calibrationVM = CalibrationViewModel()
+    @State private var walkingRouteModel = WalkingRouteModel()
 
     // SwiftData source of truth for ridden/logged state.
     @Query private var allRides: [Ride]
@@ -53,6 +59,7 @@ struct MapTabView: View {
                 MapContentView(
                     mapVM:        mapVM,
                     parkMapVM:    parkMapVM,
+                    walkingRouteModel: walkingRouteModel,
                     selectedPark: $selectedPark
                 )
                 .environment(calibrationVM)
@@ -99,9 +106,38 @@ struct MapTabView: View {
 private struct MapContentView: View {
     let mapVM:        MapViewModel
     let parkMapVM:    ParkMapViewModel
+    let walkingRouteModel: WalkingRouteModel
     @Binding var selectedPark: Park
 
+    /// Which surface is on screen for the current park. Seeded to that park's
+    /// default (Explore if available, else Live) at creation, and reset to
+    /// the new park's default by .onChange(of: selectedPark) below — switching
+    /// parks always lands somewhere safe even if the guest had manually
+    /// toggled to Live for a park that does have an Explore Map.
+    @State private var mapMode: MapRenderMode
+    /// Hold for walking-route fixes on both Explore and Live. Released when
+    /// the map tab goes away so a foreground hold elsewhere can keep running.
+    @State private var mapLocationHold: UUID?
+
     @Environment(WaitTimeViewModel.self) private var waitTimeVM
+    @Environment(LocationService.self) private var locationService
+
+    init(
+        mapVM: MapViewModel,
+        parkMapVM: ParkMapViewModel,
+        walkingRouteModel: WalkingRouteModel,
+        selectedPark: Binding<Park>
+    ) {
+        self.mapVM = mapVM
+        self.parkMapVM = parkMapVM
+        self.walkingRouteModel = walkingRouteModel
+        self._selectedPark = selectedPark
+        _mapMode = State(initialValue: Self.defaultMode(forParkId: selectedPark.wrappedValue.backendId))
+    }
+
+    private static func defaultMode(forParkId parkId: String) -> MapRenderMode {
+        MapModeAvailability.isExploreMapAvailable(forParkId: parkId) ? .customCanvas : .liveMap
+    }
 
     var body: some View {
         NavigationStack {
@@ -118,23 +154,64 @@ private struct MapContentView: View {
                 RideMapBottomSheetView()
                     .environment(mapVM)
                     .environment(waitTimeVM)
+                    .environment(walkingRouteModel)
             }
             .ignoresSafeArea(edges: .bottom)
             .navigationTitle("Map")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { mapToolbar }
             .refreshable { await waitTimeVM.refresh() }
+            .onChange(of: selectedPark) { _, newPark in
+                mapMode = Self.defaultMode(forParkId: newPark.backendId)
+            }
+            .onAppear {
+                // Location and routing belong to the map experience, not to one
+                // renderer. This keeps estimates alive in both Explore and Live.
+                mapVM.locationService = locationService
+                if mapLocationHold == nil {
+                    mapLocationHold = locationService.acquireLocationUpdates()
+                }
+                refreshWalkingRoute()
+            }
+            .onDisappear {
+                if let hold = mapLocationHold {
+                    locationService.releaseLocationUpdates(hold)
+                    mapLocationHold = nil
+                }
+                walkingRouteModel.cancel()
+            }
+            .onChange(of: mapVM.selectedRideId) { _, _ in
+                refreshWalkingRoute()
+            }
+            // A fresh Core Location fix can have identical coordinates when the
+            // guest is stationary. Observe its timestamp so re-entry and offline
+            // recovery do not remain stuck after an old retained fix is rejected.
+            .onChange(of: locationService.userLocation?.timestamp) { _, _ in
+                refreshWalkingRoute()
+            }
+            .onChange(of: locationService.authorizationStatus.rawValue) { _, _ in
+                refreshWalkingRoute()
+            }
         }
+    }
+
+    private func refreshWalkingRoute() {
+        walkingRouteModel.update(
+            source: locationService.userLocation,
+            destination: mapVM.selectedRideCoordinate,
+            destinationID: mapVM.selectedRideId,
+            authorizationStatus: locationService.authorizationStatus
+        )
     }
 
     // MARK: Map surface
 
-    /// Magic Kingdom and EPCOT use the custom canvas. Every other park keeps
-    /// the live MapKit experience. Both share `mapVM`, so ride selection and
-    /// the bottom sheet behave identically regardless of which surface is on screen.
+    /// Explore Map or Live Map, per the current mapMode. Magic Kingdom and
+    /// EPCOT default to Explore. Both share `mapVM`, so ride selection and the
+    /// bottom sheet behave identically regardless of which surface is on screen.
     @ViewBuilder
     private var mapSurface: some View {
-        switch MapRoutingDecision.renderMode(forParkId: selectedPark.backendId) {
+        switch mapMode {
         case .customCanvas:
             ParkMapCanvasView()
                 .environment(mapVM)
@@ -147,6 +224,7 @@ private struct MapContentView: View {
             // LocationService is already in the environment from ParkioApp.
             RealMapScreen()
                 .environment(mapVM)
+                .environment(walkingRouteModel)
                 .ignoresSafeArea(edges: .bottom)
         }
     }
@@ -156,6 +234,14 @@ private struct MapContentView: View {
     private var topChrome: some View {
         VStack(spacing: 0) {
             MapParkSelectorStrip(selectedPark: $selectedPark)
+            if MapModeAvailability.isExploreMapAvailable(forParkId: selectedPark.backendId) {
+                HStack {
+                    Spacer()
+                    MapModeToggle(mode: $mapMode)
+                    Spacer()
+                }
+                .padding(.vertical, AppSpacing.xs)
+            }
             MapWaitTimeBanner(waitTimeVM: waitTimeVM, park: selectedPark)
             Spacer(minLength: 0)
         }
@@ -234,6 +320,45 @@ private struct ShowFullParkButton: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Map Reset")
         .accessibilityHint("Resets the map to the full park view")
+    }
+}
+
+// MARK: - Explore / Live mode toggle
+
+/// Two-segment pill, shown only for parks where
+/// MapModeAvailability.isExploreMapAvailable is true. Matches the visual
+/// language of MapParkPill (capsule, filled-when-selected) rather than a
+/// native segmented control, for consistency with the rest of the Maps tab.
+private struct MapModeToggle: View {
+    @Binding var mode: MapRenderMode
+
+    var body: some View {
+        HStack(spacing: 2) {
+            segment(title: "Explore", isSelected: mode == .customCanvas) { mode = .customCanvas }
+            segment(title: "Live",    isSelected: mode == .liveMap)      { mode = .liveMap }
+        }
+        .padding(3)
+        .background(.regularMaterial, in: Capsule())
+        .overlay {
+            Capsule().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+        }
+    }
+
+    private func segment(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button {
+            withAnimation(AppMotion.quick) { action() }
+            AppHaptic.selection()
+        } label: {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(isSelected ? .white : AppColor.textSecondary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(isSelected ? AppColor.textPrimary : Color.clear, in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title) Map")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
 

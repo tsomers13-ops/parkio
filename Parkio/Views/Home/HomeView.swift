@@ -79,6 +79,9 @@ struct HomeView: View {
     /// All / Quick service / Sit-down for Best Food Nearby. Default All.
     /// Passed into the full dining list when the guest opens it from here.
     @State private var diningServiceFilter: DiningServiceFilter = .all
+    @State private var showLogParkDay       = false
+    /// Separate state for the no-default-park test path; passes nil to LogParkDaySheet.
+    @State private var showLogParkDayNoPark = false
 
     /// Canonical Ride behind a tapped Best Food Nearby recommendation.
     /// Resolved from the recommendation's stableID against the same @Query the
@@ -518,6 +521,16 @@ struct HomeView: View {
                             .padding(.horizontal, AppSpacing.screenEdge)
                             .padding(.top, -AppSpacing.md)
 
+                        // ── Log Park Day button ────────────────────────────────
+                        // Prominent labeled action directly below the park selector
+                        // so it stays anchored to the active park context.
+                        HomeLogParkDayButton {
+                            AppHaptic.light()
+                            showLogParkDay = true
+                        }
+                        .padding(.horizontal, AppSpacing.screenEdge)
+                        .accessibilityIdentifier("parkio.home.logParkDayButton")
+
                         // ── First-launch guidance card ─────────────────────────
                         // Visible immediately when the user has zero ride logs and
                         // has not previously dismissed the first-ride orientation.
@@ -737,6 +750,17 @@ struct HomeView: View {
                     selectedPark = .magicKingdom
                     coordinator.selectedTab = 1
                 }
+                if UITestConfiguration.opensEpcotMap {
+                    selectedPark = .epcot
+                    coordinator.selectedTab = 1
+                }
+                if UITestConfiguration.opensLogParkDaySheet {
+                    selectedPark = .magicKingdom
+                    showLogParkDay = true
+                }
+                if UITestConfiguration.opensLogParkDaySheetNoPark {
+                    showLogParkDayNoPark = true
+                }
             }
             .navigationDestination(isPresented: $showAttractionsList) {
                 AttractionsListView(park: selectedPark, rides: parkRides)
@@ -762,6 +786,12 @@ struct HomeView: View {
                     withAnimation(AppMotion.standard) { myDayStore.add(item) }
                     AppHaptic.light()
                 }
+            }
+            .sheet(isPresented: $showLogParkDay) {
+                LogParkDaySheet(defaultPark: selectedPark)
+            }
+            .sheet(isPresented: $showLogParkDayNoPark) {
+                LogParkDaySheet(defaultPark: nil)
             }
             .task {
                 weatherService.startPolling(for: selectedPark)

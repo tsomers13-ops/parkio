@@ -1,0 +1,13 @@
+park	direction	straight_m	route_m	eta_min	start_snap_m	end_snap_m	steps	status
+Magic Kingdom	Pirates -> Space Mountain entrance	692	775	11	77	0	10	ok
+Magic Kingdom	Space Mountain entrance -> Pirates	692	891	13	66	60	12	ok
+EPCOT	Remy -> Cosmic Rewind	1022	1433	19	42	16	10	ok
+EPCOT	Cosmic Rewind -> Remy	1022	1424	19	17	42	11	ok
+Hollywood Studios	Tower of Terror -> Rise	637	713	11	47	67	6	ok
+Hollywood Studios	Rise -> Tower of Terror	637	1068	15	73	39	8	ok
+Animal Kingdom	Safari -> Flight of Passage	541	1161	15	6	47	5	ok
+Animal Kingdom	Flight of Passage -> Safari	541	1161	16	47	6	5	ok
+Disneyland	Space Mountain -> Rise	615	833	12	35	45	11	ok
+Disneyland	Rise -> Space Mountain	615	833	12	45	35	12	ok
+California Adventure	Guardians -> Radiator Springs Racers	256	452	7	47	31	4	ok
+California Adventure	Radiator Springs Racers -> Guardians	256	717	10	31	36	8	ok

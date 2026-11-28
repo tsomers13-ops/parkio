@@ -156,6 +156,12 @@ private struct SheetPeekContent: View {
             // ── Live status (wait badge + open pill) ─────────────────────────
             LiveStatusRow(marker: marker)
 
+            WalkingRouteSummaryView(
+                coordinate: marker.annotation.coordinate,
+                destinationID: marker.annotation.id,
+                destinationName: marker.annotation.rideName
+            )
+
             // ── Sparkline + trend label (open rides with known wait only) ────
             if let live = marker.liveState,
                live.status.isRideable,
@@ -222,6 +228,14 @@ private struct SheetFullContent: View {
                         .padding(.horizontal, AppSpacing.screenEdge)
                         .padding(.bottom, AppSpacing.lg)
 
+                    WalkingRouteSummaryView(
+                        coordinate: marker.annotation.coordinate,
+                        destinationID: marker.annotation.id,
+                        destinationName: marker.annotation.rideName
+                    )
+                    .padding(.horizontal, AppSpacing.screenEdge)
+                    .padding(.bottom, AppSpacing.lg)
+
                     sheetDivider
 
                     // ── Ride history ────────────────────────────────────────
@@ -235,7 +249,8 @@ private struct SheetFullContent: View {
                     VStack(spacing: AppSpacing.sm) {
                         LogRideButton(action: onLogRide)
                         AddToMyDayButton(isPlanned: isPlanned, action: onAddToMyDay)
-                        DirectionsChip(coordinate: marker.annotation.coordinate,
+                        DirectionsChip(destinationID: marker.annotation.id,
+                                       coordinate: marker.annotation.coordinate,
                                        rideName: marker.annotation.rideName)
                     }
                     .padding(.horizontal, AppSpacing.screenEdge)
@@ -799,17 +814,17 @@ struct AddToMyDayButton: View {
 /// Opens Apple Maps with walking directions to the selected ride's coordinates.
 /// Uses MKMapItem.openInMaps so no MKDirections network request is required.
 private struct DirectionsChip: View {
+    let destinationID: String
     let coordinate: CLLocationCoordinate2D
     let rideName:   String
 
     var body: some View {
         Button {
-            let placemark = MKPlacemark(coordinate: coordinate)
-            let mapItem   = MKMapItem(placemark: placemark)
-            mapItem.name  = rideName
-            mapItem.openInMaps(launchOptions: [
-                MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking
-            ])
+            WalkingDirectionsLauncher.open(
+                destinationID: destinationID,
+                coordinate: coordinate,
+                destinationName: rideName
+            )
         } label: {
             Label("Get Directions", systemImage: "arrow.triangle.turn.up.right.circle.fill")
                 .font(.subheadline.weight(.semibold))
@@ -859,6 +874,8 @@ private struct DirectionsChip: View {
         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, topTrailingRadius: 20))
     }
     .ignoresSafeArea()
+    .environment(WalkingRouteModel())
+    .environment(LocationService())
 }
 
 #Preview("Peek — with live data") {
@@ -892,6 +909,8 @@ private struct DirectionsChip: View {
         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, topTrailingRadius: 20))
     }
     .ignoresSafeArea()
+    .environment(WalkingRouteModel())
+    .environment(LocationService())
 }
 
 #Preview("Collapsed — no ride") {
@@ -912,4 +931,6 @@ private struct DirectionsChip: View {
         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, topTrailingRadius: 20))
     }
     .ignoresSafeArea()
+    .environment(WalkingRouteModel())
+    .environment(LocationService())
 }

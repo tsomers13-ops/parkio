@@ -106,10 +106,23 @@ struct ParkVisitsView: View {
             }
         }
         .sheet(isPresented: $showingAddVisit) {
-            AddParkVisitSheet(defaultDate: defaultAddDate) { park, date in
-                addVisit(park: park, date: date)
+            LogParkDaySheet(
+                defaultPark: persistedActivePark,
+                defaultDate: defaultAddDate
+            ) { _, date in
+                // Update the year filter to match what was just saved.
+                selectedYear = Calendar.current.component(.year, from: date)
             }
         }
+    }
+
+    /// The park the user most recently selected on Home, if any.
+    /// Never falls back to a hardcoded park — nil means "no selection yet".
+    private var persistedActivePark: Park? {
+        guard let id = UserDefaults.standard.string(forKey: UserDefaultsKey.lastActiveParkId) else {
+            return nil
+        }
+        return Park.fromBackendId(id)
     }
 
     private var defaultAddDate: Date {
@@ -121,21 +134,6 @@ struct ParkVisitsView: View {
         components.month = 1
         components.day = 1
         return Calendar.current.date(from: components) ?? Date()
-    }
-
-    private func addVisit(park: Park, date: Date) {
-        // Normalize to park-local start-of-day so manual visits group correctly
-        // with auto-created (rideLog) visits on the same calendar day.
-        let localDay = ParkVisitService.parkLocalDay(for: date, park: park)
-        let visit = ParkVisit(
-            parkId:    park.backendId,
-            visitDate: localDay,
-            source:    "manual"
-        )
-        modelContext.insert(visit)
-        try? modelContext.save()
-        selectedYear = Calendar.current.component(.year, from: localDay)
-        AppHaptic.success()
     }
 
     private func delete(_ visit: ParkVisit) {
@@ -315,56 +313,6 @@ private struct EmptyParkVisitsRow: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, AppSpacing.xl)
-    }
-}
-
-private struct AddParkVisitSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var selectedPark: Park = .magicKingdom
-    @State private var visitDate: Date
-
-    let onSave: (Park, Date) -> Void
-
-    init(defaultDate: Date, onSave: @escaping (Park, Date) -> Void) {
-        _visitDate = State(initialValue: defaultDate)
-        self.onSave = onSave
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Picker("Park", selection: $selectedPark) {
-                        ForEach(Park.allCases) { park in
-                            Label(park.displayName, systemImage: park.systemImageName)
-                                .tag(park)
-                        }
-                    }
-
-                    DatePicker(
-                        "Visit Date",
-                        selection: $visitDate,
-                        displayedComponents: [.date]
-                    )
-                }
-            }
-            .navigationTitle("Add Park Visit")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
-                        onSave(selectedPark, visitDate)
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
-                }
-            }
-        }
-        .presentationDetents([.medium])
     }
 }
 

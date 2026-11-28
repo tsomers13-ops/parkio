@@ -269,6 +269,8 @@ struct RideMapBottomSheetView: View {
             .environment(mapVM)
             .environment(waitVM)
             .environment(MyDayStore())
+            .environment(WalkingRouteModel())
+            .environment(LocationService())
     }
     .modelContainer(container)
 }

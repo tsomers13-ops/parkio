@@ -535,13 +535,6 @@ final class MapViewModel {
         )
     }
 
-    // MARK: - Phase 3: Proximity
-
-    var selectedRideProximity: RideProximity? {
-        guard let dist = distanceToSelectedRide else { return nil }
-        return RideProximity(distance: dist)
-    }
-
     // MARK: - Phase 3: Declutter
 
     /// Density-based suppression with four interlocking mechanisms:
@@ -956,14 +949,6 @@ final class MapViewModel {
         return enrich(annotation: ann)
     }
 
-    var distanceToSelectedRide: CLLocationDistance? {
-        guard let userLoc = locationService?.userLocation,
-              let id = selectedRideId,
-              let ann = annotations.first(where: { $0.id == id })
-        else { return nil }
-        return userLoc.distance(from: CLLocation(latitude: ann.latitude, longitude: ann.longitude))
-    }
-
     // MARK: - State update hooks
 
     func updateRiddenState(rides: [Ride]) {
@@ -1156,7 +1141,12 @@ final class MapViewModel {
         return keys
     }
 
-    private func passes(marker: EnrichedMarker) -> Bool {
+    /// Pure MapFilterState predicate — shared by the live-map pipeline
+    /// (runPipeline Stage 4) and ParkMapCanvasView's Explore Map pin list, so
+    /// the two map surfaces always filter identically. Not `private` for that
+    /// reason: ParkMapCanvasView calls this directly rather than duplicating
+    /// the four-dimension check.
+    func passes(marker: EnrichedMarker) -> Bool {
         if !filters.showRidden  && marker.isRidden { return false }
         if filters.hideClosed,
            let live = marker.liveState,

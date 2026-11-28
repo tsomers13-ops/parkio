@@ -30,6 +30,15 @@
 import Foundation
 import SwiftData
 
+enum ManualVisitOutcome: Equatable {
+    case created
+    case alreadyLogged
+    /// The insert succeeded in memory but `context.save()` threw. The visit
+    /// was not persisted and the inserted object has been removed from the
+    /// context so no dirty state leaks to the caller.
+    case saveFailed
+}
+
 enum ParkVisitService {
 
     // MARK: - Public API
@@ -134,6 +143,31 @@ enum ParkVisitService {
         #if DEBUG
         print("🗑️ [ParkVisit] Removed — \(parkId) \(localDay) (no remaining RideLogs)")
         #endif
+    }
+
+    // MARK: - Manual save
+
+    /// Records a manual park visit for `park` on the park-local calendar day that
+    /// contains `date`. Returns `.alreadyLogged` without inserting if a visit
+    /// (of any source) already exists for that park+day combination.
+    @discardableResult
+    static func saveManualVisit(for park: Park, date: Date, context: ModelContext) -> ManualVisitOutcome {
+        let localDay = parkLocalDay(for: date, park: park)
+        let parkId   = park.backendId
+        let descriptor = FetchDescriptor<ParkVisit>()
+        let all        = (try? context.fetch(descriptor)) ?? []
+        let existing   = all.filter { $0.parkId == parkId && $0.visitDate == localDay }
+        guard existing.isEmpty else { return .alreadyLogged }
+        let visit = ParkVisit(parkId: parkId, visitDate: localDay, source: "manual")
+        context.insert(visit)
+        do {
+            try context.save()
+            return .created
+        } catch {
+            // Roll back the in-memory insert so the context stays clean.
+            context.delete(visit)
+            return .saveFailed
+        }
     }
 
     // MARK: - Date helper

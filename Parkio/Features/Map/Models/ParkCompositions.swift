@@ -136,7 +136,10 @@ enum MKComposition {
 }
 
 // MARK: - EPCOT  (1170 × 1152)
-
+//
+// The Explore Map draws the approved illustration at this canvas size.
+// ParkMapBackgroundView uses that image whenever the production asset exists,
+// so this default composition is the image frame, not a second schematic.
 enum EPCOTComposition {
     /// Canvas matches the 3x artwork (1170×1152) so a fixed-size pin covers
     /// the same share of the drawing as a Magic Kingdom pin on its 1000×1100

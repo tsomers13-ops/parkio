@@ -123,7 +123,7 @@ extension RideMasterData {
         // ── Liberty Square ────────────────────────────────────────────────────
         MA("The Diamond Horseshoe",
            park: .magicKingdom, land: "Liberty Square",
-           type: .quickService, outdoor: false, map: 3, seed: true),
+           type: .lounge, outdoor: false, map: 3, seed: true),
 
         MA("Liberty Tree Tavern",
            park: .magicKingdom, land: "Liberty Square",

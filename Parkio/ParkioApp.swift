@@ -68,7 +68,14 @@ struct ParkioApp: App {
             WaitTimeCache.self,
             ParkVisit.self
         ])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        // UI tests use an in-memory store so each test run starts from a clean
+        // slate and cannot pollute real user data on the device.
+        #if DEBUG
+        let inMemoryForTests = ProcessInfo.processInfo.arguments.contains("-parkio-uitests")
+        #else
+        let inMemoryForTests = false
+        #endif
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemoryForTests)
         guard let container = try? ModelContainer(for: schema, configurations: [config]) else {
             fatalError("Could not create ModelContainer — check schema for conflicts")
         }
