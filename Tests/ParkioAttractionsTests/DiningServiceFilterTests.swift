@@ -113,18 +113,21 @@ final class DiningServiceFilterTests: XCTestCase {
         XCTAssertTrue(sitDown.allSatisfy { $0.type.diningServiceStyle == .sitDown })
     }
 
-    /// Tom has not decided these two. The filter follows the type already
-    /// in the catalog; this test fails if that data is edited.
-    func testUndecidedVenuesKeepTheirCatalogServiceType() {
+    /// Decided by Tom, Nov 28. The Diamond Horseshoe is Sit-down. Plaza Inn
+    /// stays Quick service.
+    func testDiamondHorseshoeIsSitDown() {
         let diamondHorseshoe = "Magic Kingdom|Liberty Square|The Diamond Horseshoe"
-        let plazaInn = "Disneyland|Main Street, U.S.A.|Plaza Inn"
-
-        XCTAssertEqual(RideMasterData.typeByStableID[diamondHorseshoe], .quickService)
-        XCTAssertEqual(RideMasterData.typeByStableID[plazaInn], .quickService)
+        XCTAssertEqual(RideMasterData.typeByStableID[diamondHorseshoe], .lounge)
         XCTAssertEqual(
             RideMasterData.typeByStableID[diamondHorseshoe]?.diningServiceStyle,
-            .quickService
+            .sitDown
         )
+    }
+
+    /// Decided by Tom, Nov 28. Plaza Inn stays Quick service.
+    func testPlazaInnIsQuickService() {
+        let plazaInn = "Disneyland|Main Street, U.S.A.|Plaza Inn"
+        XCTAssertEqual(RideMasterData.typeByStableID[plazaInn], .quickService)
         XCTAssertEqual(
             RideMasterData.typeByStableID[plazaInn]?.diningServiceStyle,
             .quickService
